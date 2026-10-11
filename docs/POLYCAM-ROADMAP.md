@@ -83,12 +83,16 @@ Siehe [Worker, Hardware und Grenzen](../tools/reconstruction/README.md), [API-Ve
 
 Abnahme: selbst erzeugtes Mesh und Splat aus C2 öffnen, zwischen Ansichten wechseln und Originaldatensatz/Resultate eindeutig unterscheiden. Abbruch, Serverfehler und fehlende Engine zeigen verständliche nächste Schritte. Modellmaßstab bleibt sichtbar ungeprüft, bis eine benannte Referenz vorliegt. Echtes Panorama/Stitching und automatische Video-Frame-Auswahl bleiben eigene Implementierungen mit eigener Abnahme; der vorhandene ZIP-Worker führt beides nicht aus. Für 360° sind Naht, Horizont, Privatsphäre und eindeutige Blickrichtung zu prüfen, bevor ein fertiger Modus behauptet wird.
 
-### Bereits in Arbeit für 0.5.0, noch nicht abgenommen
+### In 0.5.0 implementiert, Geräteabnahme bleibt offen
 
-- Optionaler Browser-Fang an verfügbaren Eckpunkten/Kanten für leichter wiederholbare Endpunktwahl. Welche Geometrie tatsächlich als Fangziel dient, muss die Oberfläche und der Testnachweis genau benennen; „Fangen“ bedeutet keine neue geometrische Erkennung.
+- Optionaler Browser-Fang an verfügbaren Eckpunkten/Kanten für leichter wiederholbare Endpunktwahl. Der Browserdurchlauf hat zwei Eckpunktwahlen und den Erhalt einer Messung nach Splat-Import geprüft. Der Fangindex verwirft koplanare Tessellationskanten; „Fangen“ bedeutet keine neue geometrische Erkennung.
 - Native RoomPlan-Anzeige mit beschrifteten X-/Y-Dimensionen, Bodenfläche ausschließlich aus einem vorhandenen gültigen Polygon und Erklärung, dass Confidence die Kategoriesicherheit beschreibt. Eine fehlende Bodenfläche darf nicht aus Rechteckmaßen erfunden werden.
 
-Diese Änderungen werden erst nach Modulprüfungen und Browser-/Gerätenachweis höher eingestuft. Sie ersetzen weder den Endpunkteditor/Undo noch eine Messgenauigkeitsprüfung. Ein signierter iPhone-Gerätetest ist noch nicht erfolgt.
+- Native Object-Capture-Fotoaufnahme, private Originaldatensätze, lokale reduzierte USDZ-Rekonstruktion und ausdrücklich ausgelöster ZIP-/Files-Export sind im Code. Der native Compiler fand zwei korrigierte API-/Verfügbarkeitsfehler; die jeweiligen Folgebuilds sind in GitHub Actions nachprüfbar.
+- Der Browser und das native Offline-Bundle rendern echte Gaussian-Splats. Splat-Download und Wiederimport funktionierten im Browser. Native WKWebView, Kamera und GPU bleiben am iPhone zu prüfen. Die Anzeige nutzt Grundfarbe; höhere blickabhängige Farbanteile bleiben nur in der Originaldatei erhalten.
+- Privater Foto-Worker mit COLMAP, OpenMVS und OpenSplat, echte Bilddekodierung, authentifizierte Browser-Aufträge, Abbruch und Artefaktprüfung sind implementiert. Seine realen Engine-Builds/Smoke-Ergebnisse werden gesondert in GitHub Actions protokolliert; Jobtests mit FakeWorker werden nicht als Rekonstruktionsnachweis ausgegeben.
+
+Die lokalen Prüfungen umfassen 125 Node- und 41 Python-Tests sowie die in [VALIDATION.md](../tools/scan-workspace/VALIDATION.md) beschriebenen tatsächlichen Browserdurchläufe. Diese Funktionen ersetzen weder den Endpunkteditor/Undo noch eine Messgenauigkeitsprüfung. Ein signierter iPhone-Gerätetest ist noch nicht erfolgt. Panorama-Stitching, Video-/Drohnen-Frame-Auswahl und generatives Bild-zu-3D sind weiterhin offen.
 
 ### P0 parallel — Einen Raum und ein Tor belastbar bearbeiten
 
@@ -130,6 +134,6 @@ Die Kühlschrankprüfung bleibt eine gekennzeichnete Platzbedarfsabschätzung. E
 - Gerätetests mit iPhone 17 Pro und tatsächlich installiertem iOS protokollieren. Ein Xcode-/CI-Erfolg ersetzt weder Signierung noch Capture-Test.
 - Drei bis fünf neue Personen führen Raummaß, Torvorlage, Foto und Bericht ohne Entwicklerhilfe aus. Abbrüche und Rückfragen dokumentieren; geringe Klickzahl allein ist kein Nutzbarkeitsnachweis.
 - Web bei schmaler Ansicht, Touch, 200 % Zoom und Tastatur; iOS mit Dynamic Type und VoiceOver prüfen. Alle 15 Sprachfassungen brauchen fachliche und sprachkundige Kontrolle einschließlich RTL. Die vorhandenen Videos bleiben synthetische Anleitungen, bis reale Aufnahmen ausdrücklich hinzukommen.
-- Der derzeitige [Validierungsstand](../tools/scan-workspace/VALIDATION.md) beschreibt 88 lokale Node-Tests und begrenzte Browserübungen. Diese belegen keine der hier als offen bezeichneten neuen Funktionen. Reale Cloud-Anmeldung, vollständige Hilfstechnologieprüfung und signierter iPhone-Durchlauf sind weiterhin gesondert nachzuweisen.
+- Der aktuelle [Validierungsstand](../tools/scan-workspace/VALIDATION.md) trennt 125 lokale Node-Tests, 41 Python-Tests, tatsächliche Browserübungen und commitbezogene CI-Ergebnisse. Diese belegen keine der hier als offen bezeichneten Funktionen. Reale Cloud-Anmeldung, vollständige Hilfstechnologieprüfung und signierter iPhone-Durchlauf sind weiterhin gesondert nachzuweisen.
 - Produktname, RTAB-Map-Attribution, Abhängigkeiten und App-Store-Veröffentlichung nach dem [Release-Plan](APP-STORE-RELEASE.md) pflegen. Kantura bleibt unabhängig von einer Übernahme durch Upstream oder einer Verbindung zu Polycam.
 

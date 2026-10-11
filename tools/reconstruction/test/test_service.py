@@ -198,5 +198,124 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(self.service.get(running['id'])['error']['code'], 'interrupted')
 
 
+    def settled(self, identifier, timeout=8):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if self.service.current != identifier:
+                return
+            time.sleep(.02)
+        self.fail('Worker did not release its job')
+
+    def scratch_ready(self, identifier):
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            if (self.root / identifier / 'progress.json').exists():
+                return
+            time.sleep(.02)
+        self.fail('Sleeping worker did not start')
+
+    def test_generated_scratch_removed_after_success_original_and_artifacts_preserved(self):
+        self.start()
+        original = photo_zip(manifest=True)
+        job = self.final(self.upload(data=original)['id'])
+        self.settled(job['id'])
+        folder = self.root / job['id']
+        self.assertEqual(job['status'], 'complete')
+        self.assertFalse((folder / 'work').exists())
+        self.assertEqual((folder / 'input.zip').read_bytes(), original)
+        self.assertTrue((folder / 'worker.log').is_file())
+        self.assertTrue((folder / 'state.json').is_file())
+        for artifact in job['artifacts']:
+            self.assertEqual((folder / 'artifacts' / artifact['name']).stat().st_size, artifact['bytes'])
+
+    def test_generated_scratch_removed_after_worker_failure(self):
+        self.start('failure')
+        identifier = self.upload()['id']
+        self.assertEqual(self.final(identifier)['status'], 'failed')
+        self.settled(identifier)
+        folder = self.root / identifier
+        self.assertFalse((folder / 'work').exists())
+        self.assertTrue((folder / 'input.zip').is_file())
+        self.assertTrue((folder / 'worker.log').is_file())
+
+    def test_cancel_waits_for_process_before_cleaning_only_generated_scratch(self):
+        self.start('sleep')
+        identifier = self.upload()['id']
+        self.scratch_ready(identifier)
+        folder = self.root / identifier
+        self.assertTrue((folder / 'work' / 'generated' / 'intermediate.bin').exists())
+        self.assertFalse(self.service.cleanup_work({**self.service.get(identifier), 'status':'failed'}))
+        self.assertTrue((folder / 'work').exists())
+        process = self.service.process
+        self.service.cancel(identifier)
+        self.settled(identifier)
+        self.assertIsNotNone(process.poll())
+        self.assertFalse((folder / 'work').exists())
+        self.assertTrue((folder / 'input.zip').is_file())
+        self.assertTrue((folder / 'worker.log').is_file())
+
+    def test_service_close_terminates_worker_then_cleans_scratch(self):
+        self.start('sleep')
+        identifier = self.upload()['id']
+        self.scratch_ready(identifier)
+        process = self.service.process
+        self.service.close()
+        self.assertIsNotNone(process.poll())
+        folder = self.root / identifier
+        self.assertFalse((folder / 'work').exists())
+        self.assertTrue((folder / 'input.zip').is_file())
+        self.assertEqual(self.service.get(identifier)['status'], 'failed')
+
+    def test_restart_cleans_old_final_scratch_but_preserves_queued_and_unknown_running_work(self):
+        self.start(autostart=False)
+        finished, queued, running = self.upload(), self.upload(), self.upload()
+        self.service.change(self.service.jobs[finished['id']], status='complete')
+        self.service.change(self.service.jobs[running['id']], status='running')
+        for job in (finished, queued, running):
+            folder = self.root / job['id']
+            (folder / 'work').mkdir()
+            (folder / 'work' / 'intermediate.bin').write_bytes(b'old-generated-data')
+            (folder / 'artifacts').mkdir()
+            (folder / 'artifacts' / 'keep.bin').write_bytes(b'keep artifact')
+        self.service.close()
+        self.start(autostart=False)
+        self.assertFalse((self.root / finished['id'] / 'work').exists())
+        self.assertTrue((self.root / queued['id'] / 'work').is_dir())
+        self.assertTrue((self.root / running['id'] / 'work').is_dir())
+        for job in (finished, queued, running):
+            self.assertTrue((self.root / job['id'] / 'input.zip').is_file())
+            self.assertEqual((self.root / job['id'] / 'artifacts' / 'keep.bin').read_bytes(), b'keep artifact')
+        # A subsequent restart still cannot prove an orphaned worker has exited.
+        self.service.close()
+        self.start(autostart=False)
+        self.assertTrue((self.root / running['id'] / 'work').is_dir())
+
+    def test_cleanup_refuses_traversal_and_symlink_targets_outside_exact_job(self):
+        self.start(autostart=False)
+        job = self.upload()
+        self.service.change(self.service.jobs[job['id']], status='cancelled')
+        with tempfile.TemporaryDirectory() as outside:
+            external = Path(outside)
+            (external / 'keep.bin').write_bytes(b'outside')
+            self.assertFalse(self.service.cleanup_work({'id':'../'+external.name, 'status':'failed'}))
+            link = self.root / job['id'] / 'work'
+            try:
+                link.symlink_to(external, target_is_directory=True)
+            except OSError:
+                self.skipTest('Creating symlinks is unavailable on this host')
+            try:
+                self.assertFalse(self.service.cleanup_work(self.service.jobs[job['id']]))
+                self.assertEqual((external / 'keep.bin').read_bytes(), b'outside')
+                self.assertTrue(link.is_symlink())
+            finally:
+                link.unlink()
+            link.mkdir()
+            nested = link / 'nested'
+            nested.symlink_to(external, target_is_directory=True)
+            self.assertTrue(self.service.cleanup_work(self.service.jobs[job['id']]))
+            self.assertEqual((external / 'keep.bin').read_bytes(), b'outside')
+            self.assertFalse(link.exists())
+
+
 if __name__ == '__main__':
     unittest.main()

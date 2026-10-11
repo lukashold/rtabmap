@@ -56,6 +56,7 @@ def terminate_tree(process):
         process.wait(timeout=10)
     except subprocess.TimeoutExpired:
         process.kill()
+        process.wait(timeout=10)
 
 
 class Service:
@@ -101,12 +102,48 @@ class Service:
                 self.jobs[job['id']] = job
                 if job['status'] == 'running':
                     self.change(job, status='failed', stage='failed', error={'code': 'interrupted', 'message': 'Worker interrupted by service restart.'}, artifacts=[])
+                elif job['status'] in FINAL and isinstance(job.get('error'), dict) and job['error'].get('code') == 'interrupted':
+                    # A worker orphaned by a crash may still own these files.
+                    # Only a process whose exit we observed is safe to clean.
+                    pass
+                elif job['status'] in FINAL:
+                    self.cleanup_work(job)
             except (ValueError, OSError):
                 continue
         self.thread = threading.Thread(target=self.loop, name='reconstruction-worker', daemon=True)
         if autostart:
             self.thread.start()
             self.wake.set()
+
+    def cleanup_work(self, job):
+        """Remove only generated scratch after a terminal job's worker has exited."""
+        identifier = job.get('id')
+        if job.get('status') not in FINAL or not isinstance(identifier, str) or not re.fullmatch(UUID, identifier):
+            return False
+        with self.lock:
+            if self.current == identifier and self.process is not None and self.process.poll() is None:
+                return False
+            folder = self.root / identifier
+            work = folder / 'work'
+            try:
+                # Reparse points, symlinked job folders and redirected work roots
+                # must never turn a scratch cleanup into deletion elsewhere.
+                if folder.is_symlink() or folder.resolve(strict=True) != folder or folder.parent != self.root:
+                    return False
+                if not work.exists():
+                    return not work.is_symlink()
+                if work.is_symlink() or work.resolve(strict=True) != work or work.parent != folder or not work.is_dir():
+                    return False
+                # shutil.rmtree removes nested links without traversing them;
+                # on Linux its fd-based implementation also resists link swaps.
+                shutil.rmtree(work)
+                return True
+            except FileNotFoundError:
+                return not work.exists()  # Concurrent terminal cleanup is safe.
+            except OSError:
+                # Retain files and retry on restart; never invalidate outputs.
+                print('Scratch cleanup deferred for job ' + identifier, file=sys.stderr, flush=True)
+                return False
 
     def capabilities(self):
         decoder = importlib.util.find_spec('PIL') is not None and importlib.util.find_spec('pillow_heif') is not None
@@ -200,6 +237,8 @@ class Service:
                 process = None
         if process:
             terminate_tree(process)
+        else:
+            self.cleanup_work(job)  # Queued cancellation has no running worker.
         return self.get(identifier)
 
     def loop(self):
@@ -278,6 +317,9 @@ class Service:
         finally:
             if self.process:
                 terminate_tree(self.process)
+            # Preserve original uploads, status, logs and all artifact files.
+            # Cleanup is after process termination, including cancel/close.
+            self.cleanup_work(job)
             with self.lock:
                 self.process, self.current = None, None
 

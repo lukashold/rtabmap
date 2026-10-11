@@ -143,13 +143,21 @@ Cancellation terminates the process group/tree. Partial outputs never become
 downloadable. On restart, queued work resumes and interrupted running work is
 marked failed, rather than being incorrectly reported complete.
 
-Each job persists its state, original archive, private work files/log and final
-artifacts. The default time limit is two hours (`JOB_TIMEOUT_SECONDS`); the private
+Each job retains its state, original archive, logs and final artifacts. Generated
+`/data/<UUID>/work` intermediates are removed after completion, failure or
+cancellation, once the worker has exited; shutdown also waits for the worker
+before cleanup. Startup retries cleanup for already terminal jobs. Paths are
+checked against that exact private job directory, and symlinks are not followed.
+If cleanup cannot be completed, files remain for a later retry. Jobs interrupted
+by an unclean service restart retain their scratch because an orphaned worker
+could still be using it; stop any remaining workers before manually removing
+that job's `work` directory. The default time limit is two hours (`JOB_TIMEOUT_SECONDS`); the private
 work budget is 8 GiB per job and logs are capped at 8 MiB. Admission reserves free
 disk headroom; these limits are safeguards, not a guarantee against OS out-of-memory
 termination. Set Docker/host memory and CPU limits appropriate to the machine.
 
-No automatic deletion policy or public delete endpoint is implemented. Back up
+Original photos, final/partial artifacts, logs and job records are never
+automatically deleted. No public delete endpoint is implemented. Back up
 the data volume. To remove a job, stop the service first and remove only that job's
 UUID directory under the private data root. Unfinished upload folders have no
 published `state.json`; an operator can remove them while stopped. Retention,
@@ -163,10 +171,12 @@ Run the contract/API tests with Python 3.9 or newer:
 python -m unittest discover -s test -v
 ```
 
-All 41 tests passed locally on Windows with Python 3.9 and the pinned
-`requirements.txt` dependencies on 11 October 2026: 37 contract/API/process checks
-and four actual JPEG/PNG/HEIC decode/orientation/resize/error checks. The four
-codec checks explicitly skip if those dependencies are missing. The process tests
+On 11 October 2026, 46 of 47 tests passed locally on Windows with Python 3.9
+and the pinned `requirements.txt` dependencies; the filesystem-symlink cleanup
+case skipped because this Windows account cannot create symlinks. It runs in
+Linux CI. The suite includes six scratch-retention/process-lifecycle checks and
+four actual JPEG/PNG/HEIC decode/orientation/resize/error checks. Codec checks
+explicitly skip if those dependencies are missing. The process tests
 use an explicitly named **FakeWorker** to exercise queue transitions,
 failure, cancellation, artifact admission and persistence. Their small geometry
 fixtures are test data, never a replacement for reconstruction, and cannot be

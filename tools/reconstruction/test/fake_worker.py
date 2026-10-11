@@ -31,13 +31,16 @@ def main():
     parser.add_argument('--mode', required=True)
     parser.add_argument('--device')
     args = parser.parse_args()
+    scratch = args.job_dir / 'work' / 'generated'
+    scratch.mkdir(parents=True)
+    (scratch / 'intermediate.bin').write_bytes(b'test-only intermediate')
     if args.behavior == 'failure':
         return 7
     if args.behavior == 'sleep':
         (args.job_dir / 'progress.json').write_text('{"stage":"matching"}', 'utf-8')
         time.sleep(60)
     if args.behavior == 'oversize':
-        (args.job_dir / 'large.bin').write_bytes(b'x' * 32768)
+        (scratch / 'large.bin').write_bytes(b'x' * 32768)
         time.sleep(60)
     if args.behavior == 'valid':
         artifacts(args.job_dir / 'artifacts', args.mode)

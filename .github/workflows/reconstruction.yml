@@ -60,7 +60,9 @@ jobs:
         run: python tools/validation/reconstruction-smoke.py --archive /tmp/synthetic-photos.zip --output reconstruction-smoke --timeout 1200
       - name: Worker diagnostics
         if: always()
-        run: docker logs kantura-reconstruction || true
+        run: |
+          docker logs --tail 100 kantura-reconstruction || true
+          docker exec -i kantura-reconstruction python3 - < tools/validation/print-worker-diagnostics.py || true
       - name: Save real synthetic pipeline artifacts
         if: always()
         uses: actions/upload-artifact@v4

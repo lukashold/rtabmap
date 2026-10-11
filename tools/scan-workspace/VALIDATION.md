@@ -6,7 +6,11 @@ The Windows run passes **125 Node tests**. These include actual HTTP transport,
 reconstruction authentication and bounded streaming, Gaussian-file detection,
 offline native bridge payloads, race recovery and edge/corner snapping. The Python
 worker suite passes **41 tests**, including real JPEG/PNG/HEIC decoding and EXIF
-rotation. Its process/job tests use explicitly identified fake workers; they do
+rotation. Six additional workspace-cleanup tests bring the suite to 47 tests:
+46 pass on Windows; the actual symbolic-link case is skipped because Windows
+does not permit creating that link here. Linux CI executes that case. Cleanup
+keeps the original archive, artifacts and logs and only removes the generated
+work directory after a finished process. Its process/job tests use explicitly identified fake workers; they do
 not establish a successful COLMAP/OpenMVS/OpenSplat reconstruction.
 
 The actual browser rendered the original synthetic Splat demo, downloaded it and
