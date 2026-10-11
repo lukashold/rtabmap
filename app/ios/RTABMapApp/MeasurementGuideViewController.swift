@@ -7,6 +7,8 @@ final class MeasurementGuideViewController: UIViewController {
     var onAction: ((Action) -> Void)?
     var onLanguageChange: (() -> Void)?
     var onClose: (() -> Void)?
+    var onRoomPlan: (() -> Void)?
+    var onRoomPlanLibrary: (() -> Void)?
     var workflowState = MeasurementWorkflowState(phase: .ready, canReconstruct: false, hasProjects: false)
     private let guides = MeasurementGuide.all
     private var step: Int?
@@ -118,6 +120,21 @@ final class MeasurementGuideViewController: UIViewController {
         let statusLabel = label(status, style: .subheadline, color: .secondaryLabel)
         statusLabel.textAlignment = .center
         content.addArrangedSubview(statusLabel)
+        if workflowState.availableActions.contains(.scan) {
+            content.addArrangedSubview(button(MeasurementGuide.roomText("modeTitle"), icon: "square.split.bottomrightquarter") { [weak self] in
+                guard let self = self else { return }
+                let callback = self.onRoomPlan
+                let closed = self.onClose
+                self.dismiss(animated: true) { closed?(); callback?() }
+            })
+            content.addArrangedSubview(label(MeasurementGuide.roomText("modeDetail"), style: .footnote, color: .secondaryLabel))
+            content.addArrangedSubview(button(MeasurementGuide.roomText("library"), icon: "building.2") { [weak self] in
+                guard let self = self else { return }
+                let callback = self.onRoomPlanLibrary
+                let closed = self.onClose
+                self.dismiss(animated: true) { closed?(); callback?() }
+            })
+        }
         let entries: [(Action, String)] = [(.scan, "camera.viewfinder"), (.assemble, "cube.transparent"), (.measure, "ruler"), (.share, "square.and.arrow.up")]
         for (index, entry) in entries.enumerated() where workflow.stages.indices.contains(index) {
             let stage = workflow.stages[index]

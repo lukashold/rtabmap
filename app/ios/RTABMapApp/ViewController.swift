@@ -47,6 +47,7 @@ class ViewController: GLKViewController, ARSessionDelegate, RTABMapObserver, UIP
     private var toastDismissal: DispatchWorkItem?
     private var measurementWelcomeShown = false
     private let measurementDashboardButton = UIButton(type: .system)
+    private var roomPlanPresented = false
     
     private var mReviewRequested = false
     
@@ -605,6 +606,8 @@ class ViewController: GLKViewController, ARSessionDelegate, RTABMapObserver, UIP
     
     @objc func appMovedToForeground() {
         print("appMovedToForeground()")
+        // RoomPlan owns its camera lifecycle while its separate workspace is open.
+        guard !roomPlanPresented else { return }
         updateDisplayFromDefaults()
         updateState(state: mState)
         
@@ -2260,6 +2263,8 @@ class ViewController: GLKViewController, ARSessionDelegate, RTABMapObserver, UIP
         let guide = MeasurementGuideViewController()
         guide.workflowState = measurementWorkflowState
         guide.onClose = { [weak self] in self?.resetNoTouchTimer(true) }
+        guide.onRoomPlan = { [weak self] in self?.showRoomPlan() }
+        guide.onRoomPlanLibrary = { [weak self] in self?.showRoomPlanLibrary() }
         guide.onLanguageChange = { [weak self] in
             guard let self = self else { return }
             self.updateState(state: self.mState)
@@ -2287,6 +2292,55 @@ class ViewController: GLKViewController, ARSessionDelegate, RTABMapObserver, UIP
         let navigation = UINavigationController(rootViewController: guide)
         navigation.modalPresentationStyle = .fullScreen
         present(navigation, animated: true)
+    }
+
+    private func prepareForRoomPlanPresentation() -> Bool {
+        guard presentedViewController == nil, measurementWorkflowState.phase != .busy, !roomPlanPresented else { return false }
+        // Retain the current RTAB-Map model, but release its camera and AR session.
+        session.pause()
+        locationManager?.stopUpdatingLocation()
+        rtabmap?.setPausedMapping(paused: true)
+        rtabmap?.stopCamera()
+        return true
+    }
+
+    private func showRoomPlan() {
+        guard prepareForRoomPlanPresentation() else { return }
+        if #available(iOS 17.0, *), RoomPlanViewController.isSupported {
+            let room = RoomPlanViewController()
+            room.onClose = { [weak self] in
+                self?.roomPlanPresented = false
+                self?.resetNoTouchTimer(true)
+            }
+            roomPlanPresented = true
+            let navigation = UINavigationController(rootViewController: room)
+            navigation.modalPresentationStyle = .fullScreen
+            present(navigation, animated: true)
+        } else {
+            let alert = UIAlertController(title: MeasurementGuide.roomText("title"), message: MeasurementGuide.roomText("unsupported"), preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: MeasurementGuide.roomText("close"), style: .default))
+            present(alert, animated: true)
+        }
+    }
+
+    private func showRoomPlanLibrary() {
+        guard prepareForRoomPlanPresentation() else { return }
+        if #available(iOS 17.0, *) {
+            let library = RoomPlanLibraryViewController(style: .insetGrouped)
+            library.onClose = { [weak self] in
+                self?.roomPlanPresented = false
+                self?.resetNoTouchTimer(true)
+            }
+            library.onNewRoom = { [weak self] in self?.showRoomPlan() }
+            roomPlanPresented = true
+            let navigation = UINavigationController(rootViewController: library)
+            navigation.modalPresentationStyle = .fullScreen
+            present(navigation, animated: true)
+        } else {
+            let alert = UIAlertController(title: MeasurementGuide.roomText("library"), message: MeasurementGuide.roomText("unsupported"), preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: MeasurementGuide.roomText("close"), style: .default))
+            present(alert, animated: true)
+        }
     }
 
     private func prepareMeasurementScan() {

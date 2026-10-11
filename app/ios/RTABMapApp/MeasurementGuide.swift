@@ -36,6 +36,11 @@ struct MeasurementGuide: Decodable {
     let cloudHelp: String
     let steps: [Step]
     let workflow: Workflow?
+    let roomPlan: [String: String]?
+
+    static func roomText(_ key: String) -> String {
+        all[selectedLanguage]?.roomPlan?[key] ?? all["de"]?.roomPlan?[key] ?? key
+    }
 
     static let languages = ["de", "fr", "es", "it", "zh-Hans"]
     static let all = load()
