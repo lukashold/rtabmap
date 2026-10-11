@@ -7,6 +7,7 @@ import shutil
 import struct
 import subprocess
 import sys
+import traceback
 import warnings
 import zipfile
 from datetime import datetime, timezone
@@ -88,6 +89,7 @@ def reconstruct(job_dir, mode, device='cpu', iterations=1000, threads=2, image_m
         result = subprocess.run(command, cwd=cwd, stdin=subprocess.DEVNULL, check=False,
                                 env={**os.environ, 'QT_QPA_PLATFORM': 'offscreen', 'OMP_NUM_THREADS': str(threads)})
         commands.append({'stage': stage, 'program': executable, 'exitCode': result.returncode})
+        print(json.dumps({'stage': stage, 'program': executable, 'exitCode': result.returncode}), flush=True)
         if result.returncode:
             raise ContractError('reconstruction_failed')
 
@@ -122,7 +124,10 @@ def reconstruct(job_dir, mode, device='cpu', iterations=1000, threads=2, image_m
         if not model.is_file():
             raise ContractError('invalid_artifacts')
         shutil.copyfile(model, output / 'model.ply')
-        run('texturing', 'TextureMesh', '-i', mesh_scene, '-o', textured / 'model.mvs', '--export-type', 'obj', '--resolution-level', '1', '--min-resolution', '320', '--max-threads', threads)
+        # OpenMVS 2.3 ReconstructMesh does not save scene_mesh.mvs when the
+        # input is interface format and archive-type retains its -1 default.
+        # Keep that camera scene and provide its reconstructed mesh explicitly.
+        run('texturing', 'TextureMesh', '-i', dense_scene, '--mesh-file', model, '-o', textured / 'model.mvs', '--export-type', 'obj', '--resolution-level', '1', '--min-resolution', '320', '--max-threads', threads)
         files = [p for p in textured.rglob('*') if p.is_file() and p.suffix.lower() in {'.obj', '.mtl', '.png', '.jpg', '.jpeg'}]
         if not any(p.suffix == '.obj' for p in files) or sum(p.stat().st_size for p in files) > LIMITS.output_expanded:
             raise ContractError('invalid_artifacts')
@@ -172,6 +177,8 @@ def main():
     try:
         reconstruct(args.job_dir, args.mode, args.device, args.iterations, args.threads, args.image_max_side)
     except Exception as error:
+        if not isinstance(error, ContractError):
+            traceback.print_exc()  # Private worker.log, never the public API.
         code = error.code if isinstance(error, ContractError) else 'reconstruction_failed'
         atomic_json(args.job_dir / 'error.json', {'code': code})
         print('Reconstruction failed: ' + code, file=sys.stderr)

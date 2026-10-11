@@ -10,7 +10,12 @@ rotation. Six additional workspace-cleanup tests bring the suite to 47 tests:
 46 pass on Windows; the actual symbolic-link case is skipped because Windows
 does not permit creating that link here. Linux CI executes that case. Cleanup
 keeps the original archive, artifacts and logs and only removes the generated
-work directory after a finished process. Its process/job tests use explicitly identified fake workers; they do
+work directory after a finished process. Two additional orchestration/logging
+regressions bring the latest suite to 49 (48 pass on Windows, one link skip).
+The Linux run passed all 47 preceding cases. The actual engine smoke identified
+and corrected an OpenMVS handoff: TextureMesh now receives the existing dense
+scene plus the separately exported PLY, rather than a nonexistent mesh scene.
+Its process/job tests use explicitly identified fake workers; they do
 not establish a successful COLMAP/OpenMVS/OpenSplat reconstruction.
 
 The actual browser rendered the original synthetic Splat demo, downloaded it and

@@ -171,7 +171,7 @@ Run the contract/API tests with Python 3.9 or newer:
 python -m unittest discover -s test -v
 ```
 
-On 11 October 2026, 46 of 47 tests passed locally on Windows with Python 3.9
+On 11 October 2026, 48 of 49 tests passed locally on Windows with Python 3.9
 and the pinned `requirements.txt` dependencies; the filesystem-symlink cleanup
 case skipped because this Windows account cannot create symlinks. It runs in
 Linux CI. The suite includes six scratch-retention/process-lifecycle checks and
