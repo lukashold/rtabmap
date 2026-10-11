@@ -9,6 +9,8 @@ import { preparePhoto, photoData, referenceCheck } from './experience.js';
 import { floorplanDXF, measurementReport } from './report.js';
 import { assessTransport } from './transport.js';
 import { applianceCatalog } from './appliance-catalog.js';
+import { designDictionaries } from './design-i18n.js';
+import videos from '../public/videos/scripts.json' with { type: 'json' };
 
 const $=id=>document.getElementById(id);
 const storage={get(key){try{return localStorage.getItem(key);}catch{return null;}},set(key,value){try{localStorage.setItem(key,value);}catch{}}};
@@ -16,7 +18,7 @@ let language=resolveLanguage(storage.get('rtab-language')||navigator.language),b
 let building={name:'',rooms:[],activeRoom:null},addingRoom=false,selectedMeasurement=null,editingNote,notePoint,removePhoto=false,photoPreviewURL,transportResult,transportRecord;
 const photoURLs=new Map();
 let provider='microsoft',config={},authReady=false,drive,cloudBusy=false,toastTimer,authAttempt=0;
-const t=key=>experienceDictionaries[language]?.[key]||dictionaries[language][key]||key;
+const t=key=>designDictionaries[language]?.[key]||experienceDictionaries[language]?.[key]||dictionaries[language][key]||key;
 const format=value=>new Intl.NumberFormat(language,{maximumFractionDigits:3}).format(value);
 const icons={folder:'M3 7h7l2 2h9v11H3z M3 7V4h7l2 3',ruler:'M3 16L16 3l5 5L8 21z M8 11l3 3 M12 7l3 3 M5 14l3 3',floor:'M3 4h18v16H3z M3 9h6V4 M15 20v-5h6',surface:'M3 8l13-5 5 13-13 5z',target:'M12 3v4 M12 17v4 M3 12h4 M17 12h4 M17 12a5 5 0 1 1-10 0 5 5 0 0 1 10 0',cloud:'M6 18a5 5 0 0 1-1-10 7 7 0 0 1 13-1 5 5 0 0 1 0 11 M12 20V10 M8 14l4-4 4 4',cube:'M12 2l9 5v10l-9 5-9-5V7z M3 7l9 5 9-5 M12 12v10',image:'M3 3h18v18H3z M3 17l6-6 4 4 3-3 5 5 M15 7h1',layers:'M3 7l9-5 9 5-9 5z M3 12l9 5 9-5 M3 17l9 5 9-5',fit:'M8 3H3v5 M16 3h5v5 M3 16v5h5 M21 16v5h-5',book:'M12 5Q6 1 2 4v16q5-3 10 0 5-3 10 0V4q-5-3-10 1v15',save:'M4 3h13l4 4v14H3V3z M7 3v6h10V3 M7 21v-8h10v8',download:'M12 3v12 M7 10l5 5 5-5 M4 16v5h16v-5'};
 function icon(name){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${icons[name]||icons.cube}"/></svg>`;}
@@ -31,6 +33,7 @@ function workspaceSnapshot(){stashRoom();return {name:building.name,activeRoom:b
 function stateSignature(){stashRoom();return JSON.stringify({name:building.name,activeRoom:building.activeRoom,rooms:building.rooms.map(r=>({id:r.id,floor:r.floor,project:r.project}))});}
 function refreshRooms(){const select=$('room-select');select.replaceChildren();building.rooms.forEach(r=>{const option=document.createElement('option');option.value=r.id;option.textContent=`${r.floor} · ${r.id===building.activeRoom?project().name:r.project.name}`;select.append(option);});select.value=building.activeRoom||'';select.disabled=busy||!bundle;$('add-room').disabled=busy;}
 function refresh(){
+  const home=!bundle||document.body.classList.contains('show-home');$('home-screen').hidden=!home;document.querySelector('.workspace').hidden=home;document.querySelector('.workflow').hidden=home;$('return-workspace').hidden=!bundle;
   $('save').disabled=!bundle||busy;$('csv').disabled=!measurements.length;$('svg').disabled=!measurements.some(m=>m.kind==='floor');
   $('dxf').disabled=$('svg').disabled;$('report').disabled=!bundle||busy;$('verify').disabled=!measurements.some(m=>m.kind==='distance')||busy;
   $('empty-overlay').hidden=!!bundle;$('model-name').hidden=!bundle;$('model-name').textContent=bundle?.model||'';$('demo-badge').hidden=!bundle?.demo;
@@ -86,7 +89,7 @@ async function load(next,{keepBuilding=false,roomId}={}){
   if(!viewer)throw {code:'unsupported'};busy=true;refresh();toast(t('loading'));
   try{
     const model=await parseModel(next),p=next.project;
-    bundle={...next};delete bundle.building;bundle.demo=!!(next.demo||p?.demo);scale=p?.scale||1;upAxis=p?.upAxis||(/\.glb$/i.test(next.model)?'y':'z');
+    bundle={...next};delete bundle.building;document.body.classList.remove('show-home');document.querySelector('.workspace').hidden=false;document.querySelector('.workflow').hidden=false;$('home-screen').hidden=true;bundle.demo=!!(next.demo||p?.demo);scale=p?.scale||1;upAxis=p?.upAxis||(/\.glb$/i.test(next.model)?'y':'z');
     measurements=p?.measurements||[];measurements.forEach(m=>m.id??=crypto.randomUUID());notes=p?.notes||[];checks=p?.checks||[];calibrated=!!p?.calibrated;pending=[];mode='orbit';selectedMeasurement=null;editingNote=undefined;
     transportRecord=p?.transport;transportResult=undefined;$('transport-result').hidden=true;$('transport-canvas').hidden=true;$('transport-step').hidden=true;
     photoURLs.forEach(URL.revokeObjectURL);photoURLs.clear();
@@ -102,6 +105,11 @@ async function load(next,{keepBuilding=false,roomId}={}){
 }
 async function openFiles(files){if(!files.length||busy||(!addingRoom&&!allowReplace()))return;const append=addingRoom;addingRoom=false;try{if(append)stashRoom();const next=await readFiles(files,{roomLabels:{wall:t('wall'),door:t('door'),window:t('window'),opening:t('opening'),floor:t('kindFloor'),width:t('width'),height:t('height')}});if(append&&next.building)throw {code:'invalidProject'};await load(next,{keepBuilding:append&&!!building.rooms.length});dirty=append;}catch(e){showError(e);}}
 ['open','open-hero'].forEach(id=>$(id).onclick=()=>{addingRoom=false;$('file').click();});
+$('home-open').onclick=()=>{addingRoom=false;$('file').click();};
+$('home-demo').onclick=()=>$('demo').click();
+document.querySelectorAll('[data-entry]').forEach(button=>button.onclick=()=>{addingRoom=false;$('file').click();});
+$('home-nav').onclick=()=>{document.body.classList.add('show-home');refresh();};
+$('return-workspace').onclick=()=>{document.body.classList.remove('show-home');refresh();viewer?.fit();};
 $('file').addEventListener('cancel',()=>addingRoom=false);
 $('file').onchange=async()=>{await openFiles($('file').files);$('file').value='';};
 $('demo').onclick=async()=>{if(!allowReplace())return;try{await load(demoBundle());dirty=false;}catch(e){showError(e);}};
@@ -138,6 +146,18 @@ function openGuide(step=0){guideStep=step;renderGuide();$('guide-dialog').showMo
 $('tutorial').onclick=()=>openGuide();document.querySelectorAll('[data-guide-step]').forEach(el=>el.onclick=()=>openGuide(Number(el.dataset.guideStep)));
 $('guide-back').onclick=()=>{guideStep--;renderGuide();};$('guide-next').onclick=()=>{if(guideStep===guide[language].steps.length-1)$('guide-dialog').close();else{guideStep++;renderGuide();}};
 document.querySelectorAll('[data-close]').forEach(el=>el.onclick=()=>$(el.dataset.close).close());
+function openVideo(){
+  const script=videos.languages[language]||videos.languages.en,video=$('explainer-video');video.pause();
+  $('video-title').textContent=script.title;$('video-description').textContent=script.description;$('video-error').hidden=true;
+  video.replaceChildren();const source=document.createElement('source');source.src=`./videos/kantura-${language}.mp4`;source.type='video/mp4';video.append(source);
+  const track=document.createElement('track');track.kind='captions';track.src=`./videos/kantura-${language}.vtt`;track.srclang=language;track.label=$('language').selectedOptions[0].textContent;video.append(track);
+  video.load();$('video-download').href=source.src;$('caption-download').href=track.src;$('video-transcript').replaceChildren();
+  script.scenes.forEach(scene=>{const li=document.createElement('li'),title=document.createElement('strong'),body=document.createElement('p');title.textContent=scene.title;body.textContent=scene.narration;li.append(title,body);$('video-transcript').append(li);});
+  $('video-dialog').showModal();
+}
+['learn-nav','home-video','hero-video'].forEach(id=>$(id).onclick=openVideo);
+$('explainer-video').addEventListener('error',()=>$('video-error').hidden=false);
+$('video-dialog').addEventListener('close',()=>$('explainer-video').pause());
 
 function noteURL(note){if(!note.photo||!bundle?.assets[note.photo])return undefined;if(!photoURLs.has(note.photo))photoURLs.set(note.photo,URL.createObjectURL(new Blob([bundle.assets[note.photo]],{type:note.photo.endsWith('.png')?'image/png':note.photo.endsWith('.webp')?'image/webp':'image/jpeg'})));return photoURLs.get(note.photo);}
 function openNote(note){if(!bundle||busy)return;editingNote=note?.id;notePoint=note?.point||notePoint;removePhoto=false;$('note-title').value=note?.title||'';$('note-kind').value=note?.kind||'other';$('note-description').value=note?.description||'';$('note-photo').value='';const url=note&&noteURL(note);$('note-preview').hidden=!url;if(url)$('note-preview').src=url;$('note-dialog').showModal();$('note-title').focus();}

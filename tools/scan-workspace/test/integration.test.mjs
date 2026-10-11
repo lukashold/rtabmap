@@ -4,15 +4,30 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { guide,dictionaries,resolveLanguage } from '../src/i18n.js';
+import { experienceDictionaries, experienceText } from '../src/experience-i18n.js';
 import { createAppServer } from '../server.mjs';
-test('five complete tutorials and UI dictionaries share supported languages',()=>{
-  assert.deepEqual(Object.keys(guide),['de','fr','es','it','zh-Hans']);
+test('six complete tutorials and UI dictionaries share supported languages',()=>{
+  assert.deepEqual(Object.keys(guide),['de','fr','es','it','zh-Hans','en']);
+  assert.deepEqual(Object.keys(dictionaries).sort(),Object.keys(guide).sort());
+  assert.deepEqual(Object.keys(experienceDictionaries).sort(),Object.keys(guide).sort());
   for(const [lang,g] of Object.entries(guide)){
     assert.equal(g.steps.length,7);assert.ok(g.steps.every(s=>s.title&&s.body&&s.icon));
-    assert.equal(Object.keys(dictionaries[lang]).length,Object.keys(dictionaries.de).length);
+    assert.deepEqual(Object.keys(dictionaries[lang]),Object.keys(dictionaries.de));
     assert.ok(Object.values(dictionaries[lang]).every(v=>typeof v==='string'&&v.length));
+    assert.deepEqual(Object.keys(experienceDictionaries[lang]),Object.keys(experienceDictionaries.de));
+    assert.ok(Object.values(experienceDictionaries[lang]).every(v=>typeof v==='string'&&v.length));
+    assert.deepEqual(Object.keys(g),Object.keys(guide.de));
+    assert.deepEqual(Object.keys(g.workflow),Object.keys(guide.de.workflow));
+    assert.equal(g.workflow.stages.length,4);assert.ok(g.workflow.stages.every(s=>s.title&&s.detail));
+    assert.equal(Object.keys(g.roomPlan).length,56);
+    assert.deepEqual(Object.keys(g.roomPlan),Object.keys(guide.de.roomPlan));
+    assert.ok(Object.values(g.roomPlan).every(v=>typeof v==='string'&&v.length));
   }
-  assert.equal(resolveLanguage('fr-CA'),'fr');assert.equal(resolveLanguage('zh-TW'),'zh-Hans');assert.equal(resolveLanguage('en'),'de');
+  assert.equal(resolveLanguage('fr-CA'),'fr');assert.equal(resolveLanguage('zh-TW'),'zh-Hans');assert.equal(resolveLanguage('en'),'en');
+  assert.equal(resolveLanguage('en-US'),'en');assert.equal(resolveLanguage('EN_gb'),'en');assert.equal(resolveLanguage('nl-NL'),'de');
+  assert.equal(experienceText('en-US','remainingClearance'),'Remaining clearance');
+  assert.equal(experienceText('EN_gb','kindDoor'),'Door');
+  assert.equal(experienceText('nl-NL','kindDoor'),experienceDictionaries.de.kindDoor);
 });
 test('static server exposes public configuration, rejects writes and traversal',async()=>{
   const root=await mkdtemp(join(tmpdir(),'rtab-web-'));await writeFile(join(root,'index.html'),'<h1>test</h1>');

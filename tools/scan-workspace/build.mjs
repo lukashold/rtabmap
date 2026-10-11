@@ -1,9 +1,10 @@
 import { build } from 'esbuild';
-import { mkdir, copyFile, writeFile, readFile, realpath } from 'node:fs/promises';
+import { mkdir, copyFile, writeFile, readFile, realpath, cp } from 'node:fs/promises';
 import { resolve } from 'node:path';
 await mkdir('dist', { recursive: true });
 await build({ entryPoints: ['src/main.js', 'src/auth.js'], bundle: true, format: 'esm', outdir: 'dist', minify: true, sourcemap: true, target: ['es2022'], legalComments: 'linked' });
 for (const file of ['index.html', 'style.css', 'auth.html', 'kantura.svg']) await copyFile(`public/${file}`, `dist/${file}`);
+await cp('public/videos','dist/videos',{recursive:true});
 await writeFile('dist/config.json', JSON.stringify({ googleClientId: '', microsoftClientId: '' }));
 const browserPath=await realpath('node_modules/@azure/msal-browser');
 const notices=[['RTAB-Map / Kantura','../../LICENSE'],['Three.js','node_modules/three/LICENSE'],['fflate','node_modules/fflate/LICENSE'],['MSAL Browser','node_modules/@azure/msal-browser/LICENSE'],['MSAL Common',resolve(browserPath,'../msal-common/LICENSE')]];

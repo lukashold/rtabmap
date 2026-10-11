@@ -1,0 +1,58 @@
+{
+  "language": "en",
+  "duration": 66.915,
+  "narration": "piper-tts",
+  "voice": "en_US-ljspeech-medium",
+  "chapters": [
+    {
+      "id": "start",
+      "start": 0,
+      "end": 8.917,
+      "title": "Choose a scan"
+    },
+    {
+      "id": "capture",
+      "start": 8.917,
+      "end": 16.883,
+      "title": "Capture one room"
+    },
+    {
+      "id": "organize",
+      "start": 16.883,
+      "end": 24.65,
+      "title": "Building, floor, room"
+    },
+    {
+      "id": "inspect",
+      "start": 24.65,
+      "end": 33.904,
+      "title": "Review on your computer"
+    },
+    {
+      "id": "measure",
+      "start": 33.904,
+      "end": 40.894,
+      "title": "Compare a tape measurement"
+    },
+    {
+      "id": "photos",
+      "start": 40.894,
+      "end": 48.105,
+      "title": "Add a photo"
+    },
+    {
+      "id": "share",
+      "start": 48.105,
+      "end": 56.163,
+      "title": "Save and share"
+    },
+    {
+      "id": "transport",
+      "start": 56.163,
+      "end": 66.915,
+      "title": "Estimate transport space"
+    }
+  ],
+  "bytes": 1366136,
+  "synthetic": true
+}

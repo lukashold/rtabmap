@@ -1,0 +1,58 @@
+{
+  "language": "de",
+  "duration": 86.8,
+  "narration": "edge",
+  "voice": "de-DE-KatjaNeural",
+  "chapters": [
+    {
+      "id": "start",
+      "start": 0,
+      "end": 10.34,
+      "title": "Den Scan wählen"
+    },
+    {
+      "id": "capture",
+      "start": 10.34,
+      "end": 21.688,
+      "title": "Ein Zimmer erfassen"
+    },
+    {
+      "id": "organize",
+      "start": 21.688,
+      "end": 32.988,
+      "title": "Haus, Etage, Raum"
+    },
+    {
+      "id": "inspect",
+      "start": 32.988,
+      "end": 43.592,
+      "title": "Am Computer prüfen"
+    },
+    {
+      "id": "measure",
+      "start": 43.592,
+      "end": 52.372,
+      "title": "Mit einem Maßband vergleichen"
+    },
+    {
+      "id": "photos",
+      "start": 52.372,
+      "end": 64.128,
+      "title": "Ein Foto hinzufügen"
+    },
+    {
+      "id": "share",
+      "start": 64.128,
+      "end": 74.564,
+      "title": "Sichern und teilen"
+    },
+    {
+      "id": "transport",
+      "start": 74.564,
+      "end": 86.8,
+      "title": "Transport einschätzen"
+    }
+  ],
+  "bytes": 1594513,
+  "synthetic": true
+}

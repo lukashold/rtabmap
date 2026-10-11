@@ -1,0 +1,25 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:07.622
+Voici une démo animée, pas un scan réel. Choisissez RoomPlan pour les intérieurs, ou le LiDAR pour textures et portails.
+
+00:00:07.622 --> 00:00:15.856
+Parcourez lentement une pièce. Montrez sol, murs, portes et fenêtres. Suivez les indications de la caméra pendant la capture RoomPlan.
+
+00:00:15.856 --> 00:00:23.336
+Terminez la capture et nommez bâtiment, étage et pièce. Enregistrez les fichiers. Chaque pièce conserve ses propres coordonnées.
+
+00:00:23.336 --> 00:00:31.362
+Ouvrez le fichier de pièce Kantura sur votre ordinateur et ajoutez d’autres pièces. Vérifiez surfaces, lacunes visibles et dimensions importées.
+
+00:00:31.362 --> 00:00:38.465
+Choisissez une distance et mesurez-la aussi au mètre ruban. Saisissez cette longueur de référence ; Kantura affiche l’écart.
+
+00:00:38.465 --> 00:00:46.106
+Placez une note sur le modèle. Ajoutez description et photo pour expliquer l’endroit. Une photo n’est pas une mesure supplémentaire.
+
+00:00:46.106 --> 00:00:53.993
+Téléchargez le rapport et imprimez-le en PDF. Enregistrez le projet localement, dans un cloud configuré ou sur votre serveur Docker.
+
+00:00:53.993 --> 00:01:02.200
+Le transport vérifie des volumes simplifiés, sans calculer marches, rampes ni porteurs. Contrôlez le trajet réel et les instructions du fabricant.

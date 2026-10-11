@@ -1,0 +1,57 @@
+name: KANTURA bug report
+description: Report a reproducible issue in the independent lukashold/rtabmap fork.
+title: "[KANTURA bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This form is for KANTURA on `lukashold/rtabmap:kantura/main`. For a general upstream RTAB-Map issue, use the upstream project's process. Search existing issues first. Do not attach private scans, credentials or account details.
+  - type: input
+    id: revision
+    attributes:
+      label: Version or commit
+      description: Include the branch, commit/build and whether you use this fork or the official RTAB-Map app.
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected area
+      options:
+        - iOS ordinary LiDAR capture
+        - iOS RoomPlan or room library
+        - Browser import or room management
+        - Measurement or reference check
+        - Photo note or report/CAD export
+        - Transport estimate
+        - Cloud or Docker storage
+        - Tutorial or accessibility
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Device and environment
+      description: iPhone/iPad model and iOS version, or OS/browser version; include deployment mode for Docker/cloud issues.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include capture/import mode, input format and actions in order. Identify synthetic versus real data.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Expected and actual result
+      description: For measurement issues include measured/reference values, units and how the reference was obtained.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Minimal sample or evidence
+      description: Optional redacted logs, screenshot or a small synthetic sample. Share only content you have permission to publish.

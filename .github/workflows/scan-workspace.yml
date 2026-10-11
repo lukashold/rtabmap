@@ -42,6 +42,17 @@ jobs:
           assert.equal((await (await fetch(base + '/config.json')).json()).serverEnabled, true);
           assert.equal((await fetch(base + '/api/projects')).status, 401);
           assert.equal((await fetch(base + '/kantura.svg')).headers.get('content-type'), 'image/svg+xml');
+          for (const language of ['de', 'en', 'fr', 'es', 'it', 'zh-Hans']) {
+            const video = await fetch(base + '/videos/kantura-' + language + '.mp4', { headers: { Range: 'bytes=0-31' } });
+            assert.equal(video.status, 206);
+            assert.equal(video.headers.get('content-type'), 'video/mp4');
+            const prefix = new Uint8Array(await video.arrayBuffer());
+            assert.equal(prefix.length, 32);
+            assert.equal(new TextDecoder().decode(prefix.slice(4, 8)), 'ftyp');
+            const captions = await fetch(base + '/videos/kantura-' + language + '.vtt');
+            assert.equal(captions.headers.get('content-type'), 'text/vtt; charset=utf-8');
+            assert.ok((await captions.text()).startsWith('WEBVTT'));
+          }
           const archive = zipSync({ 'room.obj': strToU8('v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3') });
           const created = await fetch(base + '/api/projects?name=Container%20persistence', { method: 'POST', headers: { authorization, 'Content-Type': 'application/zip' }, body: archive });
           assert.equal(created.status, 201);

@@ -3,18 +3,24 @@
 <img src="tools/scan-workspace/public/kantura.svg" width="96" alt="Kantura logo">
 
 An independent RTAB-Map fork focused on measuring rooms and outdoor objects.
-Kantura adds a guided iPhone dashboard, tutorials in German, French, Spanish,
-Italian and Simplified Chinese, and a browser workspace for dimensions and areas.
+Kantura adds guided iPhone capture, indoor RoomPlan import, separate rooms grouped
+by building/floor, and a browser workspace for dimensions, areas and photo notes.
+The KANTURA dashboard, viewer and tutorials support German, English, French,
+Spanish, Italian and Simplified Chinese.
 
 - [iPhone workflow and installation](app/ios/MEASUREMENT-WORKFLOW.md)
 - [Desktop measurement workspace](tools/scan-workspace/README.md)
 - [Self-host with Docker and a private project library](tools/scan-workspace/README-server.md)
 - [Independent App Store release requirements](docs/APP-STORE-RELEASE.md)
 - [Name and logo](tools/scan-workspace/BRAND.md)
+- [Contribute: development, translations and device testing](CONTRIBUTING.md) — [Deutsch](docs/contributing/de.md) · [Français](docs/contributing/fr.md) · [Español](docs/contributing/es.md) · [Italiano](docs/contributing/it.md) · [简体中文](docs/contributing/zh-Hans.md)
+- [Community issues](https://github.com/lukashold/rtabmap/issues) · [Feature scope](docs/KANTURA-FEATURES.md) · [Validation status](tools/scan-workspace/VALIDATION.md)
 
 Development preview: direct cloud OAuth and the iPhone workflow require real-account
-and device validation. Floor outlines are traced manually. The current dependency
-bundle is not a cleared App Store release. Existing RTAB-Map notices and licenses apply.
+and device validation. Floor outlines can be traced manually or imported from
+valid RoomPlan contours; separate rooms are not automatically aligned. Videos
+show synthetic animated demonstrations. The current dependency bundle is not a
+cleared App Store release. Existing RTAB-Map notices and licenses apply.
 
 The upstream contribution remains separate from this branded fork.
 

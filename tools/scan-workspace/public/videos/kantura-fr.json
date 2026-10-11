@@ -1,0 +1,62 @@
+{
+  "language": "fr",
+  "duration": 62.2,
+  "narration": "eSpeak NG formant",
+  "voice": {
+    "name": "French (France)",
+    "identifier": "roa\\fr",
+    "language": "fr"
+  },
+  "chapters": [
+    {
+      "id": "start",
+      "start": 0,
+      "end": 7.622,
+      "title": "Choisir le scan"
+    },
+    {
+      "id": "capture",
+      "start": 7.622,
+      "end": 15.856,
+      "title": "Capturer une pièce"
+    },
+    {
+      "id": "organize",
+      "start": 15.856,
+      "end": 23.336,
+      "title": "Bâtiment, étage, pièce"
+    },
+    {
+      "id": "inspect",
+      "start": 23.336,
+      "end": 31.362,
+      "title": "Vérifier sur ordinateur"
+    },
+    {
+      "id": "measure",
+      "start": 31.362,
+      "end": 38.465,
+      "title": "Comparer au mètre ruban"
+    },
+    {
+      "id": "photos",
+      "start": 38.465,
+      "end": 46.106,
+      "title": "Ajouter une photo"
+    },
+    {
+      "id": "share",
+      "start": 46.106,
+      "end": 53.993,
+      "title": "Enregistrer et partager"
+    },
+    {
+      "id": "transport",
+      "start": 53.993,
+      "end": 62.2,
+      "title": "Estimer le passage"
+    }
+  ],
+  "bytes": 1223663,
+  "synthetic": true
+}

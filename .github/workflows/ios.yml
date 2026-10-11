@@ -8,6 +8,7 @@ on:
     paths: &ios_paths
       - '.github/workflows/ios.yml'
       - 'app/ios/**'
+      - 'tools/scan-workspace/public/videos/**'
       - 'app/android/jni/**'
       - 'corelib/**'
       - 'utilite/**'
@@ -102,6 +103,21 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             DEVELOPMENT_TEAM="" \
             build
+
+      - name: Verify offline tutorial bundle
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          languages = json.loads(Path('app/ios/RTABMapApp/MeasurementGuide.json').read_text())
+          folder = Path('build/Build/Products/Release-iphoneos/RTABMapApp.app/videos')
+          for language in languages:
+              video = folder / ('kantura-' + language + '.mp4')
+              assert video.stat().st_size > 100_000, video
+              with video.open('rb') as stream:
+                  assert stream.read(8)[4:8] == b'ftyp', video
+          print('Verified all six bundled offline MP4s.')
+          PY
 
       - name: Package app (unsigned .ipa)
         run: |

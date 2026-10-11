@@ -1,0 +1,31 @@
+1
+00:00:00,000 --> 00:00:08,409
+Questa è una demo animata, non una scansione reale. Scegli RoomPlan per gli interni, oppure LiDAR per texture e cancelli.
+
+2
+00:00:08,409 --> 00:00:18,784
+Percorri lentamente una stanza. Mostra pavimento, pareti, porte e finestre. Segui le indicazioni della fotocamera durante l’acquisizione RoomPlan.
+
+3
+00:00:18,784 --> 00:00:27,485
+Termina l’acquisizione e nomina edificio, piano e stanza. Salva i file. Ogni stanza mantiene il proprio sistema di coordinate.
+
+4
+00:00:27,485 --> 00:00:36,305
+Apri il file della stanza Kantura sul computer e aggiungi altre stanze. Controlla superfici, lacune visibili e misure importate.
+
+5
+00:00:36,305 --> 00:00:44,751
+Seleziona una distanza e misurala anche con un metro. Inserisci quella lunghezza di riferimento; Kantura mostra la differenza.
+
+6
+00:00:44,751 --> 00:00:52,833
+Posiziona una nota sul modello. Aggiungi descrizione e foto per spiegare il punto. Una foto non è una misura aggiuntiva.
+
+7
+00:00:52,833 --> 00:01:01,191
+Scarica il rapporto e stampalo in PDF. Salva il progetto localmente, su un cloud configurato o sul tuo server Docker.
+
+8
+00:01:01,191 --> 00:01:11,489
+Il trasporto verifica ingombri semplificati, senza calcolare gradini, ringhiere e persone. Controlla il percorso reale e le istruzioni del produttore.

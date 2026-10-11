@@ -1,0 +1,25 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:08.917
+This is an animated demo, not a real scan. Choose RoomPlan for interiors, or LiDAR scanning for textures and gates.
+
+00:00:08.917 --> 00:00:16.882
+Walk slowly through one room. Show the floor, walls, doors and windows. Follow the camera guidance during RoomPlan capture.
+
+00:00:16.882 --> 00:00:24.650
+Finish capture and name the building, floor and room. Save the files. Each room keeps its own separate coordinate system.
+
+00:00:24.650 --> 00:00:33.904
+Open the Kantura room file on your computer and add more rooms. Inspect surfaces, visible gaps and the imported dimensions.
+
+00:00:33.904 --> 00:00:40.894
+Select a distance and measure it with a tape too. Enter that reference length; Kantura displays the difference.
+
+00:00:40.894 --> 00:00:48.105
+Place a note on the model. Add a description and photo to explain the location. A photo is not another measurement.
+
+00:00:48.105 --> 00:00:56.163
+Download the report and print it to PDF. Save the project locally, to configured cloud storage or your Docker server.
+
+00:00:56.163 --> 00:01:06.915
+Transport checks simplified envelopes. Individual steps, railings and carriers are not calculated. Check the real route and the manufacturer’s instructions.

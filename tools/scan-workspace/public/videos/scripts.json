@@ -1,0 +1,329 @@
+{
+  "version": 1,
+  "languages": {
+    "de": {
+      "title": "KANTURA Schritt für Schritt",
+      "description": "Animierte, synthetische Demo des KANTURA-Entwicklungsstands. Keine echte Aufnahme und kein Nachweis der Messgenauigkeit.",
+      "scenes": [
+        {
+          "id": "start",
+          "title": "Den Scan wählen",
+          "caption": "Das ist eine animierte Demo, kein echter Scan. Für Innenräume wähle RoomPlan; für Fototexturen und Tore den LiDAR-Scan.",
+          "narration": "Das ist eine animierte Demo, kein echter Scan. Für Innenräume wähle RoomPlan; für Fototexturen und Tore den LiDAR-Scan."
+        },
+        {
+          "id": "capture",
+          "title": "Ein Zimmer erfassen",
+          "caption": "Gehe langsam durch ein Zimmer. Zeige Boden, Wände, Türen und Fenster. Folge beim RoomPlan-Scan den Hinweisen im Kamerabild.",
+          "narration": "Gehe langsam durch ein Zimmer. Zeige Boden, Wände, Türen und Fenster. Folge beim RoomPlan-Scan den Hinweisen im Kamerabild."
+        },
+        {
+          "id": "organize",
+          "title": "Haus, Etage, Raum",
+          "caption": "Beende die Aufnahme und benenne Haus, Etage und Raum. Speichere die Dateien. Die Räume bleiben räumlich voneinander getrennt.",
+          "narration": "Beende die Aufnahme und benenne Haus, Etage und Raum. Speichere die Dateien. Die Räume bleiben räumlich voneinander getrennt."
+        },
+        {
+          "id": "inspect",
+          "title": "Am Computer prüfen",
+          "caption": "Öffne die Kantura-Raumdatei am Computer und füge weitere Räume hinzu. Prüfe Flächen, erkennbare Lücken und die importierten Maße.",
+          "narration": "Öffne die Kantura-Raumdatei am Computer und füge weitere Räume hinzu. Prüfe Flächen, erkennbare Lücken und die importierten Maße."
+        },
+        {
+          "id": "measure",
+          "title": "Mit einem Maßband vergleichen",
+          "caption": "Wähle eine Strecke und miss sie auch mit dem Maßband. Trage die Referenz ein; Kantura zeigt die Abweichung.",
+          "narration": "Wähle eine Strecke und miss sie auch mit dem Maßband. Trage die Referenz ein; Kantura zeigt die Abweichung."
+        },
+        {
+          "id": "photos",
+          "title": "Ein Foto hinzufügen",
+          "caption": "Setze eine Notiz am Modell. Ergänze Beschreibung und Foto, damit andere die Stelle verstehen. Das Foto ist keine zusätzliche Messung.",
+          "narration": "Setze eine Notiz am Modell. Ergänze Beschreibung und Foto, damit andere die Stelle verstehen. Das Foto ist keine zusätzliche Messung."
+        },
+        {
+          "id": "share",
+          "title": "Sichern und teilen",
+          "caption": "Lade den Bericht herunter und drucke ihn als PDF. Sichere das Projekt lokal, in eingerichteter Cloud oder auf deinem Docker-Server.",
+          "narration": "Lade den Bericht herunter und drucke ihn als PDF. Sichere das Projekt lokal, in eingerichteter Cloud oder auf deinem Docker-Server."
+        },
+        {
+          "id": "transport",
+          "title": "Transport einschätzen",
+          "caption": "Transport prüft vereinfachte Hüllräume. Stufen, Geländer und Helfer werden nicht berechnet. Kontrolliere den echten Weg und die Herstellerhinweise.",
+          "narration": "Transport prüft vereinfachte Hüllräume. Stufen, Geländer und Helfer werden nicht berechnet. Kontrolliere den echten Weg und die Herstellerhinweise."
+        }
+      ]
+    },
+    "en": {
+      "title": "Getting started with KANTURA",
+      "description": "Animated, synthetic demonstration of the KANTURA development preview. Not a real capture or evidence of measurement accuracy.",
+      "scenes": [
+        {
+          "id": "start",
+          "title": "Choose a scan",
+          "caption": "This is an animated demo, not a real scan. Choose RoomPlan for interiors, or LiDAR scanning for textures and gates.",
+          "narration": "This is an animated demo, not a real scan. Choose RoomPlan for interiors, or LiDAR scanning for textures and gates."
+        },
+        {
+          "id": "capture",
+          "title": "Capture one room",
+          "caption": "Walk slowly through one room. Show the floor, walls, doors and windows. Follow the camera guidance during RoomPlan capture.",
+          "narration": "Walk slowly through one room. Show the floor, walls, doors and windows. Follow the camera guidance during RoomPlan capture."
+        },
+        {
+          "id": "organize",
+          "title": "Building, floor, room",
+          "caption": "Finish capture and name the building, floor and room. Save the files. Each room keeps its own separate coordinate system.",
+          "narration": "Finish capture and name the building, floor and room. Save the files. Each room keeps its own separate coordinate system."
+        },
+        {
+          "id": "inspect",
+          "title": "Review on your computer",
+          "caption": "Open the Kantura room file on your computer and add more rooms. Inspect surfaces, visible gaps and the imported dimensions.",
+          "narration": "Open the Kantura room file on your computer and add more rooms. Inspect surfaces, visible gaps and the imported dimensions."
+        },
+        {
+          "id": "measure",
+          "title": "Compare a tape measurement",
+          "caption": "Select a distance and measure it with a tape too. Enter that reference length; Kantura displays the difference.",
+          "narration": "Select a distance and measure it with a tape too. Enter that reference length; Kantura displays the difference."
+        },
+        {
+          "id": "photos",
+          "title": "Add a photo",
+          "caption": "Place a note on the model. Add a description and photo to explain the location. A photo is not another measurement.",
+          "narration": "Place a note on the model. Add a description and photo to explain the location. A photo is not another measurement."
+        },
+        {
+          "id": "share",
+          "title": "Save and share",
+          "caption": "Download the report and print it to PDF. Save the project locally, to configured cloud storage or your Docker server.",
+          "narration": "Download the report and print it to PDF. Save the project locally, to configured cloud storage or your Docker server."
+        },
+        {
+          "id": "transport",
+          "title": "Estimate transport space",
+          "caption": "Transport checks simplified envelopes. Individual steps, railings and carriers are not calculated. Check the real route and the manufacturer’s instructions.",
+          "narration": "Transport checks simplified envelopes. Individual steps, railings and carriers are not calculated. Check the real route and the manufacturer’s instructions."
+        }
+      ]
+    },
+    "fr": {
+      "title": "Premiers pas avec KANTURA",
+      "description": "Démonstration animée et synthétique de la version de développement KANTURA. Ce n’est ni une capture réelle ni une preuve de précision.",
+      "scenes": [
+        {
+          "id": "start",
+          "title": "Choisir le scan",
+          "caption": "Voici une démo animée, pas un scan réel. Choisissez RoomPlan pour les intérieurs, ou le LiDAR pour textures et portails.",
+          "narration": "Voici une démo animée, pas un scan réel. Choisissez RoomPlan pour les intérieurs, ou le LiDAR pour textures et portails."
+        },
+        {
+          "id": "capture",
+          "title": "Capturer une pièce",
+          "caption": "Parcourez lentement une pièce. Montrez sol, murs, portes et fenêtres. Suivez les indications de la caméra pendant la capture RoomPlan.",
+          "narration": "Parcourez lentement une pièce. Montrez sol, murs, portes et fenêtres. Suivez les indications de la caméra pendant la capture RoomPlan."
+        },
+        {
+          "id": "organize",
+          "title": "Bâtiment, étage, pièce",
+          "caption": "Terminez la capture et nommez bâtiment, étage et pièce. Enregistrez les fichiers. Chaque pièce conserve ses propres coordonnées.",
+          "narration": "Terminez la capture et nommez bâtiment, étage et pièce. Enregistrez les fichiers. Chaque pièce conserve ses propres coordonnées."
+        },
+        {
+          "id": "inspect",
+          "title": "Vérifier sur ordinateur",
+          "caption": "Ouvrez le fichier de pièce Kantura sur votre ordinateur et ajoutez d’autres pièces. Vérifiez surfaces, lacunes visibles et dimensions importées.",
+          "narration": "Ouvrez le fichier de pièce Kantura sur votre ordinateur et ajoutez d’autres pièces. Vérifiez surfaces, lacunes visibles et dimensions importées."
+        },
+        {
+          "id": "measure",
+          "title": "Comparer au mètre ruban",
+          "caption": "Choisissez une distance et mesurez-la aussi au mètre ruban. Saisissez cette longueur de référence ; Kantura affiche l’écart.",
+          "narration": "Choisissez une distance et mesurez-la aussi au mètre ruban. Saisissez cette longueur de référence ; Kantura affiche l’écart."
+        },
+        {
+          "id": "photos",
+          "title": "Ajouter une photo",
+          "caption": "Placez une note sur le modèle. Ajoutez description et photo pour expliquer l’endroit. Une photo n’est pas une mesure supplémentaire.",
+          "narration": "Placez une note sur le modèle. Ajoutez description et photo pour expliquer l’endroit. Une photo n’est pas une mesure supplémentaire."
+        },
+        {
+          "id": "share",
+          "title": "Enregistrer et partager",
+          "caption": "Téléchargez le rapport et imprimez-le en PDF. Enregistrez le projet localement, dans un cloud configuré ou sur votre serveur Docker.",
+          "narration": "Téléchargez le rapport et imprimez-le en PDF. Enregistrez le projet localement, dans un cloud configuré ou sur votre serveur Docker."
+        },
+        {
+          "id": "transport",
+          "title": "Estimer le passage",
+          "caption": "Le transport vérifie des volumes simplifiés, sans calculer marches, rampes ni porteurs. Contrôlez le trajet réel et les instructions du fabricant.",
+          "narration": "Le transport vérifie des volumes simplifiés, sans calculer marches, rampes ni porteurs. Contrôlez le trajet réel et les instructions du fabricant."
+        }
+      ]
+    },
+    "es": {
+      "title": "Primeros pasos con KANTURA",
+      "description": "Demostración animada y sintética de la versión de desarrollo de KANTURA. No es una captura real ni una prueba de precisión.",
+      "scenes": [
+        {
+          "id": "start",
+          "title": "Elegir el escaneo",
+          "caption": "Esta es una demostración animada, no un escaneo real. Elige RoomPlan para interiores, o LiDAR para texturas y puertas exteriores.",
+          "narration": "Esta es una demostración animada, no un escaneo real. Elige RoomPlan para interiores, o LiDAR para texturas y puertas exteriores."
+        },
+        {
+          "id": "capture",
+          "title": "Capturar una habitación",
+          "caption": "Recorre despacio una habitación. Muestra suelo, paredes, puertas y ventanas. Sigue las indicaciones de la cámara durante la captura RoomPlan.",
+          "narration": "Recorre despacio una habitación. Muestra suelo, paredes, puertas y ventanas. Sigue las indicaciones de la cámara durante la captura RoomPlan."
+        },
+        {
+          "id": "organize",
+          "title": "Edificio, planta y habitación",
+          "caption": "Termina la captura y nombra edificio, planta y habitación. Guarda los archivos. Cada habitación mantiene su propio sistema de coordenadas.",
+          "narration": "Termina la captura y nombra edificio, planta y habitación. Guarda los archivos. Cada habitación mantiene su propio sistema de coordenadas."
+        },
+        {
+          "id": "inspect",
+          "title": "Revisar en el ordenador",
+          "caption": "Abre el archivo de habitación Kantura en el ordenador y añade otras habitaciones. Comprueba superficies, huecos visibles y dimensiones importadas.",
+          "narration": "Abre el archivo de habitación Kantura en el ordenador y añade otras habitaciones. Comprueba superficies, huecos visibles y dimensiones importadas."
+        },
+        {
+          "id": "measure",
+          "title": "Comparar con cinta métrica",
+          "caption": "Selecciona una distancia y mídela también con una cinta métrica. Introduce esa longitud de referencia; Kantura muestra la diferencia.",
+          "narration": "Selecciona una distancia y mídela también con una cinta métrica. Introduce esa longitud de referencia; Kantura muestra la diferencia."
+        },
+        {
+          "id": "photos",
+          "title": "Añadir una foto",
+          "caption": "Coloca una nota en el modelo. Añade descripción y foto para explicar el lugar. Una foto no es otra medida.",
+          "narration": "Coloca una nota en el modelo. Añade descripción y foto para explicar el lugar. Una foto no es otra medida."
+        },
+        {
+          "id": "share",
+          "title": "Guardar y compartir",
+          "caption": "Descarga el informe e imprímelo como PDF. Guarda el proyecto localmente, en una nube configurada o en tu servidor Docker.",
+          "narration": "Descarga el informe e imprímelo como PDF. Guarda el proyecto localmente, en una nube configurada o en tu servidor Docker."
+        },
+        {
+          "id": "transport",
+          "title": "Estimar el transporte",
+          "caption": "El transporte comprueba volúmenes simplificados, sin calcular escalones, barandillas ni personas. Revisa el recorrido real y las instrucciones del fabricante.",
+          "narration": "El transporte comprueba volúmenes simplificados, sin calcular escalones, barandillas ni personas. Revisa el recorrido real y las instrucciones del fabricante."
+        }
+      ]
+    },
+    "it": {
+      "title": "Primi passi con KANTURA",
+      "description": "Dimostrazione animata e sintetica della versione di sviluppo KANTURA. Non è una scansione reale né una prova di precisione.",
+      "scenes": [
+        {
+          "id": "start",
+          "title": "Scegliere la scansione",
+          "caption": "Questa è una demo animata, non una scansione reale. Scegli RoomPlan per gli interni, oppure LiDAR per texture e cancelli.",
+          "narration": "Questa è una demo animata, non una scansione reale. Scegli RoomPlan per gli interni, oppure LiDAR per texture e cancelli."
+        },
+        {
+          "id": "capture",
+          "title": "Acquisire una stanza",
+          "caption": "Percorri lentamente una stanza. Mostra pavimento, pareti, porte e finestre. Segui le indicazioni della fotocamera durante l’acquisizione RoomPlan.",
+          "narration": "Percorri lentamente una stanza. Mostra pavimento, pareti, porte e finestre. Segui le indicazioni della fotocamera durante l’acquisizione RoomPlan."
+        },
+        {
+          "id": "organize",
+          "title": "Edificio, piano e stanza",
+          "caption": "Termina l’acquisizione e nomina edificio, piano e stanza. Salva i file. Ogni stanza mantiene il proprio sistema di coordinate.",
+          "narration": "Termina l’acquisizione e nomina edificio, piano e stanza. Salva i file. Ogni stanza mantiene il proprio sistema di coordinate."
+        },
+        {
+          "id": "inspect",
+          "title": "Controllare sul computer",
+          "caption": "Apri il file della stanza Kantura sul computer e aggiungi altre stanze. Controlla superfici, lacune visibili e misure importate.",
+          "narration": "Apri il file della stanza Kantura sul computer e aggiungi altre stanze. Controlla superfici, lacune visibili e misure importate."
+        },
+        {
+          "id": "measure",
+          "title": "Confrontare con un metro",
+          "caption": "Seleziona una distanza e misurala anche con un metro. Inserisci quella lunghezza di riferimento; Kantura mostra la differenza.",
+          "narration": "Seleziona una distanza e misurala anche con un metro. Inserisci quella lunghezza di riferimento; Kantura mostra la differenza."
+        },
+        {
+          "id": "photos",
+          "title": "Aggiungere una foto",
+          "caption": "Posiziona una nota sul modello. Aggiungi descrizione e foto per spiegare il punto. Una foto non è una misura aggiuntiva.",
+          "narration": "Posiziona una nota sul modello. Aggiungi descrizione e foto per spiegare il punto. Una foto non è una misura aggiuntiva."
+        },
+        {
+          "id": "share",
+          "title": "Salvare e condividere",
+          "caption": "Scarica il rapporto e stampalo in PDF. Salva il progetto localmente, su un cloud configurato o sul tuo server Docker.",
+          "narration": "Scarica il rapporto e stampalo in PDF. Salva il progetto localmente, su un cloud configurato o sul tuo server Docker."
+        },
+        {
+          "id": "transport",
+          "title": "Stimare il trasporto",
+          "caption": "Il trasporto verifica ingombri semplificati, senza calcolare gradini, ringhiere e persone. Controlla il percorso reale e le istruzioni del produttore.",
+          "narration": "Il trasporto verifica ingombri semplificati, senza calcolare gradini, ringhiere e persone. Controlla il percorso reale e le istruzioni del produttore."
+        }
+      ]
+    },
+    "zh-Hans": {
+      "title": "KANTURA 入门指南",
+      "description": "KANTURA 开发预览版的合成动画演示，不是真实扫描，也不能证明测量精度。",
+      "scenes": [
+        {
+          "id": "start",
+          "title": "选择扫描模式",
+          "caption": "这是合成动画，不是真实扫描。室内用 RoomPlan；纹理和大门用 LiDAR。",
+          "narration": "这是合成动画，不是真实扫描。室内用 RoomPlan；纹理和大门用 LiDAR。"
+        },
+        {
+          "id": "capture",
+          "title": "扫描一个房间",
+          "caption": "缓慢扫描一个房间，展示地面、墙壁和门窗，跟随相机提示。",
+          "narration": "缓慢扫描一个房间，展示地面、墙壁和门窗，跟随相机提示。"
+        },
+        {
+          "id": "organize",
+          "title": "建筑、楼层和房间",
+          "caption": "结束后填写建筑、楼层和房间名称，再保存。各房间保持独立坐标。",
+          "narration": "结束后填写建筑、楼层和房间名称，再保存。各房间保持独立坐标。"
+        },
+        {
+          "id": "inspect",
+          "title": "在电脑上检查",
+          "caption": "电脑打开 Kantura 房间文件，添加其他房间。检查表面、缺口和尺寸。",
+          "narration": "电脑打开 Kantura 房间文件，添加其他房间。检查表面、缺口和尺寸。"
+        },
+        {
+          "id": "measure",
+          "title": "用卷尺核验",
+          "caption": "选两点测量，再用卷尺核验。输入真实长度，查看差值。",
+          "narration": "选两点测量，再用卷尺核验。输入真实长度，查看差值。"
+        },
+        {
+          "id": "photos",
+          "title": "添加照片",
+          "caption": "在模型上放置备注，添加说明和照片。照片只提供视觉参考。",
+          "narration": "在模型上放置备注，添加说明和照片。照片只提供视觉参考。"
+        },
+        {
+          "id": "share",
+          "title": "保存和分享",
+          "caption": "下载报告并打印为 PDF。项目可保存到本机、已配置云盘或 Docker 服务器。",
+          "narration": "下载报告并打印为 PDF。项目可保存到本机、已配置云盘或 Docker 服务器。"
+        },
+        {
+          "id": "transport",
+          "title": "估算搬运空间",
+          "caption": "搬运只检查简化包围体，不计算台阶、栏杆和人员。请核对实地路线及厂商说明。",
+          "narration": "搬运只检查简化包围体，不计算台阶、栏杆和人员。请核对实地路线及厂商说明。"
+        }
+      ]
+    }
+  }
+}

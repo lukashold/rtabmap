@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: KANTURA contribution guide
+    url: https://github.com/lukashold/rtabmap/blob/kantura/main/CONTRIBUTING.md
+    about: Development, translations, real-device tests and licensing; includes five translated introductions.
+  - name: Upstream RTAB-Map
+    url: https://github.com/introlab/rtabmap
+    about: General RTAB-Map documentation and the upstream contribution process.

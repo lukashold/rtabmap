@@ -1,4 +1,5 @@
 import UIKit
+import AVKit
 
 /// A native workspace in front of the scanner. Capture and reconstruction remain
 /// RTAB-Map's; tutorial content is shared with the browser measurement workspace.
@@ -153,10 +154,38 @@ final class MeasurementGuideViewController: UIViewController {
         if workflowState.availableActions.contains(.library) {
             content.addArrangedSubview(button(workflow.projects, icon: "folder") { [weak self] in self?.perform(.library) })
         }
-        content.addArrangedSubview(button(workflow.tutorial, icon: "play.circle") { [weak self] in
+        let video = KanturaActionCard(title: MeasurementGuide.roomText("videoTitle"),
+            detail: MeasurementGuide.roomText("videoDetail") + "\n" + guide.name,
+            icon: "play.rectangle.fill", emphasis: .mint)
+        video.addAction(UIAction { [weak self] _ in self?.showTutorialVideo() }, for: .touchUpInside)
+        content.addArrangedSubview(video)
+        content.addArrangedSubview(button(workflow.tutorial, icon: "text.book.closed") { [weak self] in
             self?.step = 0
             self?.render()
         })
+    }
+
+    private func showTutorialVideo() {
+        guard presentedViewController == nil,
+              let guide = guides[MeasurementGuide.selectedLanguage] else { return }
+        guard let url = Bundle.main.url(forResource: "kantura-" + MeasurementGuide.selectedLanguage,
+                                        withExtension: "mp4", subdirectory: "videos") else {
+            let alert = UIAlertController(title: MeasurementGuide.roomText("videoUnavailable"),
+                message: MeasurementGuide.roomText("videoUnavailableDetail"), preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: guide.workflow?.tutorial ?? guide.title, style: .default) { [weak self] _ in
+                self?.step = 0
+                self?.render()
+            })
+            alert.addAction(UIAlertAction(title: guide.close, style: .cancel))
+            present(alert, animated: true)
+            return
+        }
+        // Keep the dashboard and scanner state intact; this only plays a bundled lesson.
+        let player = AVPlayer(url: url)
+        let controller = AVPlayerViewController()
+        controller.player = player
+        controller.allowsPictureInPicturePlayback = false
+        present(controller, animated: true) { player.play() }
     }
 
     private func renderTutorial(_ guide: MeasurementGuide, step: Int) {

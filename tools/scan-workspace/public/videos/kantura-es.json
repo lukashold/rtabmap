@@ -1,0 +1,62 @@
+{
+  "language": "es",
+  "duration": 72.193,
+  "narration": "eSpeak NG formant",
+  "voice": {
+    "name": "Spanish (Spain)",
+    "identifier": "roa\\es",
+    "language": "es"
+  },
+  "chapters": [
+    {
+      "id": "start",
+      "start": 0,
+      "end": 8.885,
+      "title": "Elegir el escaneo"
+    },
+    {
+      "id": "capture",
+      "start": 8.885,
+      "end": 18.657,
+      "title": "Capturar una habitación"
+    },
+    {
+      "id": "organize",
+      "start": 18.657,
+      "end": 28.05,
+      "title": "Edificio, planta y habitación"
+    },
+    {
+      "id": "inspect",
+      "start": 28.05,
+      "end": 37.506,
+      "title": "Revisar en el ordenador"
+    },
+    {
+      "id": "measure",
+      "start": 37.506,
+      "end": 46.307,
+      "title": "Comparar con cinta métrica"
+    },
+    {
+      "id": "photos",
+      "start": 46.307,
+      "end": 53.693,
+      "title": "Añadir una foto"
+    },
+    {
+      "id": "share",
+      "start": 53.693,
+      "end": 61.821,
+      "title": "Guardar y compartir"
+    },
+    {
+      "id": "transport",
+      "start": 61.821,
+      "end": 72.193,
+      "title": "Estimar el transporte"
+    }
+  ],
+  "bytes": 1372182,
+  "synthetic": true
+}

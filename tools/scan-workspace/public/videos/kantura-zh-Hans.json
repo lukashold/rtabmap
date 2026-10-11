@@ -1,0 +1,67 @@
+{
+  "language": "zh-Hans",
+  "duration": 68.983,
+  "narration": "eSpeak NG formant fallback",
+  "voice": {
+    "name": "Chinese (Mandarin, latin as English)",
+    "identifier": "sit\\cmn",
+    "languageBytes": [
+      5,
+      99,
+      109,
+      110
+    ]
+  },
+  "chapters": [
+    {
+      "id": "start",
+      "start": 0,
+      "end": 8.419,
+      "title": "选择扫描模式"
+    },
+    {
+      "id": "capture",
+      "start": 8.419,
+      "end": 16.141,
+      "title": "扫描一个房间"
+    },
+    {
+      "id": "organize",
+      "start": 16.141,
+      "end": 25.047,
+      "title": "建筑、楼层和房间"
+    },
+    {
+      "id": "inspect",
+      "start": 25.047,
+      "end": 33.521,
+      "title": "在电脑上检查"
+    },
+    {
+      "id": "measure",
+      "start": 33.521,
+      "end": 41.335,
+      "title": "用卷尺核验"
+    },
+    {
+      "id": "photos",
+      "start": 41.335,
+      "end": 49.626,
+      "title": "添加照片"
+    },
+    {
+      "id": "share",
+      "start": 49.626,
+      "end": 58.243,
+      "title": "保存和分享"
+    },
+    {
+      "id": "transport",
+      "start": 58.243,
+      "end": 68.983,
+      "title": "估算搬运空间"
+    }
+  ],
+  "bytes": 1311554,
+  "synthetic": true
+}

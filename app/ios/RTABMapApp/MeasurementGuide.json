@@ -86,6 +86,10 @@
       ]
     },
     "roomPlan": {
+      "videoTitle": "Erklärvideo ansehen",
+      "videoDetail": "Scannen und messen – mit gesprochenen Erklärungen.",
+      "videoUnavailable": "Video nicht verfügbar",
+      "videoUnavailableDetail": "Das Video für diese Sprache fehlt in dieser App-Version. Du kannst die Anleitung Schritt für Schritt öffnen.",
       "title": "Raumplan",
       "close": "Schließen",
       "modeTitle": "Raumplan automatisch",
@@ -227,6 +231,10 @@
       ]
     },
     "roomPlan": {
+      "videoTitle": "Regarder le tutoriel vidéo",
+      "videoDetail": "Scanner et mesurer, avec des explications audio.",
+      "videoUnavailable": "Vidéo indisponible",
+      "videoUnavailableDetail": "La vidéo dans cette langue n’est pas incluse dans cette version de l’app. Vous pouvez ouvrir le guide pas à pas.",
       "title": "Plan de pièce",
       "close": "Fermer",
       "modeTitle": "Plan de pièce automatique",
@@ -368,6 +376,10 @@
       ]
     },
     "roomPlan": {
+      "videoTitle": "Ver el videotutorial",
+      "videoDetail": "Escanear y medir, con explicaciones de voz.",
+      "videoUnavailable": "Vídeo no disponible",
+      "videoUnavailableDetail": "El vídeo en este idioma no está incluido en esta versión de la app. Puedes abrir la guía paso a paso.",
       "title": "Plano de habitación",
       "close": "Cerrar",
       "modeTitle": "Plano de habitación automático",
@@ -509,6 +521,10 @@
       ]
     },
     "roomPlan": {
+      "videoTitle": "Guarda il video tutorial",
+      "videoDetail": "Scansioni e misure, con spiegazioni vocali.",
+      "videoUnavailable": "Video non disponibile",
+      "videoUnavailableDetail": "Il video in questa lingua non è incluso in questa versione dell’app. Puoi aprire la guida passo per passo.",
       "title": "Pianta della stanza",
       "close": "Chiudi",
       "modeTitle": "Pianta automatica della stanza",
@@ -650,6 +666,10 @@
       ]
     },
     "roomPlan": {
+      "videoTitle": "观看视频教程",
+      "videoDetail": "学习扫描和测量，配有语音讲解。",
+      "videoUnavailable": "视频暂不可用",
+      "videoUnavailableDetail": "此版本未包含该语言的视频。你可以打开分步教程。",
       "title": "房间平面图",
       "close": "关闭",
       "modeTitle": "自动房间平面图",
@@ -779,6 +799,10 @@
       ]
     },
     "roomPlan": {
+      "videoTitle": "Watch the video tutorial",
+      "videoDetail": "Scan and measure, with spoken explanations.",
+      "videoUnavailable": "Video unavailable",
+      "videoUnavailableDetail": "The video in this language is not included in this app version. You can open the step-by-step guide.",
       "title": "Room plan",
       "close": "Close",
       "modeTitle": "Automatic room plan",

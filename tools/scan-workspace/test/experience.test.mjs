@@ -60,6 +60,6 @@ test('note/check project validation rejects active paths, duplicate ids and unsa
   for(const change of [{photo:'https://evil/x.jpg'},{point:[Infinity,0,0]},{description:'x'.repeat(4001)},{title:''}])assert.throws(()=>validateProject({...p,notes:[{...note,...change}]}));
   assert.throws(()=>validateProject({...p,notes:[note,note]}));
 });
-test('experience features have complete translations for all five UI languages',()=>{
+test('experience features have complete translations for all supported UI languages',()=>{
   for(const dictionary of Object.values(experienceDictionaries)){assert.deepEqual(Object.keys(dictionary),Object.keys(experienceDictionaries.de));assert.ok(Object.values(dictionary).every(v=>typeof v==='string'&&v.length>0));}
 });

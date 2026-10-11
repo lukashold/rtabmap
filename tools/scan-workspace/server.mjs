@@ -154,8 +154,23 @@ export function createAppServer(root = fileURLToPath(new URL('./dist', import.me
       if (!file.startsWith(base + sep)) { res.writeHead(404).end(); return; }
       const [canonicalBase, canonicalFile] = await Promise.all([realpath(base), realpath(file)]);
       if (!canonicalFile.startsWith(canonicalBase + sep) || !(await lstat(canonicalFile)).isFile()) { res.writeHead(404).end(); return; }
-      const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.map': 'application/json', '.txt': 'text/plain', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon' };
+      const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.map': 'application/json', '.txt': 'text/plain', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon', '.mp4':'video/mp4', '.vtt':'text/vtt; charset=utf-8', '.srt':'text/plain; charset=utf-8' };
       res.setHeader('Content-Type', types[extname(file)] || 'application/octet-stream');
+      if(extname(file)==='.mp4'){
+        const {size}=await lstat(file);res.setHeader('Accept-Ranges','bytes');
+        let start=0,end=size-1,status=200;
+        if(req.headers.range){
+          const match=/^bytes=(\d*)-(\d*)$/.exec(req.headers.range);
+          if(!match||!size||(!match[1]&&!match[2])){res.writeHead(416,{'Content-Range':`bytes */${size}`}).end();return;}
+          if(!match[1])start=Math.max(0,size-Number(match[2]));else start=Number(match[1]);
+          if(match[1]&&match[2])end=Math.min(size-1,Number(match[2]));
+          if(!Number.isSafeInteger(start)||!Number.isSafeInteger(end)||start<0||start>=size||end<start){res.writeHead(416,{'Content-Range':`bytes */${size}`}).end();return;}
+          status=206;res.setHeader('Content-Range',`bytes ${start}-${end}/${size}`);
+        }
+        res.setHeader('Content-Length',Math.max(0,end-start+1));res.writeHead(status);
+        if(req.method==='HEAD'||!size)res.end();else await pipeline(createReadStream(file,{start,end}),res);
+        return;
+      }
       res.end(req.method === 'HEAD' ? undefined : await readFile(canonicalFile));
     } catch { res.writeHead(404).end(); }
   });

@@ -12,7 +12,10 @@ for language in MeasurementGuide.languages {
     precondition(workflow.stages.count == 4)
     precondition(workflow.stages.allSatisfy { !$0.title.isEmpty && !$0.detail.isEmpty })
     precondition(!workflow.prepareBody.isEmpty && !workflow.measureHint.isEmpty && !workflow.tutorial.isEmpty)
-    precondition(guide.roomPlan!.count == 52)
+    precondition(guide.roomPlan!.count == 56)
+    for key in ["videoTitle", "videoDetail", "videoUnavailable", "videoUnavailableDetail"] {
+        precondition(!(guide.roomPlan![key] ?? "").isEmpty)
+    }
     precondition(guide.roomPlan!.values.allSatisfy { !$0.isEmpty })
     precondition(Set(guide.roomPlan!.keys) == Set(guides["de"]!.roomPlan!.keys))
 }

@@ -1,6 +1,12 @@
-# KANTURA measurement workspace — 0.2 preview
+# KANTURA measurement workspace — 0.3 preview
 
-A browser workspace for measuring room scans and outdoor objects such as gates. Import a KANTURA RoomPlan capture or a textured model, organize separate rooms by building and floor, add measurements and photo notes, and save a portable project archive. The interface and tutorial support German, French, Spanish, Italian and Simplified Chinese.
+A browser workspace for measuring room scans and outdoor objects such as gates. Import a KANTURA RoomPlan capture or a textured model, organize separate rooms by building and floor, add measurements and photo notes, and save a portable project archive. The interface, tutorial, reports and animated videos support German, English, French, Spanish, Italian and Simplified Chinese.
+
+## Learn and contribute
+
+Choose **Learn** to watch the locally hosted video in the selected interface language. All six MP4s include narrated animated examples and burned-in captions; downloadable WebVTT/SRT captions and the text transcript are included. These are original synthetic examples, not recordings of a real scan. The native dashboard plays the same bundled MP4s offline. Voices are synthetic; French, Spanish, Italian and Mandarin currently use simpler formant voices. See [video sources and regeneration](../../docs/video-voices.md).
+
+The new overview offers separate paths for rooms, houses and outdoor models. Open a project or try the synthetic example, then return to the overview without losing the current measurements. [Contributor instructions](../../CONTRIBUTING.md) are available in all six languages, with issue forms for bugs, features and translations.
 
 KANTURA is an independently developed RTAB-Map fork; the current source branch is [kantura/main](https://github.com/lukashold/rtabmap/tree/kantura/main). This workspace is its optional browser companion. Automatic indoor surface recognition runs in the native iOS RoomPlan mode; the browser imports its results. It does not capture LiDAR, reconstruct RTAB-Map databases, automatically align separate rooms, or promise survey-grade accuracy. The workflow takes inspiration from [Metaroom's guided capture](https://help.amrax.ai/sample-page/scanning-with-metaroom-app/how-to-scan-a-single-room-with-the-metaroom-app/), with original interface code and content. See the [feature comparison and remaining work](../../docs/KANTURA-FEATURES.md) and [validation status](VALIDATION.md).
 

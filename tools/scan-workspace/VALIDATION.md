@@ -1,4 +1,24 @@
-# Development validation — 0.2 preview, 2026-10-11
+# Development validation — 0.3 preview, 2026-10-11
+
+## New 0.3 design, language and video checks
+
+The Windows integration run passes **82 Node tests**, including six new tests
+for MP4 delivery, byte ranges, HEAD, invalid ranges, WebVTT and complete
+six-language video scripts. English is covered alongside German, French,
+Spanish, Italian and Simplified Chinese in the UI, guide and report checks.
+All six generated H.264/AAC videos were decoded completely with FFmpeg;
+representative rendered frames were visually inspected, including Chinese
+glyphs and captions. The illustrations are synthetic and do not validate scans.
+
+The [native design build](https://github.com/lukashold/rtabmap/actions/runs/38152579818)
+passed Xcode compilation before the additive bundled-video integration.
+The current branch's Actions runs provide validation of that final integration
+and Docker build. No signing or physical-device checks are implied.
+The new desktop layout still needs a manual browser/device pass: browser
+automation was unavailable during this design update. Translations and speech
+still need review by native speakers.
+
+## Recorded 0.2 validation
 
 KANTURA is an independent development branch, not an App Store release. The
 following separates implemented behavior, automated coverage, earlier preview

@@ -1,0 +1,62 @@
+{
+  "language": "it",
+  "duration": 71.489,
+  "narration": "eSpeak NG formant",
+  "voice": {
+    "name": "Italian",
+    "identifier": "roa\\it",
+    "language": "it"
+  },
+  "chapters": [
+    {
+      "id": "start",
+      "start": 0,
+      "end": 8.409,
+      "title": "Scegliere la scansione"
+    },
+    {
+      "id": "capture",
+      "start": 8.409,
+      "end": 18.784,
+      "title": "Acquisire una stanza"
+    },
+    {
+      "id": "organize",
+      "start": 18.784,
+      "end": 27.485,
+      "title": "Edificio, piano e stanza"
+    },
+    {
+      "id": "inspect",
+      "start": 27.485,
+      "end": 36.305,
+      "title": "Controllare sul computer"
+    },
+    {
+      "id": "measure",
+      "start": 36.305,
+      "end": 44.751,
+      "title": "Confrontare con un metro"
+    },
+    {
+      "id": "photos",
+      "start": 44.751,
+      "end": 52.833,
+      "title": "Aggiungere una foto"
+    },
+    {
+      "id": "share",
+      "start": 52.833,
+      "end": 61.191,
+      "title": "Salvare e condividere"
+    },
+    {
+      "id": "transport",
+      "start": 61.191,
+      "end": 71.489,
+      "title": "Stimare il trasporto"
+    }
+  ],
+  "bytes": 1409162,
+  "synthetic": true
+}

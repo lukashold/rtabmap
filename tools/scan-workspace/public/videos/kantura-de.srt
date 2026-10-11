@@ -1,0 +1,31 @@
+1
+00:00:00,000 --> 00:00:10,340
+Das ist eine animierte Demo, kein echter Scan. Für Innenräume wähle RoomPlan; für Fototexturen und Tore den LiDAR-Scan.
+
+2
+00:00:10,340 --> 00:00:21,688
+Gehe langsam durch ein Zimmer. Zeige Boden, Wände, Türen und Fenster. Folge beim RoomPlan-Scan den Hinweisen im Kamerabild.
+
+3
+00:00:21,688 --> 00:00:32,988
+Beende die Aufnahme und benenne Haus, Etage und Raum. Speichere die Dateien. Die Räume bleiben räumlich voneinander getrennt.
+
+4
+00:00:32,988 --> 00:00:43,592
+Öffne die Kantura-Raumdatei am Computer und füge weitere Räume hinzu. Prüfe Flächen, erkennbare Lücken und die importierten Maße.
+
+5
+00:00:43,592 --> 00:00:52,372
+Wähle eine Strecke und miss sie auch mit dem Maßband. Trage die Referenz ein; Kantura zeigt die Abweichung.
+
+6
+00:00:52,372 --> 00:01:04,128
+Setze eine Notiz am Modell. Ergänze Beschreibung und Foto, damit andere die Stelle verstehen. Das Foto ist keine zusätzliche Messung.
+
+7
+00:01:04,128 --> 00:01:14,564
+Lade den Bericht herunter und drucke ihn als PDF. Sichere das Projekt lokal, in eingerichteter Cloud oder auf deinem Docker-Server.
+
+8
+00:01:14,564 --> 00:01:26,800
+Transport prüft vereinfachte Hüllräume. Stufen, Geländer und Helfer werden nicht berechnet. Kontrolliere den echten Weg und die Herstellerhinweise.
