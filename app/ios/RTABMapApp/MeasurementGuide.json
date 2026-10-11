@@ -703,5 +703,134 @@
       "preview": "3D 预览",
       "tooComplex": "此平面图过于复杂，无法交换：最多支持 150 个表面，每个轮廓最多 100 个点。请将较小的房间分别扫描。"
     }
+  },
+  "en": {
+    "name": "English",
+    "title": "Measure with confidence",
+    "subtitle": "Your room. Your model. Your measurements.",
+    "next": "Next",
+    "back": "Back",
+    "done": "Done",
+    "close": "Close",
+    "language": "Language",
+    "start": "Start scan",
+    "assemble": "Prepare model",
+    "measure": "Measure distance",
+    "share": "Export",
+    "saveFiles": "Save to Files / cloud",
+    "shareOther": "More options",
+    "cloudTitle": "Take your scan with you",
+    "cloudHelp": "Install OneDrive or Google Drive, sign in there and enable the provider in Files → Browse → … → Edit. Then choose the cloud folder you want. The provider handles the transfer; check there that it has finished.",
+    "steps": [
+      {
+        "title": "Get ready",
+        "icon": "viewfinder",
+        "body": "Clean the lens and use even lighting. The room or gate should stay still during capture. Measure a clearly identifiable reference distance with a tape measure. It will help you check the scale later."
+      },
+      {
+        "title": "Go all the way around",
+        "icon": "camera.viewfinder",
+        "body": "Start a new capture with LiDAR Mode in normal Mapping. Wait for the camera to initialize, then tap Record. Slowly capture the floor, walls and corners with overlapping views, and return to your starting point. Capture a gate from both sides if accessible; the posts and ground help tracking."
+      },
+      {
+        "title": "Inspect the model first",
+        "icon": "cube.transparent",
+        "body": "Stop the scan and save the .db file as your original. Choose Assemble → Optimized mesh → Textured Mesh. Check for doubled walls, holes and thin parts. Photos show the appearance; even an attractive textured model can contain incorrect geometry."
+      },
+      {
+        "title": "Width, height and distance",
+        "icon": "ruler",
+        "body": "On iPhone: start measuring and choose Measuring → Point to Point Mode from the menu. Aim at the first point and confirm with +, then repeat for the second point. On a computer: choose Distance and click two points on the model. The display shows the direct length, horizontal distance and height difference."
+      },
+      {
+        "title": "Area and floor plan",
+        "icon": "square.dashed",
+        "body": "In the desktop workspace, choose Floor area and click the floor corners in order. Then choose Finish area. L-shaped rooms are supported; crossing edges are rejected. In Top view you can hide the roof. This floor area is a manually marked outline, not automatic wall or room recognition. Export the floor plan as SVG. Choose Surface area for a flat gate or wall surface."
+      },
+      {
+        "title": "Check the measurements",
+        "icon": "checkmark.seal",
+        "body": "Compare several model dimensions with real reference measurements. RTAB-Map models normally use meters; check the import unit for other files. Calibrate with a reference lets you enter a known distance. This corrects the overall scale, but not local scanning errors. Allow extra clearance when parts need to fit precisely."
+      },
+      {
+        "title": "Save and open on your computer",
+        "icon": "icloud.and.arrow.up",
+        "body": "Export the textured model as an OBJ ZIP including the MTL and images. Choose Save to Files / cloud to select OneDrive or Google Drive. On your computer, open the synchronized or downloaded ZIP in the workspace. Save project keeps the model and measurements together; CSV contains measurements and SVG contains the marked floor plan. The browser cannot reconstruct a .db file."
+      }
+    ],
+    "workflow": {
+      "tutorial": "Step-by-step guide",
+      "projects": "Open saved scans",
+      "overview": "Back to overview",
+      "availableLater": "Available after the previous step.",
+      "readyTitle": "Your next scan starts here. Take time to capture every corner.",
+      "capturedTitle": "Your scan is captured. Build the model and inspect its geometry.",
+      "modelTitle": "Your model is ready. Check important dimensions with a tape measure.",
+      "prepareTitle": "Ready to scan?",
+      "prepareBody": "Clean the lens, use even lighting and keep the room or gate still. Measure a recognizable reference distance with a tape measure. Keep the floor and distinctive edges in view. The camera preview opens next; tap Record to capture.",
+      "enableLidar": "Enable LiDAR for this scan",
+      "scanHint": "Move slowly and keep your views overlapping.",
+      "measureHint": "Aim at the first point and tap +, then repeat for the second. Use the stop icon to finish.",
+      "stages": [
+        { "title": "Scan", "detail": "Capture a room or object with LiDAR and camera images." },
+        { "title": "Inspect", "detail": "Build the model with photo textures and check for gaps." },
+        { "title": "Measure", "detail": "Choose two points. Measure areas and floor plans on your computer." },
+        { "title": "Save", "detail": "Export the model as a ZIP to Files, OneDrive or Google Drive." }
+      ]
+    },
+    "roomPlan": {
+      "title": "Room plan",
+      "close": "Close",
+      "modeTitle": "Automatic room plan",
+      "modeDetail": "Interior rooms with detected walls, doors and windows. For photo textures or objects, use Scan below.",
+      "prepare": "Prepare the room",
+      "intro": "Start in a corner and capture walls, the floor, doors and windows. Scan rooms one at a time and organize them by building and floor.",
+      "noTexture": "This mode creates a schematic model without photo textures. Check the detected elements and dimensions.",
+      "start": "Start room capture",
+      "scanHelp": "Walk slowly around the room. Show the floor and walls, and capture gaps from another angle. Follow the guidance in the camera view.",
+      "scanning": "Capturing room",
+      "finish": "Finish capture",
+      "processing": "Processing room…",
+      "processingFailed": "The capture could not be processed. Close this mode and start a new capture.",
+      "interrupted": "The capture was interrupted. Close this mode and start again.",
+      "unsupported": "Automatic room plans require iOS 17 or later and a supported device with LiDAR. The existing scan mode remains available.",
+      "cameraDenied": "Camera access is missing. Allow Kantura to use the camera in iPhone Settings, then try again.",
+      "empty": "No usable room surfaces were detected. Capture the walls again from several angles.",
+      "review": "Review and name the room",
+      "export": "Save and export",
+      "verify": "Check dimensions against a reference. The three lengths describe extents along local axes; floor area is calculated only from a detected polygon.",
+      "confidence": "Recognition confidence",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low",
+      "unknown": "Unknown",
+      "wall": "Wall",
+      "door": "Door",
+      "window": "Window",
+      "opening": "Opening",
+      "floor": "Floor",
+      "name": "Room name",
+      "exporting": "Creating files…",
+      "savedLocally": "Saved locally in Kantura/KanturaRooms. Choose Files for OneDrive, Google Drive or another folder.",
+      "exportFailed": "Export failed",
+      "exportRetry": "The capture stays open. Check the available storage and try exporting again.",
+      "failed": "Capture unavailable",
+      "discardTitle": "Leave this capture?",
+      "discardBody": "Results that have not been saved will be discarded.",
+      "keep": "Go back",
+      "discard": "Discard",
+      "building": "Building / project",
+      "floorName": "Floor",
+      "defaultBuilding": "My building",
+      "defaultFloor": "Ground floor",
+      "separateOrigins": "Each room has its own origin. Building and floor organize the captures; rooms are not automatically aligned with one another.",
+      "library": "Saved room plans",
+      "newRoom": "New room",
+      "otherRooms": "More rooms",
+      "libraryEmpty": "No room plans saved yet. Capture a room and choose Save and export.",
+      "surfaces": "Surfaces",
+      "preview": "3D preview",
+      "tooComplex": "This room plan is too complex to exchange: at most 150 surfaces and 100 points per outline are supported. Capture smaller rooms separately."
+    }
   }
 }

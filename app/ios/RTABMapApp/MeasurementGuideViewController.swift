@@ -14,19 +14,20 @@ final class MeasurementGuideViewController: UIViewController {
     private var step: Int?
     private let content = UIStackView()
     private let scroll = UIScrollView()
-    private let accent = UIColor.systemIndigo
+    private let accent = KanturaDesign.tint
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemGroupedBackground
+        view.backgroundColor = KanturaDesign.background
         view.tintColor = accent
+        KanturaDesign.navigation(self)
         scroll.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(scroll)
         content.axis = .vertical
-        content.spacing = 18
+        content.spacing = 16
         content.translatesAutoresizingMaskIntoConstraints = false
         scroll.addSubview(content)
-        let preferredWidth = content.widthAnchor.constraint(equalToConstant: 560)
+        let preferredWidth = content.widthAnchor.constraint(equalToConstant: 600)
         preferredWidth.priority = .defaultHigh
         NSLayoutConstraint.activate([
             scroll.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
@@ -44,7 +45,7 @@ final class MeasurementGuideViewController: UIViewController {
         render()
     }
 
-    private func label(_ text: String, style: UIFont.TextStyle, color: UIColor = .label) -> UILabel {
+    private func label(_ text: String, style: UIFont.TextStyle, color: UIColor = KanturaDesign.text) -> UILabel {
         let result = UILabel()
         result.text = text
         result.font = .preferredFont(forTextStyle: style)
@@ -58,14 +59,7 @@ final class MeasurementGuideViewController: UIViewController {
         let result = UIButton(type: .system)
         result.setTitle("  " + text, for: .normal)
         result.setImage(UIImage(systemName: icon), for: .normal)
-        result.titleLabel?.font = .preferredFont(forTextStyle: .headline)
-        result.titleLabel?.adjustsFontForContentSizeCategory = true
-        result.titleLabel?.numberOfLines = 0
-        result.contentEdgeInsets = UIEdgeInsets(top: 16, left: 14, bottom: 16, right: 14)
-        result.heightAnchor.constraint(greaterThanOrEqualToConstant: 52).isActive = true
-        result.layer.cornerRadius = 16
-        result.backgroundColor = filled ? accent : .secondarySystemGroupedBackground
-        result.tintColor = filled ? .white : accent
+        KanturaDesign.button(result, primary: filled)
         result.addAction(UIAction { _ in handler() }, for: .touchUpInside)
         return result
     }
@@ -93,23 +87,24 @@ final class MeasurementGuideViewController: UIViewController {
         }
         let hero = UIImageView(image: UIImage(named: "KanturaMark"))
         hero.contentMode = .scaleAspectFit
-        hero.layer.cornerRadius = 18
+        hero.layer.cornerRadius = 16
         hero.clipsToBounds = true
         hero.translatesAutoresizingMaskIntoConstraints = false
         let heroContainer = UIView()
         heroContainer.addSubview(hero)
         NSLayoutConstraint.activate([
-            hero.widthAnchor.constraint(equalToConstant: 76),
-            hero.heightAnchor.constraint(equalToConstant: 76),
-            hero.centerXAnchor.constraint(equalTo: heroContainer.centerXAnchor),
+            hero.widthAnchor.constraint(equalToConstant: 60),
+            hero.heightAnchor.constraint(equalToConstant: 60),
+            hero.leadingAnchor.constraint(equalTo: heroContainer.leadingAnchor),
             hero.topAnchor.constraint(equalTo: heroContainer.topAnchor),
             hero.bottomAnchor.constraint(equalTo: heroContainer.bottomAnchor)
         ])
         hero.isAccessibilityElement = false
         content.addArrangedSubview(heroContainer)
-        let heading = label(guide.subtitle, style: .title1)
-        heading.textAlignment = .center
+        let heading = label(guide.title, style: .largeTitle)
+        heading.accessibilityTraits.insert(.header)
         content.addArrangedSubview(heading)
+        content.addArrangedSubview(label(guide.subtitle, style: .body, color: KanturaDesign.muted))
         let status: String
         switch workflowState.phase {
         case .ready: status = workflow.readyTitle
@@ -117,31 +112,40 @@ final class MeasurementGuideViewController: UIViewController {
         case .mesh: status = workflow.modelTitle
         case .busy: status = workflow.availableLater
         }
-        let statusLabel = label(status, style: .subheadline, color: .secondaryLabel)
-        statusLabel.textAlignment = .center
-        content.addArrangedSubview(statusLabel)
+        let statusLabel = label(status, style: .subheadline, color: KanturaDesign.muted)
+        content.addArrangedSubview(KanturaDesign.inset(statusLabel, padding: 16))
+        content.setCustomSpacing(24, after: content.arrangedSubviews.last!)
         if workflowState.availableActions.contains(.scan) {
-            content.addArrangedSubview(button(MeasurementGuide.roomText("modeTitle"), icon: "square.split.bottomrightquarter") { [weak self] in
+            let roomPlan = KanturaActionCard(title: MeasurementGuide.roomText("modeTitle"),
+                detail: MeasurementGuide.roomText("modeDetail"), icon: "square.split.bottomrightquarter", emphasis: .prominent)
+            roomPlan.addAction(UIAction { [weak self] _ in
                 guard let self = self else { return }
                 let callback = self.onRoomPlan
                 let closed = self.onClose
                 self.dismiss(animated: true) { closed?(); callback?() }
-            })
-            content.addArrangedSubview(label(MeasurementGuide.roomText("modeDetail"), style: .footnote, color: .secondaryLabel))
-            content.addArrangedSubview(button(MeasurementGuide.roomText("library"), icon: "building.2") { [weak self] in
+            }, for: .touchUpInside)
+            content.addArrangedSubview(roomPlan)
+            let library = KanturaActionCard(title: MeasurementGuide.roomText("library"),
+                detail: ["building", "floorName", "name"].map { MeasurementGuide.roomText($0) }.joined(separator: " · "), icon: "building.2")
+            library.addAction(UIAction { [weak self] _ in
                 guard let self = self else { return }
                 let callback = self.onRoomPlanLibrary
                 let closed = self.onClose
                 self.dismiss(animated: true) { closed?(); callback?() }
-            })
+            }, for: .touchUpInside)
+            content.addArrangedSubview(library)
+            content.setCustomSpacing(28, after: library)
         }
+        let workflowHeading = label(guide.start, style: .title2)
+        workflowHeading.accessibilityTraits.insert(.header)
+        content.addArrangedSubview(workflowHeading)
         let entries: [(Action, String)] = [(.scan, "camera.viewfinder"), (.assemble, "cube.transparent"), (.measure, "ruler"), (.share, "square.and.arrow.up")]
         for (index, entry) in entries.enumerated() where workflow.stages.indices.contains(index) {
             let stage = workflow.stages[index]
             let available = workflowState.availableActions.contains(entry.0)
             let recommended = workflowState.primaryAction == entry.0
-            let card = WorkflowCard(number: index + 1, title: stage.title, detail: stage.detail,
-                                    icon: entry.1, recommended: recommended, enabled: available)
+            let card = KanturaActionCard(title: "\(index + 1). \(stage.title)", detail: stage.detail,
+                                    icon: entry.1, emphasis: recommended ? .mint : .standard, enabled: available)
             card.accessibilityHint = available ? stage.detail : workflow.availableLater
             card.addAction(UIAction { [weak self] _ in self?.perform(entry.0) }, for: .touchUpInside)
             content.addArrangedSubview(card)
@@ -166,6 +170,8 @@ final class MeasurementGuideViewController: UIViewController {
         }
         let progress = UIProgressView(progressViewStyle: .default)
         progress.progress = Float(step + 1) / Float(guide.steps.count)
+        progress.progressTintColor = KanturaDesign.tint
+        progress.trackTintColor = KanturaDesign.border
         progress.accessibilityLabel = "\(step + 1) / \(guide.steps.count)"
         content.addArrangedSubview(progress)
         let symbol = UIImageView(image: UIImage(systemName: current.icon, withConfiguration: UIImage.SymbolConfiguration(pointSize: 64, weight: .light)))
@@ -173,9 +179,10 @@ final class MeasurementGuideViewController: UIViewController {
         symbol.tintColor = accent
         symbol.heightAnchor.constraint(equalToConstant: 90).isActive = true
         symbol.isAccessibilityElement = false
-        content.addArrangedSubview(symbol)
-        content.addArrangedSubview(label(current.title, style: .title1))
-        content.addArrangedSubview(label(current.body, style: .body))
+        let lesson = UIStackView(arrangedSubviews: [symbol, label(current.title, style: .title1), label(current.body, style: .body)])
+        lesson.axis = .vertical
+        lesson.spacing = 22
+        content.addArrangedSubview(KanturaDesign.inset(lesson, padding: 24))
         let back = button(guide.back, icon: "chevron.left") { [weak self] in
             self?.step = max(0, step - 1)
             self?.render()
@@ -230,56 +237,4 @@ final class MeasurementGuideViewController: UIViewController {
         sheet.popoverPresentationController?.barButtonItem = navigationItem.leftBarButtonItem
         present(sheet, animated: true)
     }
-}
-
-private final class WorkflowCard: UIButton {
-    init(number: Int, title: String, detail: String, icon: String, recommended: Bool, enabled: Bool) {
-        super.init(frame: .zero)
-        isEnabled = enabled
-        backgroundColor = recommended ? .systemIndigo : .secondarySystemGroupedBackground
-        layer.cornerRadius = 20
-        layer.borderWidth = recommended ? 0 : 1
-        layer.borderColor = UIColor.separator.withAlphaComponent(0.25).cgColor
-        let foreground: UIColor = recommended ? .white : enabled ? .label : .secondaryLabel
-        let symbol = UIImageView(image: UIImage(systemName: icon, withConfiguration: UIImage.SymbolConfiguration(pointSize: 25, weight: .medium)))
-        symbol.tintColor = foreground
-        symbol.contentMode = .scaleAspectFit
-        symbol.widthAnchor.constraint(equalToConstant: 38).isActive = true
-        let heading = UILabel()
-        heading.text = "\(number). \(title)"
-        heading.font = .preferredFont(forTextStyle: .headline)
-        heading.textColor = foreground
-        let subtitle = UILabel()
-        subtitle.text = detail
-        subtitle.font = .preferredFont(forTextStyle: .subheadline)
-        subtitle.textColor = recommended ? UIColor.white.withAlphaComponent(0.85) : .secondaryLabel
-        [heading, subtitle].forEach {
-            $0.numberOfLines = 0
-            $0.adjustsFontForContentSizeCategory = true
-        }
-        let text = UIStackView(arrangedSubviews: [heading, subtitle])
-        text.axis = .vertical
-        text.spacing = 5
-        let arrow = UIImageView(image: UIImage(systemName: enabled ? "chevron.right" : "lock"))
-        arrow.tintColor = foreground
-        arrow.contentMode = .scaleAspectFit
-        arrow.widthAnchor.constraint(equalToConstant: 18).isActive = true
-        let row = UIStackView(arrangedSubviews: [symbol, text, arrow])
-        row.spacing = 14
-        row.alignment = .center
-        row.isUserInteractionEnabled = false
-        row.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(row)
-        NSLayoutConstraint.activate([
-            row.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 18),
-            row.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -18),
-            row.topAnchor.constraint(equalTo: topAnchor, constant: 18),
-            row.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -18),
-            heightAnchor.constraint(greaterThanOrEqualToConstant: 92)
-        ])
-        accessibilityLabel = "\(number). \(title)"
-        isAccessibilityElement = true
-    }
-
-    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 }

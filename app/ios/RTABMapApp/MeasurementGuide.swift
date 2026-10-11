@@ -42,7 +42,7 @@ struct MeasurementGuide: Decodable {
         all[selectedLanguage]?.roomPlan?[key] ?? all["de"]?.roomPlan?[key] ?? key
     }
 
-    static let languages = ["de", "fr", "es", "it", "zh-Hans"]
+    static let languages = ["de", "fr", "es", "it", "zh-Hans", "en"]
     static let all = load()
     static func languageCode(_ preferred: String) -> String {
         let code = preferred.lowercased().replacingOccurrences(of: "_", with: "-")

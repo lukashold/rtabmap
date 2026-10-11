@@ -19,7 +19,10 @@ for language in MeasurementGuide.languages {
 precondition(MeasurementGuide.languageCode("fr-CA") == "fr")
 precondition(MeasurementGuide.languageCode("zh_TW") == "zh-Hans")
 precondition(MeasurementGuide.languageCode("it") == "it")
-precondition(MeasurementGuide.languageCode("en-US") == "de")
+precondition(MeasurementGuide.languages.count == 6)
+precondition(MeasurementGuide.languageCode("en-US") == "en")
+precondition(MeasurementGuide.languageCode("EN_gb") == "en")
+precondition(MeasurementGuide.languageCode("nl-NL") == "de")
 
 let ready = MeasurementWorkflowState(phase: .ready, canReconstruct: false, hasProjects: false)
 precondition(ready.availableActions == [.scan] && ready.primaryAction == .scan)
@@ -33,7 +36,7 @@ let cloud = MeasurementWorkflowState(phase: .pointCloud, canReconstruct: false, 
 precondition(!cloud.availableActions.contains(.measure) && cloud.availableActions.contains(.share) && cloud.primaryAction == .share)
 let active = MeasurementWorkflowState(phase: .busy, canReconstruct: true, hasProjects: true)
 precondition(active.availableActions.isEmpty && active.primaryAction == nil)
-print("Measurement guide: five languages, language fallback, and six scanner workflow states passed")
+print("Measurement guide: six languages, language fallback, and six scanner workflow states passed")
 
 // A rotated floor's area is calculated from its local polygon, without assuming
 // that every captured floor occupies the same pair of world axes.

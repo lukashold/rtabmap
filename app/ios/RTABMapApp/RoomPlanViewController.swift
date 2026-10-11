@@ -14,6 +14,7 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
     private var result: CapturedRoom?
     private var exportedLocally = false
     private let status = UILabel()
+    private let statusCard = KanturaSurface(frame: .zero)
     private let primary = UIButton(type: .system)
     private let spinner = UIActivityIndicatorView(style: .medium)
     private let resultsScroll = UIScrollView()
@@ -29,50 +30,54 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
     override func viewDidLoad() {
         super.viewDidLoad()
         title = text("title")
-        view.backgroundColor = .systemGroupedBackground
-        view.tintColor = .systemIndigo
+        view.backgroundColor = KanturaDesign.background
+        view.tintColor = KanturaDesign.tint
+        KanturaDesign.navigation(self)
         isModalInPresentation = true
         navigationItem.leftBarButtonItem = UIBarButtonItem(title: text("close"), style: .plain, target: self, action: #selector(close))
         capture.delegate = self
         capture.captureSession.delegate = self
         capture.translatesAutoresizingMaskIntoConstraints = false
-        capture.layer.cornerRadius = 18
+        capture.layer.cornerRadius = 26
+        capture.layer.cornerCurve = .continuous
         capture.clipsToBounds = true
         view.addSubview(capture)
         status.numberOfLines = 0
-        status.font = .preferredFont(forTextStyle: .subheadline)
+        status.font = .preferredFont(forTextStyle: .headline)
         status.adjustsFontForContentSizeCategory = true
-        status.textColor = .secondaryLabel
+        status.textColor = KanturaDesign.text
         status.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(status)
-        primary.titleLabel?.font = .preferredFont(forTextStyle: .headline)
-        primary.titleLabel?.adjustsFontForContentSizeCategory = true
-        primary.titleLabel?.numberOfLines = 0
-        primary.contentEdgeInsets = UIEdgeInsets(top: 16, left: 18, bottom: 16, right: 18)
-        primary.backgroundColor = .systemIndigo
-        primary.tintColor = .white
-        primary.layer.cornerRadius = 16
+        statusCard.translatesAutoresizingMaskIntoConstraints = false
+        statusCard.addSubview(status)
+        view.addSubview(statusCard)
+        KanturaDesign.button(primary, primary: true)
         primary.addTarget(self, action: #selector(primaryAction), for: .touchUpInside)
         primary.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(primary)
         spinner.hidesWhenStopped = true
+        spinner.color = KanturaDesign.tint
         spinner.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(spinner)
         resultsScroll.translatesAutoresizingMaskIntoConstraints = false
+        resultsScroll.keyboardDismissMode = .interactive
         view.addSubview(resultsScroll)
         results.axis = .vertical
-        results.spacing = 14
+        results.spacing = 16
         results.translatesAutoresizingMaskIntoConstraints = false
         resultsScroll.addSubview(results)
         captureHeight = capture.heightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.heightAnchor, multiplier: 0.48)
         captureHeight?.priority = .defaultHigh
         NSLayoutConstraint.activate([
-            status.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
-            status.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
-            status.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 12),
-            capture.topAnchor.constraint(equalTo: status.bottomAnchor, constant: 12),
-            capture.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 12),
-            capture.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -12),
+            statusCard.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
+            statusCard.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
+            statusCard.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+            status.leadingAnchor.constraint(equalTo: statusCard.leadingAnchor, constant: 18),
+            status.trailingAnchor.constraint(equalTo: statusCard.trailingAnchor, constant: -18),
+            status.topAnchor.constraint(equalTo: statusCard.topAnchor, constant: 15),
+            status.bottomAnchor.constraint(equalTo: statusCard.bottomAnchor, constant: -15),
+            capture.topAnchor.constraint(equalTo: statusCard.bottomAnchor, constant: 16),
+            capture.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
+            capture.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
             captureHeight!,
             primary.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
             primary.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
@@ -90,8 +95,8 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
             results.bottomAnchor.constraint(equalTo: resultsScroll.contentLayoutGuide.bottomAnchor),
             results.widthAnchor.constraint(equalTo: resultsScroll.frameLayoutGuide.widthAnchor)
         ])
-        addLabel(text("intro"), style: .body)
-        addLabel(text("noTexture"), style: .footnote)
+        addInformation(text("intro"), icon: "viewfinder")
+        addInformation(text("noTexture"), icon: "info.circle")
         status.text = text("prepare")
         primary.setTitle(text("start"), for: .normal)
         interruptionObserver = NotificationCenter.default.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
@@ -101,14 +106,16 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
         if !Self.isSupported { fail(text("unsupported")) }
     }
 
-    private func addLabel(_ value: String, style: UIFont.TextStyle) {
-        let label = UILabel()
-        label.text = value
-        label.font = .preferredFont(forTextStyle: style)
-        label.adjustsFontForContentSizeCategory = true
-        label.numberOfLines = 0
-        if style == .footnote { label.textColor = .secondaryLabel }
-        results.addArrangedSubview(label)
+    private func addInformation(_ value: String, icon: String) {
+        let symbol = UIImageView(image: UIImage(systemName: icon))
+        symbol.tintColor = KanturaDesign.tint
+        symbol.contentMode = .top
+        symbol.widthAnchor.constraint(equalToConstant: 22).isActive = true
+        symbol.isAccessibilityElement = false
+        let row = UIStackView(arrangedSubviews: [symbol, KanturaDesign.label(value, style: .subheadline, secondary: true)])
+        row.alignment = .top
+        row.spacing = 12
+        results.addArrangedSubview(KanturaDesign.inset(row, padding: 18))
     }
 
     @objc private func primaryAction() {
@@ -150,7 +157,7 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
     private func startCapture() {
         guard Self.isSupported, lifecycle.start() else { return }
         results.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        addLabel(text("scanHelp"), style: .body)
+        addInformation(text("scanHelp"), icon: "viewfinder")
         var configuration = RoomCaptureSession.Configuration()
         configuration.isCoachingEnabled = true
         status.text = text("scanning")
@@ -213,18 +220,32 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
         buildingField.text = UserDefaults.standard.string(forKey: "KanturaRoomBuilding") ?? text("defaultBuilding")
         floorField.text = UserDefaults.standard.string(forKey: "KanturaRoomFloor") ?? text("defaultFloor")
         nameField.text = text("title")
+        let fields = UIStackView()
+        fields.axis = .vertical
+        fields.spacing = 9
         for (field, key) in [(buildingField, "building"), (floorField, "floorName"), (nameField, "name")] {
-            addLabel(text(key), style: .caption1)
-            field.borderStyle = .roundedRect
+            fields.addArrangedSubview(KanturaDesign.label(text(key), style: .subheadline, secondary: true))
+            field.borderStyle = .none
+            field.backgroundColor = KanturaDesign.background
+            field.textColor = KanturaDesign.text
+            field.tintColor = KanturaDesign.tint
+            field.layer.cornerRadius = 12
+            field.layer.cornerCurve = .continuous
+            field.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 12, height: 48))
+            field.leftViewMode = .always
+            field.rightView = UIView(frame: CGRect(x: 0, y: 0, width: 12, height: 48))
+            field.rightViewMode = .always
             field.placeholder = text(key)
             field.accessibilityLabel = text(key)
             field.font = .preferredFont(forTextStyle: .body)
             field.adjustsFontForContentSizeCategory = true
-            field.heightAnchor.constraint(greaterThanOrEqualToConstant: 48).isActive = true
-            results.addArrangedSubview(field)
+            field.heightAnchor.constraint(greaterThanOrEqualToConstant: 52).isActive = true
+            fields.addArrangedSubview(field)
+            fields.setCustomSpacing(19, after: field)
         }
-        addLabel(text("separateOrigins"), style: .footnote)
-        addLabel(text("verify"), style: .footnote)
+        results.addArrangedSubview(KanturaDesign.inset(fields))
+        addInformation(text("separateOrigins"), icon: "building.2")
+        addInformation(text("verify"), icon: "ruler")
         let formatter = NumberFormatter()
         formatter.locale = Locale(identifier: MeasurementGuide.selectedLanguage)
         formatter.minimumFractionDigits = 2
@@ -233,15 +254,22 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
         var counts: [String: Int] = [:]
         for surface in document.surfaces {
             counts[surface.kind, default: 0] += 1
-            addLabel("\(text(surface.kind)) \(counts[surface.kind]!)", style: .headline)
+            let heading = KanturaDesign.label("\(text(surface.kind)) \(counts[surface.kind]!)", style: .headline)
+            let measurement: String
             if surface.kind == "floor", let area = surface.polygonArea {
-                addLabel("\(number(area)) m²", style: .body)
+                measurement = "\(number(area)) m²"
             } else {
-                addLabel(surface.dimensions.map { number($0) }.joined(separator: " × ") + " m", style: .body)
+                measurement = surface.dimensions.map { number($0) }.joined(separator: " × ") + " m"
             }
-            addLabel(text("confidence") + ": " + text(surface.confidence), style: .footnote)
+            let metric = KanturaDesign.label(measurement, style: .title2)
+            metric.font = UIFontMetrics(forTextStyle: .title2).scaledFont(for: .monospacedDigitSystemFont(ofSize: 23, weight: .semibold))
+            let confidence = KanturaDesign.label(text("confidence") + ": " + text(surface.confidence), style: .footnote, secondary: true)
+            let measurementCard = UIStackView(arrangedSubviews: [heading, metric, confidence])
+            measurementCard.axis = .vertical
+            measurementCard.spacing = 10
+            results.addArrangedSubview(KanturaDesign.inset(measurementCard))
         }
-        addLabel(text("noTexture"), style: .footnote)
+        addInformation(text("noTexture"), icon: "info.circle")
     }
 
     private func makeDocument(_ room: CapturedRoom, name: String) -> RoomPlanDocument {
@@ -375,7 +403,9 @@ final class RoomPlanLibraryViewController: UITableViewController, QLPreviewContr
     override func viewDidLoad() {
         super.viewDidLoad()
         title = text("library")
-        view.backgroundColor = .systemGroupedBackground
+        view.backgroundColor = KanturaDesign.background
+        view.tintColor = KanturaDesign.tint
+        KanturaDesign.navigation(self)
         navigationItem.leftBarButtonItem = UIBarButtonItem(title: text("close"), style: .done, target: self, action: #selector(close))
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: text("newRoom"), style: .plain, target: self, action: #selector(newRoom))
         let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -387,7 +417,9 @@ final class RoomPlanLibraryViewController: UITableViewController, QLPreviewContr
         }
         groups = grouped.keys.sorted().map { (title: $0, rooms: grouped[$0]!) }
         tableView.rowHeight = UITableView.automaticDimension
-        tableView.estimatedRowHeight = 76
+        tableView.estimatedRowHeight = 92
+        tableView.separatorColor = KanturaDesign.border
+        tableView.cellLayoutMarginsFollowReadableWidth = true
         if rooms.isEmpty {
             let empty = UILabel()
             empty.text = text("libraryEmpty")
@@ -395,16 +427,43 @@ final class RoomPlanLibraryViewController: UITableViewController, QLPreviewContr
             empty.numberOfLines = 0
             empty.font = .preferredFont(forTextStyle: .body)
             empty.adjustsFontForContentSizeCategory = true
-            empty.textColor = .secondaryLabel
-            tableView.backgroundView = empty
+            empty.textColor = KanturaDesign.muted
+            let illustration = UIImageView(image: UIImage(systemName: "building.2.crop.circle", withConfiguration: UIImage.SymbolConfiguration(pointSize: 56, weight: .light)))
+            illustration.contentMode = .scaleAspectFit
+            illustration.tintColor = KanturaDesign.tint
+            illustration.heightAnchor.constraint(equalToConstant: 72).isActive = true
+            illustration.isAccessibilityElement = false
+            let content = UIStackView(arrangedSubviews: [illustration, empty])
+            content.axis = .vertical
+            content.spacing = 24
+            let emptyContainer = UIView()
+            content.translatesAutoresizingMaskIntoConstraints = false
+            emptyContainer.addSubview(content)
+            NSLayoutConstraint.activate([
+                content.centerYAnchor.constraint(equalTo: emptyContainer.centerYAnchor),
+                content.leadingAnchor.constraint(equalTo: emptyContainer.leadingAnchor, constant: 32),
+                content.trailingAnchor.constraint(equalTo: emptyContainer.trailingAnchor, constant: -32)
+            ])
+            tableView.backgroundView = emptyContainer
         }
     }
 
     override func numberOfSections(in tableView: UITableView) -> Int { groups.count }
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { groups[section].rooms.count }
     override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? { groups[section].title }
+    override func tableView(_ tableView: UITableView, willDisplayHeaderView view: UIView, forSection section: Int) {
+        guard let header = view as? UITableViewHeaderFooterView else { return }
+        header.textLabel?.textColor = KanturaDesign.muted
+        header.textLabel?.font = .preferredFont(forTextStyle: .subheadline)
+        header.textLabel?.adjustsFontForContentSizeCategory = true
+    }
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = UITableViewCell(style: .subtitle, reuseIdentifier: nil)
+        cell.backgroundColor = KanturaDesign.surface
+        cell.tintColor = KanturaDesign.tint
+        cell.textLabel?.textColor = KanturaDesign.text
+        cell.detailTextLabel?.textColor = KanturaDesign.muted
+        cell.directionalLayoutMargins = NSDirectionalEdgeInsets(top: 18, leading: 18, bottom: 18, trailing: 18)
         let room = groups[indexPath.section].rooms[indexPath.row]
         cell.textLabel?.text = room.document.building?.room ?? room.document.name
         cell.detailTextLabel?.text = "\(room.document.surfaces.count) " + text("surfaces") + " · " + String(room.document.createdAt.prefix(10))

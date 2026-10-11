@@ -237,8 +237,8 @@ class ViewController: GLKViewController, ARSessionDelegate, RTABMapObserver, UIP
         super.viewDidLoad()
         measurementDashboardButton.translatesAutoresizingMaskIntoConstraints = false
         measurementDashboardButton.setImage(UIImage(systemName: "square.grid.2x2.fill"), for: .normal)
-        measurementDashboardButton.tintColor = .white
-        measurementDashboardButton.backgroundColor = .systemIndigo
+        measurementDashboardButton.tintColor = KanturaDesign.mint
+        measurementDashboardButton.backgroundColor = KanturaDesign.ink
         measurementDashboardButton.layer.cornerRadius = 24
         measurementDashboardButton.isHidden = true
         measurementDashboardButton.addAction(UIAction { [weak self] _ in self?.showMeasurementGuide() }, for: .touchUpInside)

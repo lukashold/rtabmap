@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A817AC040000000000000002 /* KanturaDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC040000000000000001 /* KanturaDesign.swift */; };
 		A817AC030000000000000002 /* RoomPlanDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC030000000000000001 /* RoomPlanDocument.swift */; };
 		A817AC030000000000000004 /* RoomPlanViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC030000000000000003 /* RoomPlanViewController.swift */; };
 		A817AC030000000000000006 /* RoomPlan.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A817AC030000000000000005 /* RoomPlan.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
@@ -134,6 +135,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		A817AC040000000000000001 /* KanturaDesign.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KanturaDesign.swift; path = RTABMapApp/KanturaDesign.swift; sourceTree = "<group>"; };
 		A817AC030000000000000001 /* RoomPlanDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RoomPlanDocument.swift; path = RTABMapApp/RoomPlanDocument.swift; sourceTree = "<group>"; };
 		A817AC030000000000000003 /* RoomPlanViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RoomPlanViewController.swift; path = RTABMapApp/RoomPlanViewController.swift; sourceTree = "<group>"; };
 		A817AC030000000000000005 /* RoomPlan.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = RoomPlan.framework; path = System/Library/Frameworks/RoomPlan.framework; sourceTree = SDKROOT; };
@@ -498,6 +500,7 @@
 				A817AC020000000000000003 /* MeasurementGuideViewController.swift */,
 				A817AC020000000000000001 /* MeasurementGuide.swift */,
 				A817AC030000000000000001 /* RoomPlanDocument.swift */,
+				A817AC040000000000000001 /* KanturaDesign.swift */,
 				A817AC030000000000000003 /* RoomPlanViewController.swift */,
 				4EE016BF259BE464008CCE65 /* Main.storyboard */,
 				4EE016C1259BE464008CCE65 /* LaunchScreen.storyboard */,
@@ -881,6 +884,7 @@
 				A817AC020000000000000004 /* MeasurementGuideViewController.swift in Sources */,
 				A817AC020000000000000002 /* MeasurementGuide.swift in Sources */,
 				A817AC030000000000000002 /* RoomPlanDocument.swift in Sources */,
+				A817AC040000000000000002 /* KanturaDesign.swift in Sources */,
 				A817AC030000000000000004 /* RoomPlanViewController.swift in Sources */,
 				4E2C516725A63119005CEDBD /* DatabaseView.swift in Sources */,
 				4EFD0BAA259D501E00575D88 /* triangle.cpp in Sources */,
