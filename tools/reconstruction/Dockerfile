@@ -16,6 +16,9 @@ WORKDIR /opt/kantura
 COPY pins.json requirements.txt engines-build.sh ./
 RUN python3 -m pip install --no-cache-dir -r requirements.txt
 RUN GPU_RUNTIME="${GPU_RUNTIME}" BUILD_JOBS="${BUILD_JOBS}" CUDA_ARCHITECTURES="${CUDA_ARCHITECTURES}" bash ./engines-build.sh
+COPY patches ./patches
+COPY openmvs-patch.sh ./
+RUN BUILD_JOBS="${BUILD_JOBS}" bash ./openmvs-patch.sh
 COPY contract.py worker.py service.py ./
 COPY README.md API.md THIRD-PARTY.md ./
 RUN useradd --uid 10001 --create-home --shell /usr/sbin/nologin kantura && \

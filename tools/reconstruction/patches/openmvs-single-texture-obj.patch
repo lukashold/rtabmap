@@ -1,0 +1,11 @@
+--- a/libs/MVS/Mesh.cpp
++++ b/libs/MVS/Mesh.cpp
+@@ -1573,7 +1573,7 @@
+ 		ObjModel::Group& group = model.AddGroup(_T("material_" + std::to_string(idxTexture)));
+ 		group.faces.reserve(faces.size());
+ 		FOREACH(idxFace, faces) {
+-			const auto texIdx = faceTexindices[idxFace];
++			const auto texIdx = GetFaceTextureIndex(idxFace);
+ 			if (texIdx != idxTexture)
+ 			    continue;
+ 

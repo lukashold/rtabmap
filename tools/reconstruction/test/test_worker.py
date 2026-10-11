@@ -4,6 +4,7 @@ These validate orchestration, not real reconstruction or visual accuracy.
 """
 import contextlib
 import io
+import hashlib
 import json
 import struct
 import sys
@@ -64,6 +65,11 @@ class WorkerHandoff(unittest.TestCase):
             self.assertTrue((job / 'artifacts' / 'mesh.zip').is_file())
             self.assertEqual((job / 'artifacts' / 'model.ply').read_text('ascii'), MESH)
             self.assertFalse((job / 'work' / 'scene_mesh.mvs').exists())
+            manifest = json.loads((job / 'artifacts' / 'reconstruction.json').read_text('utf-8'))
+            patch = manifest['enginePatches']['openmvs'][0]
+            patch_bytes = Path(worker.__file__).with_name('patches').joinpath(patch['file']).read_bytes()
+            self.assertEqual(patch['sha256'], hashlib.sha256(patch_bytes).hexdigest())
+            self.assertEqual(patch['baseRevision'], manifest['engines']['openmvs']['revision'])
 
     def test_unexpected_worker_errors_keep_details_in_private_log_only(self):
         with tempfile.TemporaryDirectory() as directory:

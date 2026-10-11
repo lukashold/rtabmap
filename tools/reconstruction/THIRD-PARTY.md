@@ -37,3 +37,27 @@ enforced SHA256 pin; the optional CUDA archive is versioned and its downloaded
 hash is recorded, but has not been independently verified. The build records
 installed package versions. Therefore this is not advertised as a bit-for-bit
 reproducible or fully audited supply chain.
+
+## Local OpenMVS correction
+
+The pinned v2.3.0 source is built with
+[`patches/openmvs-single-texture-obj.patch`](patches/openmvs-single-texture-obj.patch).
+Its OBJ exporter read `faceTexindices[idxFace]` after `SceneTexture` had released
+that optional array for a single atlas. The one-line patch calls the existing
+`GetFaceTextureIndex` accessor, which returns zero for the implicit single atlas.
+This is the narrow textured-mesh equivalent of the later upstream
+[OBJ export fix cd688d2](https://github.com/cdcseacave/openMVS/commit/cd688d2a068881184e963926e5e867595cb7eafb).
+It changes no geometry, UV coordinates, photos or reconstruction parameters.
+
+The build verifies the exact source revision and patch SHA256 in
+[`patches/manifest.json`](patches/manifest.json), compiles OpenMVS with the patch,
+and runs [`patches/obj-export-regression.cpp`](patches/obj-export-regression.cpp)
+against the actual OBJ exporter for one and two atlases. It checks exported
+geometry, UVs, material references and texture files. This regression is separate
+from the real multi-photo reconstruction smoke test. The base-engine layer stays
+cached; [`openmvs-patch.sh`](openmvs-patch.sh) rebuilds only OpenMVS.
+
+The image retains the original notices, modified source, test and patch under
+`/opt/kantura`. Output `reconstruction.json` records both `engines` and
+`enginePatches`, including the patch digest. The patch is distributed with the
+OpenMVS source under the same AGPL terms; the upstream code is not relicensed.

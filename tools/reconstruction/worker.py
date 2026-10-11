@@ -156,7 +156,9 @@ def reconstruct(job_dir, mode, device='cpu', iterations=1000, threads=2, image_m
                 'coordinateSystem': 'COLMAP arbitrary similarity frame; not registered to RoomPlan',
                 'source': info['source'], 'images': image_records, 'imageCount': info['imageCount'],
                 'registeredImages': registered, 'sparsePoints': points, 'discardedSparseModels': len(models) - 1,
-                'commands': commands, 'engines': pins['sources'], 'deviceRequested': device if mode == 'splat' else 'cpu',
+                'commands': commands, 'engines': pins['sources'],
+                'enginePatches': json.loads(Path(__file__).with_name('patches').joinpath('manifest.json').read_text('utf-8')),
+                'deviceRequested': device if mode == 'splat' else 'cpu',
                 'splatIterations': iterations if mode == 'splat' else None, 'imageMaxSide': image_max_side,
                 'files': {name: sha256(output / name) for name in ARTIFACTS[mode] if name != 'reconstruction.json'}}
     atomic_json(output / 'reconstruction.json', manifest)

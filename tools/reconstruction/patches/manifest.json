@@ -1,0 +1,11 @@
+{
+  "openmvs": [
+    {
+      "file": "openmvs-single-texture-obj.patch",
+      "sha256": "bc7722c89b704a5fdcae693760930c6ece864f389842a99ce70b895212547d29",
+      "baseRevision": "ce03889e2055a3d6cbcae9dd5a93b5eeea94b909",
+      "description": "Use existing GetFaceTextureIndex for implicit single-atlas texture zero in SaveOBJ",
+      "upstreamFix": "https://github.com/cdcseacave/openMVS/commit/cd688d2a068881184e963926e5e867595cb7eafb"
+    }
+  ]
+}
