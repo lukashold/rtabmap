@@ -90,6 +90,7 @@ function translate(){
   document.querySelectorAll('[data-route-source]').forEach(select=>{const field=$(select.dataset.routeSource);select.setAttribute('aria-label',`${t('measurementSource')} · ${field.closest('label').querySelector('[data-i18n]').textContent}`);});
   for(const id of ['transport-scenario','transport-step','transport-canvas'])$(id).setAttribute('aria-label',t('simulate'));
   $('splat-navigation').textContent=t(mobileLayout.matches?'mobileNavigateHint':'navigateHint');if(splatViewer)splatViewer.renderer.domElement.setAttribute('aria-label',t('splatTitle'));photoPanel?.refresh();
+  $('splat-focus').title=t('splatFocusHelp').replace('{all}',t('fit'));$('splat-focus-help').textContent=$('splat-focus').title;
   refresh();renderGuide();
 }
 function setMode(next){if(busy)return;if(!bundle)return toast(t('noModel'));if(bundle.source==='photogrammetry'&&!calibrated&&!['reference','orbit'].includes(next))return toast(t('photoScaleWarning'));mode=next;pending=[];viewer.setMode(next);refresh();if(mobileLayout.matches)document.querySelector('.model-panel').scrollIntoView({block:'nearest'});}
@@ -303,12 +304,13 @@ async function openSplatBytes(bytes,name){
     if(current()){$('splat-status').textContent=t(error.code==='splatLimit'?'splatLimit':validData?'viewerUnavailable':'splatInvalid');if(instance===splatViewer&&instance){splatViewer=undefined;splatData=undefined;await instance.dispose();}}
   }finally{if(attempt===splatAttempt){splatLoading=false;splatButtons();}}
 }
-function splatButtons(){for(const id of ['splat-open','splat-demo'])$(id).disabled=splatLoading;for(const id of ['splat-fit','splat-download'])$(id).disabled=splatLoading||!splatData;}
+function splatButtons(){for(const id of ['splat-open','splat-demo'])$(id).disabled=splatLoading;for(const id of ['splat-fit','splat-focus','splat-download'])$(id).disabled=splatLoading||!splatData;}
 async function openSplatFile(file){if(file.size>MAX_SPLAT_BYTES)throw {code:'splatLimit'};await openSplatBytes(new Uint8Array(await file.arrayBuffer()),file.name);}
 function showSplatPanel(){$('splat-dialog').showModal();splatButtons();}
 for(const id of ['home-splats','workspace-splats'])$(id).onclick=showSplatPanel;
 $('splat-open').onclick=()=>$('splat-file').click();$('splat-file').onchange=async()=>{const file=$('splat-file').files[0];if(file)try{await openSplatFile(file);}catch(error){showError(error);}$('splat-file').value='';};
 $('splat-demo').onclick=()=>openSplatBytes(syntheticSplatDemo(),'kantura-synthetic-demo.splat');$('splat-fit').onclick=()=>splatViewer?.fit();$('splat-download').onclick=()=>{if(splatData)download(new Blob([splatData.original],{type:'application/octet-stream'}),splatData.name);};
+$('splat-focus').onclick=()=>splatViewer?.focusSubject();
 $('splat-dialog').addEventListener('close',async()=>{++splatAttempt;splatLoading=false;const old=splatViewer;splatViewer=undefined;splatData=undefined;await old?.dispose();splatButtons();});
 photoPanel=new ReconstructionPanel({t,getToken:()=>$('server-token').value,setToken:token=>{$('server-token').value=token;},openArtifact:async(file,job)=>{
   if(job.mode==='splat'){await openSplatFile(file);return;}

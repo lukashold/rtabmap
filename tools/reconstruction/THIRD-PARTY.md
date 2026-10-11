@@ -61,3 +61,12 @@ The image retains the original notices, modified source, test and patch under
 `/opt/kantura`. Output `reconstruction.json` records both `engines` and
 `enginePatches`, including the patch digest. The patch is distributed with the
 OpenMVS source under the same AGPL terms; the upstream code is not relicensed.
+
+The pinned OpenMVS RGB-atlas material writer also hard-codes `Tr 1.000000`,
+which MTL readers such as Three.js interpret as fully transparent. After a
+successful TextureMesh run, the worker changes that exact line to `d 1.000000`
+in only its newly generated `.mtl` outputs before packaging `mesh.zip`. These
+RGB atlases are opaque; no geometry, UVs, image pixels or original input archive
+are changed. `materialNormalization` in `reconstruction.json` records the rule,
+affected files and material counts (null for splats). This does not change how
+the viewer interprets user-imported MTL files or partially transparent materials.

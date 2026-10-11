@@ -273,6 +273,9 @@ class Service:
                     if time.monotonic() - started > self.timeout:
                         terminate_tree(process)
                         raise ContractError('worker_timeout')
+                    if shutil.disk_usage(self.root).free < self.minimum_free_bytes:
+                        terminate_tree(process)
+                        raise ContractError('storage_full')
                     total = sum(p.stat().st_size for p in folder.rglob('*') if p.is_file() and not p.is_symlink())
                     if total > self.max_work_bytes or (folder / 'worker.log').stat().st_size > 8 * 1024**2:
                         terminate_tree(process)

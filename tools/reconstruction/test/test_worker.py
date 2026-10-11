@@ -10,6 +10,7 @@ import struct
 import sys
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
@@ -56,7 +57,8 @@ class WorkerHandoff(unittest.TestCase):
                     self.assertTrue(argument('-i').is_file())
                     self.assertEqual(argument('-i').name, 'scene_dense.mvs')
                     self.assertEqual(argument('--mesh-file').read_text('ascii'), MESH)
-                    argument('-o').with_suffix('.obj').write_text('# TEST DOUBLE\nv 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n', 'ascii')
+                    argument('-o').with_suffix('.obj').write_text('# TEST DOUBLE\nmtllib model.mtl\nv 0 0 0\nv 1 0 0\nv 0 1 0\nusemtl material_0\nf 1 2 3\n', 'ascii')
+                    argument('-o').with_suffix('.mtl').write_text('newmtl material_0\nKd 1 1 1\nTr 1.000000\nillum 1\n', 'ascii')
                 return SimpleNamespace(returncode=0)
 
             with mock.patch.object(worker, 'prepare_images', side_effect=fake_prepare), mock.patch.object(worker.shutil, 'which', return_value='/test/engine'), mock.patch.object(worker.subprocess, 'run', side_effect=fake_run), contextlib.redirect_stdout(io.StringIO()):
@@ -70,6 +72,27 @@ class WorkerHandoff(unittest.TestCase):
             patch_bytes = Path(worker.__file__).with_name('patches').joinpath(patch['file']).read_bytes()
             self.assertEqual(patch['sha256'], hashlib.sha256(patch_bytes).hexdigest())
             self.assertEqual(patch['baseRevision'], manifest['engines']['openmvs']['revision'])
+            self.assertEqual((job / 'input.zip').read_bytes(), b'test-only input; decoder mocked below')
+            with zipfile.ZipFile(job / 'artifacts' / 'mesh.zip') as archive:
+                self.assertEqual(archive.read('model.mtl'), b'newmtl material_0\nKd 1 1 1\nd 1.000000\nillum 1\n')
+                self.assertEqual(archive.read('model.obj'), (job / 'work' / 'textured' / 'model.obj').read_bytes())
+                self.assertEqual(archive.read('model.obj').decode('ascii').splitlines()[-5:], ['v 0 0 0', 'v 1 0 0', 'v 0 1 0', 'usemtl material_0', 'f 1 2 3'])
+            normalization = manifest['materialNormalization']
+            self.assertEqual(normalization['files'], [{'file': 'model.mtl', 'materials': 1}])
+            self.assertFalse(normalization['geometryChanged'])
+
+    def test_opacity_normalization_only_changes_known_generated_rgb_atlas_lines(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            material = folder / 'model.mtl'
+            material.write_bytes(b'newmtl a\nTr 1.000000\nnewmtl b\nTr 0.500000\n# Tr 1.000000\nKd 1 0 1\n')
+            model = folder / 'model.obj'
+            model.write_bytes(b'# Tr 1.000000\nv 0 0 0\n')
+            record = worker.normalize_openmvs_materials([material, model], folder)
+            self.assertEqual(material.read_bytes(), b'newmtl a\nd 1.000000\nnewmtl b\nTr 0.500000\n# Tr 1.000000\nKd 1 0 1\n')
+            self.assertEqual(model.read_bytes(), b'# Tr 1.000000\nv 0 0 0\n')
+            self.assertEqual(record['files'], [{'file': 'model.mtl', 'materials': 1}])
+            self.assertEqual(worker.normalize_openmvs_materials([material, model], folder)['files'], [])
 
     def test_unexpected_worker_errors_keep_details_in_private_log_only(self):
         with tempfile.TemporaryDirectory() as directory:

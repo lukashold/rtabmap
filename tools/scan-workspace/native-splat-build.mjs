@@ -13,6 +13,6 @@ const notices = [
   ['Three.js (MIT) — https://github.com/mrdoob/three.js', 'node_modules/three/LICENSE'],
   ['GaussianSplats3D 0.4.7 (MIT) — https://github.com/mkkellogg/GaussianSplats3D', 'node_modules/@mkkellogg/gaussian-splats-3d/LICENSE'],
 ];
-const provenance = 'Generated offline preview from tools/scan-workspace/src/native-splat-page.js, native-splat-data.js, splat-data.js and splat-viewer.js. Renderer dependencies are bundled locally; no CDN, SharedArrayBuffer or network scene requests. Source and package versions: tools/scan-workspace/package.json / pnpm-lock.yaml. This viewer uses base (DC) colour and does not render higher-order spherical harmonics.\n\n';
+const provenance = 'Generated offline preview from tools/scan-workspace/src/native-splat-page.js, native-splat-data.js, splat-data.js, splat-focus.js and splat-viewer.js. Renderer dependencies are bundled locally; no CDN, SharedArrayBuffer or network scene requests. Source and package versions: tools/scan-workspace/package.json / pnpm-lock.yaml. This viewer uses base (DC) colour and does not render higher-order spherical harmonics.\n\n';
 await writeFile(resolve(destination, 'THIRD-PARTY-LICENSES.txt'), provenance + (await Promise.all(notices.map(async ([name, path]) => `${name}\n${'='.repeat(name.length)}\n${await readFile(resolve(source, path), 'utf8')}`))).join('\n\n'));
 console.log(`Built offline WKWebView assets: ${destination}`);

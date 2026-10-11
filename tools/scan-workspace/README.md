@@ -34,6 +34,14 @@ the base spherical-harmonic color, retaining the original file for download.
 Splats have no trustworthy selectable mesh surface and do not automatically
 establish metric scale, so the splat view does not expose measurement tools.
 
+Camera framing implementation: `splat-focus.js` reads at most 8192 evenly spaced
+position samples from the canonical splat records. It linearly interpolates the
+5th and 95th percentiles independently on each axis to frame the central area.
+This explicit **Zoom to subject** action changes only the camera; it neither
+removes points nor changes positions, Gaussian sizes or original file bytes.
+The initial/full-view action retains the complete bounds including Gaussian
+scales, and the focus view's far plane still accommodates that full extent.
+
 Photo jobs require an explicitly configured private reconstruction worker and
 an explicit upload. Their API is proxied on the same origin after authentication;
 the operator's internal worker origin and token are not public configuration.

@@ -20,6 +20,27 @@ const rows = {
 };
 export const uxDictionaries = Object.fromEntries(Object.entries(rows).map(([language, values]) => [language, Object.fromEntries(keys.map((key, index) => [key, values[index]]))]));
 
+const splatFocusRows = {
+  de: ['Auf Motiv zoomen', 'Zoomt auf den zentralen Bereich der Aufnahme. Weit entfernte Punkte bleiben erhalten. Mit „{all}“ siehst du die vollständige Ansicht.'],
+  en: ['Zoom to subject', 'Zooms to the central part of the capture. Distant points are kept. Use “{all}” to see the complete view.'],
+  fr: ['Zoomer sur le sujet', 'Zoome sur la partie centrale du scan. Les points éloignés sont conservés. « {all} » permet de retrouver la vue complète.'],
+  es: ['Acercar al motivo', 'Acerca la parte central de la captura. Los puntos lejanos se conservan. Usa «{all}» para ver la captura completa.'],
+  it: ['Ingrandisci il soggetto', 'Ingrandisce la parte centrale della scansione. I punti lontani vengono conservati. Con «{all}» torni alla vista completa.'],
+  'zh-Hans': ['放大主体', '放大扫描的中心区域。远处的点仍会保留。选择“{all}”即可查看完整画面。'],
+  pt: ['Aproximar o motivo', 'Aproxima a parte central da captura. Os pontos distantes são mantidos. Use «{all}» para ver a captura completa.'],
+  ar: ['تكبير العنصر الرئيسي', 'يكبّر المنطقة المركزية من المسح. تبقى النقاط البعيدة محفوظة. استخدم «{all}» لرؤية العرض الكامل.'],
+  hi: ['मुख्य वस्तु पर ज़ूम करें', 'स्कैन के बीच वाले हिस्से को बड़ा करके दिखाता है। दूर के बिंदु सुरक्षित रहते हैं। पूरा दृश्य देखने के लिए “{all}” चुनें।'],
+  bn: ['মূল বিষয়ের দিকে জুম করুন', 'স্ক্যানের মাঝের অংশ বড় করে দেখায়। দূরের বিন্দুগুলো অক্ষত থাকে। পুরো দৃশ্য দেখতে “{all}” বেছে নিন।'],
+  ru: ['Приблизить основной объект', 'Приближает центральную часть скана. Удалённые точки сохраняются. Нажмите «{all}», чтобы увидеть весь скан.'],
+  ja: ['被写体にズーム', 'スキャンの中心部分を拡大します。離れた点もそのまま残ります。「{all}」で全体を表示できます。'],
+  ko: ['주 피사체 확대', '스캔의 중심 부분을 확대합니다. 멀리 있는 점도 그대로 유지됩니다. 전체를 보려면 “{all}”를 선택하세요.'],
+  id: ['Perbesar subjek utama', 'Memperbesar bagian tengah hasil pemindaian. Titik yang jauh tetap disimpan. Pilih “{all}” untuk melihat seluruh tampilan.'],
+  tr: ['Ana nesneye yakınlaş', 'Taramanın merkez bölümüne yakınlaşır. Uzaktaki noktalar korunur. Tam görünüm için “{all}” seçeneğini kullanın.']
+};
+for (const [language, [label, help]] of Object.entries(splatFocusRows)) {
+  Object.assign(uxDictionaries[language], { splatFocus: label, splatFocusHelp: help });
+}
+
 const stairRows = {
   de: ['Höhenzunahme (m)', 'Waagerechte Länge dazu (m)', 'Miss beide Werte am selben geraden Treppenabschnitt, etwa Höhe und waagerechte Tiefe einer Stufe. Keine schräge Lauflänge eingeben. Es wird nur die Neigung verwendet; einzelne Stufen werden nicht geprüft.', 'Download des Projektarchivs gestartet'],
   en: ['Rise (m)', 'Corresponding horizontal length (m)', 'Measure both values on the same straight stair section, for example the height and horizontal depth of one step. Do not enter the sloping length. Only the slope is used; individual steps are not checked.', 'Project archive download started'],

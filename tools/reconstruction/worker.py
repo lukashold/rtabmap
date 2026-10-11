@@ -63,6 +63,30 @@ def count_binary(path):
         return 0
 
 
+def normalize_openmvs_materials(files, folder):
+    """Correct the pinned RGB-atlas exporter's inverse opacity convention.
+
+    Called only on newly generated TextureMesh outputs, never user imports.
+    OpenMVS's RGB atlas has no transparency channel. Its hard-coded Tr 1
+    otherwise makes every face invisible in standards-conforming MTL readers.
+    """
+    changed = []
+    for path in files:
+        if path.suffix.lower() != '.mtl':
+            continue
+        before = path.read_text('utf-8')
+        lines = before.splitlines()
+        count = sum(line.strip() == 'Tr 1.000000' for line in lines)
+        if not count:
+            continue
+        after = '\n'.join('d 1.000000' if line.strip() == 'Tr 1.000000' else line for line in lines) + '\n'
+        path.write_bytes(after.encode('utf-8'))
+        changed.append({'file': path.relative_to(folder).as_posix(), 'materials': count})
+    return {'producer': 'OpenMVS v2.3.0 RGB atlas exporter',
+            'rule': 'Tr 1.000000 -> d 1.000000 (opaque RGB atlas)',
+            'files': changed, 'geometryChanged': False}
+
+
 def reconstruct(job_dir, mode, device='cpu', iterations=1000, threads=2, image_max_side=1600):
     job_dir = Path(job_dir).resolve()
     if not (job_dir / 'input.zip').is_file() or mode not in ARTIFACTS:
@@ -111,6 +135,7 @@ def reconstruct(job_dir, mode, device='cpu', iterations=1000, threads=2, image_m
         raise ContractError('insufficient_registration')
     dense = work / 'undistorted'
     run('undistorting', 'colmap', 'image_undistorter', '--image_path', work / 'images', '--input_path', best, '--output_path', dense, '--output_type', 'COLMAP', '--max_image_size', image_max_side)
+    material_normalization = None
     if mode == 'mesh':
         scene = work / 'scene.mvs'
         dense_scene = work / 'scene_dense.mvs'
@@ -131,6 +156,7 @@ def reconstruct(job_dir, mode, device='cpu', iterations=1000, threads=2, image_m
         files = [p for p in textured.rglob('*') if p.is_file() and p.suffix.lower() in {'.obj', '.mtl', '.png', '.jpg', '.jpeg'}]
         if not any(p.suffix == '.obj' for p in files) or sum(p.stat().st_size for p in files) > LIMITS.output_expanded:
             raise ContractError('invalid_artifacts')
+        material_normalization = normalize_openmvs_materials(files, textured)
         with zipfile.ZipFile(output / 'mesh.zip', 'w', compression=zipfile.ZIP_DEFLATED) as archive:
             for path in files:
                 archive.write(path, path.relative_to(textured).as_posix())
@@ -158,6 +184,7 @@ def reconstruct(job_dir, mode, device='cpu', iterations=1000, threads=2, image_m
                 'registeredImages': registered, 'sparsePoints': points, 'discardedSparseModels': len(models) - 1,
                 'commands': commands, 'engines': pins['sources'],
                 'enginePatches': json.loads(Path(__file__).with_name('patches').joinpath('manifest.json').read_text('utf-8')),
+                'materialNormalization': material_normalization,
                 'deviceRequested': device if mode == 'splat' else 'cpu',
                 'splatIterations': iterations if mode == 'splat' else None, 'imageMaxSide': image_max_side,
                 'files': {name: sha256(output / name) for name in ARTIFACTS[mode] if name != 'reconstruction.json'}}

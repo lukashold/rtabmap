@@ -34,6 +34,7 @@ def main():
     scratch = args.job_dir / 'work' / 'generated'
     scratch.mkdir(parents=True)
     (scratch / 'intermediate.bin').write_bytes(b'test-only intermediate')
+    print('TEST DOUBLE worker started', flush=True)
     if args.behavior == 'failure':
         return 7
     if args.behavior == 'sleep':

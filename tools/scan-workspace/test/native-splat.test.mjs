@@ -38,7 +38,8 @@ function bridgeHarness() {
     constructor() { this.renderer = {domElement:{setAttribute(){}}}; instances.push(this); }
     load(data) { this.data=data; return new Promise(resolve => { this.finish=resolve; }); }
     async dispose() { this.closed=true; }
-    fit() {}
+    fit() { this.fitted=true; }
+    focusSubject() { this.focused=true; }
   }
   const window = { addEventListener(){} };
   runInNewContext(pageSource, { window, document:{getElementById:element,documentElement:{}}, navigator:{language:'en'}, webkit:{messageHandlers:{kanturaSplat:{postMessage:message=>messages.push(message)}}}, SplatViewer:FakeViewer, decodeNativeSplatMessage, decodeSplat, syntheticSplatDemo, resolveLanguage:value=>value==='ar'?'ar':'en', dictionaries:{en:{working:'Loading',fit:'Fit'},ar:{}}, uxDictionaries:{en:{splatTitle:'Splats',splatInvalid:'Invalid',splatHelp:'No measurements',splatDemo:'Demo',viewerUnavailable:'Renderer unavailable'},ar:{splatTitle:'Arabic splats',splatHelp:'Arabic help',splatDemo:'Arabic demo',mobileNavigateHint:'Arabic navigation'}} });
@@ -73,4 +74,15 @@ test('native language configuration is synchronous and localizes help and demo b
   assert.equal(bridge.instances.length,0);
   assert.equal(bridge.configure({language:'en'}),true);
   assert.equal(bridge.elements.get('demo').textContent,'Demo');
+});
+
+test('native focus and full-extent buttons address the loaded viewer separately', async () => {
+  const bridge=bridgeHarness();
+  assert.equal(bridge.elements.get('focus').disabled,true);
+  const loading=bridge.load(message);
+  await Promise.resolve(); bridge.instances[0].finish(); await loading;
+  assert.equal(bridge.elements.get('focus').disabled,false);
+  bridge.elements.get('focus').onclick();
+  assert.equal(bridge.instances[0].focused,true); assert.equal(bridge.instances[0].fitted,undefined);
+  bridge.elements.get('fit').onclick(); assert.equal(bridge.instances[0].fitted,true);
 });

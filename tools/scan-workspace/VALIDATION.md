@@ -2,21 +2,30 @@
 
 ## New 0.5 capture, visualization and measurement checks
 
-The Windows run passes **125 Node tests**. These include actual HTTP transport,
+The Windows run passes **130 Node tests**. These include actual HTTP transport,
 reconstruction authentication and bounded streaming, Gaussian-file detection,
-offline native bridge payloads, race recovery and edge/corner snapping. The Python
-worker suite passes **41 tests**, including real JPEG/PNG/HEIC decoding and EXIF
-rotation. Six additional workspace-cleanup tests bring the suite to 47 tests:
-46 pass on Windows; the actual symbolic-link case is skipped because Windows
-does not permit creating that link here. Linux CI executes that case. Cleanup
+offline native bridge payloads, race recovery, edge/corner snapping and bounded
+Splat subject framing. The latest Python suite has **51 tests**: 50 pass on
+Windows, one real symbolic-link case is skipped because Windows does not permit
+creating that link here. The preceding Linux suite passed all 49 cases. Cleanup
 keeps the original archive, artifacts and logs and only removes the generated
-work directory after a finished process. Two additional orchestration/logging
-regressions bring the latest suite to 49 (48 pass on Windows, one link skip).
-The Linux run passed all 47 preceding cases. The actual engine smoke identified
+work directory after a finished process. The running worker also stops when
+available storage drops below the reserved minimum. The actual engine smoke identified
 and corrected an OpenMVS handoff: TextureMesh now receives the existing dense
 scene plus the separately exported PLY, rather than a nonexistent mesh scene.
-Its process/job tests use explicitly identified fake workers; they do
-not establish a successful COLMAP/OpenMVS/OpenSplat reconstruction.
+Its process/job tests use explicitly identified fake workers; those unit tests
+do not establish a successful COLMAP/OpenMVS/OpenSplat reconstruction.
+
+[CPU run 38172402005](https://github.com/lukashold/rtabmap/actions/runs/38172402005)
+for `fea9a0f` actually compiled the engines, applied the verified OpenMVS OBJ
+export fix and executed the real exporter regression for one/two texture atlases
+(ctest: one test executed and passed). Both multi-photo mesh and Splat routes
+completed, and the downloaded artifacts matched their declared byte counts and
+SHA256 hashes. The original 32 photographs are procedurally rendered synthetic
+data. The Splat smoke uses only ten training iterations; this establishes the
+processing path, not visual quality or field accuracy. A subsequent narrow
+worker fix replaces OpenMVS's erroneous generated `Tr 1.000000` material line
+with opaque `d 1.000000`, without changing OBJ geometry or original photographs.
 
 The actual browser rendered the original synthetic Splat demo, downloaded it and
 reopened the resulting `.splat`. Closing the Splat view preserved an existing
@@ -24,17 +33,23 @@ measurement. Two corner selections with snapping enabled produced a measurement
 and displayed the corner status. This proves the interaction, not field accuracy.
 The standalone native IIFE rendered its demo with its actual content security
 policy over localhost, without console errors. This browser exercise does not
-establish WKWebView behavior on an iPhone.
+establish WKWebView behavior on an iPhone. The actual trained Splat artifact was
+also imported in the browser without parser/console errors. Distant points and
+large Gaussian extents made its initial full view tiny; the explicit subject
+focus zooms on its main positions while keeping all original data and the full
+view available. The algorithm samples at most 8192 positions and uses per-axis
+5th/95th percentiles for camera framing only.
 
 At 390 × 844, all fifteen photo-dialog translations were selected without
 horizontal page overflow. Arabic was checked with the Splat preview and RTL
 direction. Signing into the real local Python service correctly reported the
 Windows machine's absent reconstruction engines; no completed job was fabricated.
-The Docker/Xcode workflows and a separate real-engine CPU smoke workflow provide
-their own commit-specific results in GitHub Actions. Native capture, scan accuracy,
+[iOS run 38169729389](https://github.com/lukashold/rtabmap/actions/runs/38169729389)
+for `83de2ed` passed the actual Swift app build, native Foundation tests, tutorial
+and Splat bundle checks, and unsigned IPA upload. The later JavaScript subject-focus
+assets receive a separate follow-up build. Native capture, scan accuracy,
 real-account cloud sign-in and reconstruction visual quality remain device/hardware
-acceptance work. Ten training iterations in a synthetic smoke test, if successful,
-would establish the processing path only.
+acceptance work. The Docker/Xcode workflows provide commit-specific evidence.
 
 Historical checks below apply to their recorded revisions.
 

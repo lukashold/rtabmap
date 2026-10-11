@@ -12,7 +12,10 @@ function translate() {
   document.documentElement.lang = language; document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
   $('title').textContent = t('splatTitle'); $('help').textContent = t('splatHelp'); $('navigation').textContent = t('mobileNavigateHint');
   $('fit').textContent = t('fit'); $('demo').textContent = t('splatDemo');
+  $('focus').textContent = t('splatFocus'); $('focus').title = t('splatFocusHelp').replace('{all}', t('fit'));
+  $('focus-help').textContent = $('focus').title;
   $('stage').setAttribute('aria-label', t('splatTitle')); $('demo').disabled = loading; $('fit').disabled = loading || !viewer;
+  $('focus').disabled = loading || !viewer;
 }
 function reportError(error, rendering = false) {
   const code = error?.code === 'splatLimit' ? 'splatLimit' : rendering ? 'viewerUnavailable' : 'splatInvalid';
@@ -49,6 +52,7 @@ window.loadKanturaSplat = async message => {
   return loadData(data);
 };
 $('fit').onclick = () => viewer?.fit();
+$('focus').onclick = () => viewer?.focusSubject();
 $('demo').onclick = () => loadData(decodeSplat(syntheticSplatDemo(), 'kantura-synthetic-demo.splat'));
 window.addEventListener('pagehide', () => { ++sequence; const old = viewer; viewer = undefined; old?.dispose(); });
 translate(); notify({ type: 'ready' });

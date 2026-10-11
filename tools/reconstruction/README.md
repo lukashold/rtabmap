@@ -153,7 +153,11 @@ by an unclean service restart retain their scratch because an orphaned worker
 could still be using it; stop any remaining workers before manually removing
 that job's `work` directory. The default time limit is two hours (`JOB_TIMEOUT_SECONDS`); the private
 work budget is 8 GiB per job and logs are capped at 8 MiB. Admission reserves free
-disk headroom; these limits are safeguards, not a guarantee against OS out-of-memory
+disk headroom. During processing, the worker supervisor also checks the data
+volume's free space on every monitoring pass (normally 0.25 seconds); if it falls
+below the 2 GiB reserve, it terminates the worker with `storage_full` and removes
+only generated scratch after the process exits. Concurrent host writes can still
+consume free space between checks. These limits are safeguards, not a guarantee against OS out-of-memory
 termination. Set Docker/host memory and CPU limits appropriate to the machine.
 
 Original photos, final/partial artifacts, logs and job records are never
@@ -171,7 +175,7 @@ Run the contract/API tests with Python 3.9 or newer:
 python -m unittest discover -s test -v
 ```
 
-On 11 October 2026, 48 of 49 tests passed locally on Windows with Python 3.9
+On 11 October 2026, 50 of 51 tests passed locally on Windows with Python 3.9
 and the pinned `requirements.txt` dependencies; the filesystem-symlink cleanup
 case skipped because this Windows account cannot create symlinks. It runs in
 Linux CI. The suite includes six scratch-retention/process-lifecycle checks and

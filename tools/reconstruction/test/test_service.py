@@ -9,6 +9,7 @@ import time
 import unittest
 from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -35,7 +36,7 @@ class ServiceTests(unittest.TestCase):
         self.temp.cleanup()
 
     def start(self, behavior='valid', **options):
-        self.service = Service(self.root, TOKEN, worker_command=[sys.executable, str(Path(__file__).with_name('fake_worker.py')), '--behavior', behavior], minimum_free_bytes=0, verify_programs=False, **options)
+        self.service = Service(self.root, TOKEN, worker_command=[sys.executable, str(Path(__file__).with_name('fake_worker.py')), '--behavior', behavior], minimum_free_bytes=options.pop('minimum_free_bytes', 0), verify_programs=False, **options)
         return self.service
 
     def upload(self, mode='mesh', data=None):
@@ -185,6 +186,32 @@ class ServiceTests(unittest.TestCase):
     def test_work_budget_terminates_worker(self):
         self.start('oversize', max_work_bytes=10000)
         self.assertEqual(self.final(self.upload()['id'])['error']['code'], 'worker_limit')
+
+    def test_running_disk_reserve_terminates_worker_and_keeps_original_and_log(self):
+        low_space = threading.Event()
+        def telemetry(path):
+            self.assertEqual(Path(path), self.root)
+            return SimpleNamespace(free=512 if low_space.is_set() else 4 * 1024**3)
+        with mock.patch('service.shutil.disk_usage', side_effect=telemetry):
+            self.start('sleep', minimum_free_bytes=1024)
+            original = photo_zip(manifest=True)
+            identifier = self.upload(data=original)['id']
+            self.scratch_ready(identifier)
+            folder = self.root / identifier
+            process = self.service.process
+            self.assertIsNone(process.poll())
+            self.assertTrue((folder / 'work' / 'generated' / 'intermediate.bin').is_file())
+            low_space.set()
+            job = self.final(identifier)
+            self.settled(identifier)
+            self.assertEqual(job['status'], 'failed')
+            self.assertEqual(job['error']['code'], 'storage_full')
+            self.assertEqual(job['artifacts'], [])
+            self.assertIsNotNone(process.poll())
+            self.assertFalse((folder / 'work').exists())
+            self.assertEqual((folder / 'input.zip').read_bytes(), original)
+            self.assertIn(b'TEST DOUBLE worker started', (folder / 'worker.log').read_bytes())
+            self.assertTrue((folder / 'state.json').is_file())
 
     def test_queued_jobs_resume_and_running_jobs_fail_after_restart(self):
         self.start(autostart=False)

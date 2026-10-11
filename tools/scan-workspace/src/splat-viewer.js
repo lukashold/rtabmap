@@ -1,6 +1,7 @@
 import { PerspectiveCamera, Vector3, WebGLRenderer } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Viewer, SceneFormat, RenderMode, SceneRevealMode } from '@mkkellogg/gaussian-splats-3d';
+import { splatSubjectBounds } from './splat-focus.js';
 
 // External renderer/camera/controls keep this subview isolated from measurement
 // coordinates, keyboard shortcuts, global document elements and OAuth headers.
@@ -25,6 +26,7 @@ export class SplatViewer {
   }
   async load(data) {
     this.data = data;
+    this.subjectBounds = undefined;
     const url = URL.createObjectURL(new Blob([data.bytes], { type: 'application/octet-stream' }));
     try {
       await this.engine.addSplatScene(url, { format: SceneFormat.Splat, showLoadingUI: false, progressiveLoad: false, splatAlphaRemovalThreshold: 1 });
@@ -34,11 +36,23 @@ export class SplatViewer {
   }
   fit() {
     if (!this.data || this.closed) return;
-    const { min, max } = this.data.bounds, center = new Vector3(...min).add(new Vector3(...max)).multiplyScalar(.5);
+    this.fitBounds(this.data.bounds);
+  }
+  focusSubject() {
+    if (!this.data || this.closed) return;
+    this.subjectBounds ??= splatSubjectBounds(this.data);
+    if (this.subjectBounds) this.fitBounds(this.subjectBounds);
+  }
+  fitBounds({ min, max }) {
+    const center = new Vector3(...min).add(new Vector3(...max)).multiplyScalar(.5);
     const radius = Math.max(new Vector3(...max).sub(new Vector3(...min)).length() / 2, .01), fov = this.camera.fov * Math.PI / 180;
     const distance = radius / Math.sin(Math.min(fov, 2 * Math.atan(Math.tan(fov / 2) * this.camera.aspect)) / 2) * 1.1;
     this.camera.position.copy(center).add(new Vector3(.7,.45,1).normalize().multiplyScalar(distance));
-    this.camera.near = radius / 10000; this.camera.far = distance + radius * 100; this.camera.updateProjectionMatrix();
+    // Framing can ignore outliers, but the far plane still accommodates the
+    // full scene, including Gaussian scales. No data is culled or rewritten.
+    const fullCenter = new Vector3(...this.data.bounds.min).add(new Vector3(...this.data.bounds.max)).multiplyScalar(.5);
+    const fullRadius = new Vector3(...this.data.bounds.max).sub(new Vector3(...this.data.bounds.min)).length() / 2;
+    this.camera.near = radius / 10000; this.camera.far = Math.max(distance + radius * 100, this.camera.position.distanceTo(fullCenter) + fullRadius * 1.1); this.camera.updateProjectionMatrix();
     this.controls.target.copy(center); this.controls.update(); this.engine.forceRenderNextFrame();
   }
   renderFrame() { this.controls.update(); this.engine.update(); if (this.engine.shouldRender()) this.engine.render(); }
