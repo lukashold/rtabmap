@@ -60,6 +60,11 @@ final class SplatViewController: UIViewController, UIDocumentPickerDelegate, WKN
             webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             webView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
         ])
+        // The bundled renderer targets Safari/WebKit 17. Older supported app
+        // versions keep their LiDAR workflow and get an immediate clear result.
+        guard #available(iOS 17.0, *) else {
+            status.text = text("unavailable"); return
+        }
         guard let index = Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "SplatViewerAssets") else {
             status.text = text("unavailable"); importButton.isEnabled = false; return
         }

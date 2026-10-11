@@ -1,4 +1,33 @@
-# Development validation — 0.4.1 preview, 2026-10-11
+# Development validation — 0.5.0 preview, 2026-10-11
+
+## New 0.5 capture, visualization and measurement checks
+
+The Windows run passes **125 Node tests**. These include actual HTTP transport,
+reconstruction authentication and bounded streaming, Gaussian-file detection,
+offline native bridge payloads, race recovery and edge/corner snapping. The Python
+worker suite passes **41 tests**, including real JPEG/PNG/HEIC decoding and EXIF
+rotation. Its process/job tests use explicitly identified fake workers; they do
+not establish a successful COLMAP/OpenMVS/OpenSplat reconstruction.
+
+The actual browser rendered the original synthetic Splat demo, downloaded it and
+reopened the resulting `.splat`. Closing the Splat view preserved an existing
+measurement. Two corner selections with snapping enabled produced a measurement
+and displayed the corner status. This proves the interaction, not field accuracy.
+The standalone native IIFE rendered its demo with its actual content security
+policy over localhost, without console errors. This browser exercise does not
+establish WKWebView behavior on an iPhone.
+
+At 390 × 844, all fifteen photo-dialog translations were selected without
+horizontal page overflow. Arabic was checked with the Splat preview and RTL
+direction. Signing into the real local Python service correctly reported the
+Windows machine's absent reconstruction engines; no completed job was fabricated.
+The Docker/Xcode workflows and a separate real-engine CPU smoke workflow provide
+their own commit-specific results in GitHub Actions. Native capture, scan accuracy,
+real-account cloud sign-in and reconstruction visual quality remain device/hardware
+acceptance work. Ten training iterations in a synthetic smoke test, if successful,
+would establish the processing path only.
+
+Historical checks below apply to their recorded revisions.
 
 ## New 0.4.1 usability checks
 

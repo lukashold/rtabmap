@@ -126,7 +126,7 @@ private final class KanturaPhotoCaptureModel: ObservableObject {
             do {
                 let directory = try SavedPhotoDataset.createDirectory()
                 self.activeDirectory = directory
-                try FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], atPath: directory.path)
+                try FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: directory.path)
                 let session = ObjectCaptureSession()
                 self.session = session
                 self.isPaused = false
@@ -395,7 +395,7 @@ private struct KanturaPhotoCaptureView: View {
                 if session.feedback.contains(.environmentLowLight) || session.feedback.contains(.environmentTooDark) { Text(text("light")).font(.headline) }
                 if session.feedback.contains(.movingTooFast) { Text(text("slow")).font(.headline) }
                 if session.feedback.contains(.objectTooClose) || session.feedback.contains(.objectTooFar) { Text(text("distance")).font(.headline) }
-                if session.feedback.contains(.outOfFieldOfView) || session.feedback.contains(.objectNotDetected) { Text(text("frame")).font(.headline) }
+                if needsFramingFeedback(session) { Text(text("frame")).font(.headline) }
                 if session.userCompletedScanPass {
                     Text(text("passHelp"))
                     action("nextPass") { model.nextPass() }
@@ -406,6 +406,12 @@ private struct KanturaPhotoCaptureView: View {
             default: EmptyView()
             }
         }
+    }
+
+    private func needsFramingFeedback(_ session: ObjectCaptureSession) -> Bool {
+        if session.feedback.contains(.outOfFieldOfView) { return true }
+        if #available(iOS 17.4, *) { return session.feedback.contains(.objectNotDetected) }
+        return false
     }
 
     @ViewBuilder private func result(_ record: SavedPhotoDataset) -> some View {

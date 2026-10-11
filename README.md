@@ -9,7 +9,8 @@ The KANTURA guided dashboard, room workflow, viewer, reports and tutorials suppo
 15 languages: German, English, French, Spanish, Italian, Simplified Chinese,
 Portuguese, Arabic, Hindi, Bengali, Russian, Japanese, Korean, Indonesian and Turkish.
 
-- [iPhone workflow and installation](app/ios/MEASUREMENT-WORKFLOW.md)
+- [iPhone installation and capture modes](app/ios/README.md) · [Guided measurement workflow](app/ios/MEASUREMENT-WORKFLOW.md)
+- [Photo reconstruction and Gaussian Splat server](tools/reconstruction/README.md)
 - [Desktop measurement workspace](tools/scan-workspace/README.md)
 - [Self-host with Docker and a private project library](tools/scan-workspace/README-server.md)
 - [Independent App Store release requirements](docs/APP-STORE-RELEASE.md)
