@@ -1,0 +1,36 @@
+name: KANTURA translation or tutorial
+description: Improve wording, accessibility, captions or narration in the KANTURA fork.
+title: "[KANTURA language] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For `lukashold/rtabmap:kantura/main`. You can write this report in the language being corrected. Preserve units, placeholders, scene IDs and the synthetic-demo label.
+  - type: input
+    id: language
+    attributes:
+      label: Language / locale
+      description: For example de-AT, fr-FR, es-ES, it-IT, en or zh-Hans.
+    validations:
+      required: true
+  - type: input
+    id: location
+    attributes:
+      label: Screen, key, document or video scene
+      description: Include the version/commit and a key or scene ID if known.
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current wording or issue
+      description: Include clipping, confusing terminology, narration or caption problems.
+    validations:
+      required: true
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Proposed wording and reason
+      description: For video changes keep spoken narration and captions aligned. A redacted screenshot helps with layout issues.
+    validations:
+      required: true

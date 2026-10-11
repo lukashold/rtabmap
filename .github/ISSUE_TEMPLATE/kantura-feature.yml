@@ -1,0 +1,34 @@
+name: KANTURA feature request
+description: Propose a concrete improvement to the independent KANTURA fork.
+title: "[KANTURA feature] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For `lukashold/rtabmap:kantura/main`. Read the feature comparison and search existing issues first. Describe the user's task, rather than promising parity with another product.
+  - type: textarea
+    id: task
+    attributes:
+      label: What are you trying to do?
+      description: Give a concrete room/object workflow and explain where the current behavior gets in the way.
+    validations:
+      required: true
+  - type: textarea
+    id: change
+    attributes:
+      label: Proposed behavior
+      description: Describe the smallest useful improvement and what the user should see or do.
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: How could we verify it?
+      description: Useful examples, expected outcomes and available devices; do not include private scans or guaranteed accuracy claims.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Current workaround or related work
+      description: Optional issue links, public specifications or documentation. Identify third-party dependencies and licenses if proposing one.

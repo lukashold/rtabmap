@@ -1,3 +1,40 @@
+# Kantura — Scan. See. Measure.
+
+<img src="https://raw.githubusercontent.com/lukashold/rtabmap/kantura/main/tools/scan-workspace/public/kantura.svg" width="96" alt="Kantura logo">
+
+A public community fork of RTAB-Map for practical room and object measurement with iPhone LiDAR, an indoor RoomPlan workflow and a self-hosted desktop viewer.
+
+**Development lives on [kantura/main](https://github.com/lukashold/rtabmap/tree/kantura/main).** Clone that branch for the Kantura app and Docker workspace. This default-branch page is the community entry point.
+
+## Try Kantura
+
+- [iPhone build, signing and installation](https://github.com/lukashold/rtabmap/blob/kantura/main/app/ios/MEASUREMENT-WORKFLOW.md)
+- [Desktop viewer and measurements](https://github.com/lukashold/rtabmap/blob/kantura/main/tools/scan-workspace/README.md)
+- [Docker self-hosting and project storage](https://github.com/lukashold/rtabmap/blob/kantura/main/tools/scan-workspace/README-server.md)
+- [Fifteen offline video tutorials](https://github.com/lukashold/rtabmap/blob/kantura/main/tools/scan-workspace/public/videos)
+- [Feature scope and remaining work](https://github.com/lukashold/rtabmap/blob/kantura/main/docs/KANTURA-FEATURES.md) · [Validation record](https://github.com/lukashold/rtabmap/blob/kantura/main/tools/scan-workspace/VALIDATION.md)
+
+The guided dashboard, room workflow, viewer, reports and tutorials support **15 languages**. Arabic has RTL presentation. The underlying RTAB-Map expert menus retain upstream English strings. This is a development preview; native signing, device trials and the dependency-license review remain part of release preparation.
+
+## Build it together
+
+Developers, translation reviewers, designers and owners of LiDAR devices are welcome. Help with clear measurement workflows, real-device reference checks, missing translations, accessible layouts, or documented bugs. Submit focused pull requests against **lukashold/rtabmap:kantura/main**.
+
+[English](https://github.com/lukashold/rtabmap/blob/kantura/main/CONTRIBUTING.md) · [Deutsch](https://github.com/lukashold/rtabmap/blob/kantura/main/docs/contributing/de.md) · [Français](https://github.com/lukashold/rtabmap/blob/kantura/main/docs/contributing/fr.md) · [Español](https://github.com/lukashold/rtabmap/blob/kantura/main/docs/contributing/es.md) · [Italiano](https://github.com/lukashold/rtabmap/blob/kantura/main/docs/contributing/it.md) · [简体中文](https://github.com/lukashold/rtabmap/blob/kantura/main/docs/contributing/zh-Hans.md) · [Português](https://github.com/lukashold/rtabmap/blob/kantura/main/docs/contributing/pt.md) · [العربية](https://github.com/lukashold/rtabmap/blob/kantura/main/docs/contributing/ar.md) · [हिन्दी](https://github.com/lukashold/rtabmap/blob/kantura/main/docs/contributing/hi.md) · [বাংলা](https://github.com/lukashold/rtabmap/blob/kantura/main/docs/contributing/bn.md) · [Русский](https://github.com/lukashold/rtabmap/blob/kantura/main/docs/contributing/ru.md) · [日本語](https://github.com/lukashold/rtabmap/blob/kantura/main/docs/contributing/ja.md) · [한국어](https://github.com/lukashold/rtabmap/blob/kantura/main/docs/contributing/ko.md) · [Bahasa Indonesia](https://github.com/lukashold/rtabmap/blob/kantura/main/docs/contributing/id.md) · [Türkçe](https://github.com/lukashold/rtabmap/blob/kantura/main/docs/contributing/tr.md)
+
+```sh
+git clone --branch kantura/main https://github.com/lukashold/rtabmap.git
+cd rtabmap
+```
+
+Read the contributor guide before opening a PR. Reviewers can propose edits in their own language; no English-only contribution requirement applies. Do not upload private interiors or credentials. Bug/feature/translation forms are prepared; the repository owner still needs to enable Issues in GitHub Settings.
+
+Kantura is independent of Metaroom and Polycam. Original code uses the repository's BSD license; linked native components and speech resources have separate notices.
+
+---
+
+## RTAB-Map upstream documentation
+
 rtabmap
 =======
 
