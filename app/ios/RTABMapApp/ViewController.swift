@@ -45,6 +45,8 @@ class ViewController: GLKViewController, ARSessionDelegate, RTABMapObserver, UIP
     private var scanTrackingState = ScanTrackingState()
     private var trackingGuidance: ScanTrackingState.Guidance?
     private var toastDismissal: DispatchWorkItem?
+    private var measurementWelcomeShown = false
+    private let measurementDashboardButton = UIButton(type: .system)
     
     private var mReviewRequested = false
     
@@ -232,6 +234,20 @@ class ViewController: GLKViewController, ARSessionDelegate, RTABMapObserver, UIP
         mMaximumMemory = getAvailableMemory()
         
         super.viewDidLoad()
+        measurementDashboardButton.translatesAutoresizingMaskIntoConstraints = false
+        measurementDashboardButton.setImage(UIImage(systemName: "square.grid.2x2.fill"), for: .normal)
+        measurementDashboardButton.tintColor = .white
+        measurementDashboardButton.backgroundColor = .systemIndigo
+        measurementDashboardButton.layer.cornerRadius = 24
+        measurementDashboardButton.isHidden = true
+        measurementDashboardButton.addAction(UIAction { [weak self] _ in self?.showMeasurementGuide() }, for: .touchUpInside)
+        view.addSubview(measurementDashboardButton)
+        NSLayoutConstraint.activate([
+            measurementDashboardButton.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 16),
+            measurementDashboardButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -14),
+            measurementDashboardButton.widthAnchor.constraint(equalToConstant: 48),
+            measurementDashboardButton.heightAnchor.constraint(equalToConstant: 48)
+        ])
         // Do any additional setup after loading the view.
         
         self.toastLabel.isHidden = true
@@ -983,6 +999,16 @@ class ViewController: GLKViewController, ARSessionDelegate, RTABMapObserver, UIP
         ])
                 
         var fileMenuChildren: [UIMenuElement] = []
+        if let guide = MeasurementGuide.all[MeasurementGuide.selectedLanguage] {
+            measurementDashboardButton.isHidden = mState != .STATE_IDLE && mState != .STATE_VISUALIZING
+            measurementDashboardButton.accessibilityLabel = guide.workflow?.overview ?? guide.title
+            newScanButtonLarge.setTitle(guide.title, for: .normal)
+            newScanButtonLarge.titleLabel?.adjustsFontSizeToFitWidth = true
+            newScanButtonLarge.accessibilityHint = guide.subtitle
+            fileMenuChildren.append(UIAction(title: guide.title, image: UIImage(systemName: "ruler"), attributes: measurementWorkflowState.phase == .busy ? .disabled : [], handler: { _ in
+                self.showMeasurementGuide()
+            }))
+        }
         fileMenuChildren.append(UIMenu(title: "Scanning Tips", image: UIImage(systemName: "questionmark.circle"), children: [
             UIAction(title: "Rooms", handler: { _ in
                 self.showScanningTips(outdoors: false)
@@ -1371,6 +1397,15 @@ class ViewController: GLKViewController, ARSessionDelegate, RTABMapObserver, UIP
         
         // The screen shouldn't dim during AR experiences.
         UIApplication.shared.isIdleTimerDisabled = true
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        // Present once per launch; dismissing the dashboard must not reopen it.
+        if !measurementWelcomeShown && mState == .STATE_WELCOME && presentedViewController == nil {
+            measurementWelcomeShown = true
+            showMeasurementGuide()
+        }
     }
     
     var statusBarOrientation: UIInterfaceOrientation? {
@@ -2206,7 +2241,89 @@ class ViewController: GLKViewController, ARSessionDelegate, RTABMapObserver, UIP
             statusLabel.text = ""
         }
     }
+    private var measurementWorkflowState: MeasurementWorkflowState {
+        let phase: MeasurementWorkflowState.Phase
+        switch mState {
+        case .STATE_WELCOME: phase = .ready
+        case .STATE_IDLE: phase = mMapNodes > 0 ? .captured : .ready
+        case .STATE_VISUALIZING: phase = visualizationType > 0 ? .mesh : .pointCloud
+        default: phase = .busy
+        }
+        return MeasurementWorkflowState(phase: phase, canReconstruct: mMapNodes > 0, hasProjects: !databases.isEmpty)
+    }
+
+    func showMeasurementGuide() {
+        // A modal guide must never conceal ongoing capture or processing.
+        guard presentedViewController == nil, measurementWorkflowState.phase != .busy,
+              MeasurementGuide.all[MeasurementGuide.selectedLanguage] != nil else { return }
+        updateDatabases()
+        let guide = MeasurementGuideViewController()
+        guide.workflowState = measurementWorkflowState
+        guide.onClose = { [weak self] in self?.resetNoTouchTimer(true) }
+        guide.onLanguageChange = { [weak self] in
+            guard let self = self else { return }
+            self.updateState(state: self.mState)
+        }
+        guide.onAction = { [weak self] action in
+            guard let self = self, self.measurementWorkflowState.availableActions.contains(action) else { return }
+            switch action {
+            case .scan: self.prepareMeasurementScan()
+            case .assemble:
+                // The guided path uses the existing balanced 300k-polygon preset.
+                // Advanced quality controls remain available under Assemble.
+                self.export(isOBJ: true, meshing: true, regenerateCloud: false, optimized: true,
+                            optimizedMaxPolygons: 300000, previousState: self.mState)
+            case .measure:
+                self.measuringMode = 2
+                self.rtabmap?.setMeasuringMode(2)
+                self.startMeasuring(self.measuringModeButton)
+                if let hint = MeasurementGuide.all[MeasurementGuide.selectedLanguage]?.workflow?.measureHint {
+                    self.showToast(message: hint, seconds: 8)
+                }
+            case .share: self.exportOBJPLY()
+            case .library: self.openLibrary()
+            }
+        }
+        let navigation = UINavigationController(rootViewController: guide)
+        navigation.modalPresentationStyle = .fullScreen
+        present(navigation, animated: true)
+    }
+
+    private func prepareMeasurementScan() {
+        guard measurementWorkflowState.availableActions.contains(.scan),
+              let guide = MeasurementGuide.all[MeasurementGuide.selectedLanguage],
+              let workflow = guide.workflow else { return }
+        let preparation = UIAlertController(title: workflow.prepareTitle, message: workflow.prepareBody, preferredStyle: .alert)
+        let needsLidar = depthSupported && !UserDefaults.standard.bool(forKey: "LidarMode")
+        preparation.addAction(UIAlertAction(title: needsLidar ? workflow.enableLidar : guide.start, style: .default) { [weak self] _ in
+            guard let self = self, self.measurementWorkflowState.availableActions.contains(.scan) else { return }
+            if needsLidar { UserDefaults.standard.set(true, forKey: "LidarMode") }
+            self.newScan()
+        })
+        preparation.addAction(UIAlertAction(title: guide.close, style: .cancel))
+        present(preparation, animated: true)
+    }
+
     func shareFile(_ fileUrl: URL) {
+        guard let guide = MeasurementGuide.all[MeasurementGuide.selectedLanguage] else {
+            shareFileWithActivities(fileUrl)
+            return
+        }
+        let sheet = UIAlertController(title: guide.cloudTitle, message: guide.cloudHelp, preferredStyle: .actionSheet)
+        sheet.addAction(UIAlertAction(title: guide.saveFiles, style: .default) { [weak self] _ in
+            let picker = UIDocumentPickerViewController(forExporting: [fileUrl], asCopy: true)
+            self?.present(picker, animated: true)
+        })
+        sheet.addAction(UIAlertAction(title: guide.shareOther, style: .default) { [weak self] _ in
+            self?.shareFileWithActivities(fileUrl)
+        })
+        sheet.addAction(UIAlertAction(title: guide.close, style: .cancel))
+        sheet.popoverPresentationController?.sourceView = view
+        sheet.popoverPresentationController?.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 0, height: 0)
+        present(sheet, animated: true)
+    }
+
+    private func shareFileWithActivities(_ fileUrl: URL) {
         let fileURL = NSURL(fileURLWithPath: fileUrl.path)
 
         // Create the Array which includes the files you want to share
@@ -2588,7 +2705,7 @@ class ViewController: GLKViewController, ARSessionDelegate, RTABMapObserver, UIP
     }
     
     @IBAction func newScanAction(_ sender: UIButton) {
-        newScan()
+        showMeasurementGuide()
     }
     
     @IBAction func closeVisualizationAction(_ sender: UIButton) {

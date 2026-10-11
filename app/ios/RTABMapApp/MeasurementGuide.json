@@ -1,0 +1,437 @@
+{
+  "de": {
+    "name": "Deutsch",
+    "title": "Einfach vermessen",
+    "subtitle": "Dein Raum. Dein Modell. Deine Maße.",
+    "next": "Weiter",
+    "back": "Zurück",
+    "done": "Fertig",
+    "close": "Schließen",
+    "language": "Sprache",
+    "start": "Scan starten",
+    "assemble": "Modell vorbereiten",
+    "measure": "Strecke messen",
+    "share": "Exportieren",
+    "saveFiles": "In Dateien / Cloud sichern",
+    "shareOther": "Weitere Optionen",
+    "cloudTitle": "Scan mitnehmen",
+    "cloudHelp": "Installiere OneDrive oder Google Drive, melde dich dort an und aktiviere den Anbieter in Dateien → Durchsuchen → … → Bearbeiten. Wähle anschließend den gewünschten Cloud-Ordner. Der Anbieter übernimmt die Übertragung; prüfe dort den Abschluss.",
+    "steps": [
+      {
+        "title": "Vorbereiten",
+        "icon": "viewfinder",
+        "body": "Reinige die Linse und sorge für gleichmäßiges Licht. Räume und Tore müssen während der Aufnahme unverändert bleiben. Miss eine gut erkennbare Referenzstrecke mit dem Maßband. Sie hilft später, den Maßstab zu prüfen."
+      },
+      {
+        "title": "Einmal rundherum",
+        "icon": "camera.viewfinder",
+        "body": "Starte eine neue Aufnahme mit LiDAR Mode im normalen Mapping. Warte auf die Kamerainitialisierung und tippe auf Record. Erfasse langsam Boden, Wände und Ecken mit überlappenden Ansichten und kehre zum Start zurück. Ein Tor von beiden Seiten erfassen, wenn zugänglich; Pfosten und Boden helfen bei der Orientierung."
+      },
+      {
+        "title": "Modell zuerst prüfen",
+        "icon": "cube.transparent",
+        "body": "Stoppe den Scan und speichere die .db-Datei als Original. Wähle Assemble → Optimized mesh → Textured Mesh. Prüfe doppelte Wände, Löcher und schmale Teile. Fotos zeigen das Aussehen; auch ein schön texturiertes Modell kann falsche Geometrie enthalten."
+      },
+      {
+        "title": "Breite, Höhe und Abstand",
+        "icon": "ruler",
+        "body": "Auf dem iPhone: Messen starten und im Menü Measuring → Point to Point Mode wählen. Ziele auf den ersten Punkt und bestätige mit +, dann auf den zweiten. Am Computer: Strecke wählen und zwei Punkte im Modell anklicken. Angezeigt werden die direkte Länge, der horizontale Abstand und der Höhenunterschied."
+      },
+      {
+        "title": "Fläche und Grundriss",
+        "icon": "square.dashed",
+        "body": "Im Desktop-Arbeitsbereich Grundfläche wählen und die Bodenecken der Reihe nach anklicken. Fläche abschließen. L-förmige Räume sind möglich; kreuzende Kanten werden abgewiesen. In der Draufsicht kannst du das Dach ausblenden. Die Grundfläche ist eine manuell markierte Kontur, keine automatische Wand- oder Raum-Erkennung. Grundriss als SVG exportieren. Für eine ebene Tor- oder Wandfläche Oberflächenfläche wählen."
+      },
+      {
+        "title": "Maße kontrollieren",
+        "icon": "checkmark.seal",
+        "body": "Vergleiche mehrere Modellmaße mit echten Referenzmaßen. Modelle aus RTAB-Map sind normalerweise in Metern; bei anderen Dateien die Import-Einheit prüfen. Mit Referenz kalibrieren setzt du einen bekannten Abstand. Das korrigiert den globalen Maßstab, aber keine örtlichen Scanfehler. Plane zusätzliche Spielräume ein, wenn Teile genau passen müssen."
+      },
+      {
+        "title": "Speichern und am PC öffnen",
+        "icon": "icloud.and.arrow.up",
+        "body": "Exportiere das texturierte Modell als OBJ-ZIP einschließlich MTL und Bildern. Über In Dateien / Cloud sichern wählst du OneDrive oder Google Drive. Am PC öffnest du die synchronisierte oder heruntergeladene ZIP im Arbeitsbereich. Dort speichert Projekt sichern Modell und Messungen gemeinsam; CSV enthält die Messwerte, SVG den markierten Grundriss. Eine .db-Datei kann der Browser nicht rekonstruieren."
+      }
+    ],
+    "workflow": {
+      "tutorial": "Anleitung Schritt für Schritt",
+      "projects": "Gespeicherte Scans öffnen",
+      "overview": "Zur Übersicht",
+      "availableLater": "Nach dem vorherigen Arbeitsschritt verfügbar.",
+      "readyTitle": "Ein neuer Scan beginnt hier. Nimm dir Zeit für alle Ecken.",
+      "capturedTitle": "Dein Scan ist da. Erstelle das Modell und prüfe seine Geometrie.",
+      "modelTitle": "Dein Modell ist bereit. Prüfe wichtige Maße mit einem Maßband.",
+      "prepareTitle": "Bereit für deinen Scan?",
+      "prepareBody": "Linse sauber, Licht gleichmäßig, Raum oder Tor unbewegt. Miss eine erkennbare Referenzstrecke mit dem Maßband. Halte Boden und markante Kanten im Bild. Danach startet die Kameravorschau; tippe auf Record, um aufzunehmen.",
+      "enableLidar": "LiDAR für diesen Scan einschalten",
+      "scanHint": "Langsam bewegen und Ansichten überlappen lassen.",
+      "measureHint": "Ersten Punkt anvisieren und + tippen, dann den zweiten. Zum Beenden das Stopp-Symbol verwenden.",
+      "stages": [
+        {
+          "title": "Scannen",
+          "detail": "Raum oder Objekt mit LiDAR und Kamerabildern erfassen."
+        },
+        {
+          "title": "Prüfen",
+          "detail": "Modell mit Fototexturen erstellen und Lücken kontrollieren."
+        },
+        {
+          "title": "Messen",
+          "detail": "Zwei Punkte wählen. Flächen und Grundrisse am Computer messen."
+        },
+        {
+          "title": "Speichern",
+          "detail": "Modell als ZIP für Dateien, OneDrive oder Google Drive exportieren."
+        }
+      ]
+    }
+  },
+  "fr": {
+    "name": "Français",
+    "title": "Mesurer simplement",
+    "subtitle": "Votre pièce. Votre modèle. Vos mesures.",
+    "next": "Suivant",
+    "back": "Retour",
+    "done": "Terminer",
+    "close": "Fermer",
+    "language": "Langue",
+    "start": "Commencer un scan",
+    "assemble": "Préparer le modèle",
+    "measure": "Mesurer une distance",
+    "share": "Exporter",
+    "saveFiles": "Enregistrer dans Fichiers / cloud",
+    "shareOther": "Autres options",
+    "cloudTitle": "Emporter le scan",
+    "cloudHelp": "Installez OneDrive ou Google Drive, connectez-vous puis activez le fournisseur dans Fichiers → Parcourir → … → Modifier. Choisissez ensuite le dossier cloud. Le fournisseur effectue le transfert ; vérifiez sa fin dans son application.",
+    "steps": [
+      {
+        "title": "Préparer",
+        "icon": "viewfinder",
+        "body": "Nettoyez l’objectif et privilégiez une lumière uniforme. La pièce ou le portail doit rester immobile pendant le scan. Mesurez une distance de référence bien identifiable avec un mètre pour vérifier l’échelle plus tard."
+      },
+      {
+        "title": "Faire le tour",
+        "icon": "camera.viewfinder",
+        "body": "Lancez une nouvelle session en mode Mapping normal avec LiDAR Mode activé. Attendez l’initialisation puis appuyez sur Record. Capturez lentement le sol, les murs et les angles avec des vues qui se recouvrent. Revenez au point de départ. Pour un portail, scannez les deux côtés si possible, en incluant les poteaux et le sol."
+      },
+      {
+        "title": "Vérifier le modèle",
+        "icon": "cube.transparent",
+        "body": "Arrêtez le scan et conservez le fichier .db original. Sélectionnez Assemble → Optimized mesh → Textured Mesh. Cherchez les murs dédoublés, les trous et les éléments fins manquants. Les photos montrent l’apparence ; une belle texture ne garantit pas une géométrie exacte."
+      },
+      {
+        "title": "Largeur, hauteur et distance",
+        "icon": "ruler",
+        "body": "Sur iPhone : activez la mesure et choisissez Measuring → Point to Point Mode. Visez le premier point et validez avec +, puis le second. Sur ordinateur : choisissez Distance et cliquez sur deux points du modèle. Vous obtenez la longueur directe, la distance horizontale et la différence de hauteur."
+      },
+      {
+        "title": "Surface et plan",
+        "icon": "square.dashed",
+        "body": "Sur ordinateur, choisissez Surface au sol, puis cliquez sur les angles du sol dans l’ordre. Terminez la surface. Les pièces en L sont acceptées ; les contours croisés sont refusés. En vue de dessus, vous pouvez masquer le toit. Le contour est tracé manuellement, sans détection automatique des murs. Exportez le plan en SVG. Pour une surface plane de portail ou de mur, choisissez Surface plane."
+      },
+      {
+        "title": "Contrôler les mesures",
+        "icon": "checkmark.seal",
+        "body": "Comparez plusieurs mesures du modèle avec des distances réelles. Les exports RTAB-Map sont généralement en mètres ; vérifiez l’unité des autres fichiers. Étalonner avec une référence applique une distance connue. Cela corrige l’échelle globale, pas les déformations locales. Prévoyez une marge pour les pièces qui doivent s’ajuster précisément."
+      },
+      {
+        "title": "Enregistrer et ouvrir sur PC",
+        "icon": "icloud.and.arrow.up",
+        "body": "Exportez le modèle texturé en ZIP contenant OBJ, MTL et images. Avec Enregistrer dans Fichiers / cloud, choisissez OneDrive ou Google Drive. Sur PC, ouvrez le ZIP synchronisé ou téléchargé dans l’espace de mesure. Enregistrer le projet conserve modèle et mesures ensemble ; CSV exporte les valeurs, SVG le plan tracé. Le navigateur ne reconstruit pas les fichiers .db."
+      }
+    ],
+    "workflow": {
+      "tutorial": "Guide pas à pas",
+      "projects": "Ouvrir les scans enregistrés",
+      "overview": "Vue d’ensemble",
+      "availableLater": "Disponible après l’étape précédente.",
+      "readyTitle": "Commencez ici. Prenez le temps de capturer chaque angle.",
+      "capturedTitle": "Votre scan est prêt à être reconstruit. Vérifiez ensuite sa géométrie.",
+      "modelTitle": "Votre modèle est prêt. Vérifiez les dimensions importantes au mètre.",
+      "prepareTitle": "Prêt à scanner ?",
+      "prepareBody": "Nettoyez l’objectif, gardez une lumière uniforme et les objets immobiles. Mesurez une distance de référence facile à repérer. Incluez le sol et des arêtes reconnaissables. L’aperçu caméra s’ouvrira ensuite ; touchez Record pour enregistrer.",
+      "enableLidar": "Activer le LiDAR pour ce scan",
+      "scanHint": "Avancez lentement avec des vues qui se chevauchent.",
+      "measureHint": "Visez le premier point et touchez +, puis le second. Utilisez le bouton d’arrêt pour terminer.",
+      "stages": [
+        {
+          "title": "Scanner",
+          "detail": "Capturer une pièce ou un objet avec le LiDAR et la caméra."
+        },
+        {
+          "title": "Vérifier",
+          "detail": "Créer un modèle texturé et contrôler les surfaces manquantes."
+        },
+        {
+          "title": "Mesurer",
+          "detail": "Choisir deux points. Mesurer les surfaces et plans sur ordinateur."
+        },
+        {
+          "title": "Enregistrer",
+          "detail": "Exporter le modèle en ZIP vers Fichiers, OneDrive ou Google Drive."
+        }
+      ]
+    }
+  },
+  "es": {
+    "name": "Español",
+    "title": "Medir sin complicaciones",
+    "subtitle": "Tu espacio. Tu modelo. Tus medidas.",
+    "next": "Siguiente",
+    "back": "Atrás",
+    "done": "Terminar",
+    "close": "Cerrar",
+    "language": "Idioma",
+    "start": "Iniciar escaneo",
+    "assemble": "Preparar modelo",
+    "measure": "Medir distancia",
+    "share": "Exportar",
+    "saveFiles": "Guardar en Archivos / nube",
+    "shareOther": "Más opciones",
+    "cloudTitle": "Lleva tu escaneo",
+    "cloudHelp": "Instala OneDrive o Google Drive, inicia sesión y activa el proveedor en Archivos → Explorar → … → Editar. Después elige la carpeta en la nube. El proveedor realiza la transferencia; comprueba allí que haya finalizado.",
+    "steps": [
+      {
+        "title": "Preparar",
+        "icon": "viewfinder",
+        "body": "Limpia la lente y busca una iluminación uniforme. La habitación o la puerta debe permanecer sin cambios durante la captura. Mide una distancia de referencia reconocible con una cinta métrica para comprobar después la escala."
+      },
+      {
+        "title": "Recorrer el espacio",
+        "icon": "camera.viewfinder",
+        "body": "Inicia una sesión nueva en Mapping normal con LiDAR Mode activado. Espera a que se inicialice la cámara y pulsa Record. Captura despacio suelo, paredes y esquinas con vistas solapadas. Vuelve al punto inicial. En una puerta exterior, captura ambos lados si son accesibles, incluyendo postes y suelo."
+      },
+      {
+        "title": "Revisar primero",
+        "icon": "cube.transparent",
+        "body": "Detén el escaneo y conserva el archivo .db original. Selecciona Assemble → Optimized mesh → Textured Mesh. Revisa paredes duplicadas, huecos y piezas estrechas. Las fotos muestran el aspecto; una textura nítida no garantiza una geometría correcta."
+      },
+      {
+        "title": "Anchura, altura y distancia",
+        "icon": "ruler",
+        "body": "En el iPhone, activa la medición y elige Measuring → Point to Point Mode. Apunta al primer punto y confirma con +; repite en el segundo. En el ordenador, elige Distancia y haz clic en dos puntos del modelo. Se muestran la longitud directa, la distancia horizontal y la diferencia de altura."
+      },
+      {
+        "title": "Superficie y plano",
+        "icon": "square.dashed",
+        "body": "En el ordenador, elige Superficie del suelo y marca sus esquinas en orden. Termina la superficie. Se admiten habitaciones en L y se rechazan contornos cruzados. En la vista superior puedes ocultar el techo. El contorno se marca manualmente; no hay detección automática de paredes. Exporta el plano como SVG. Para una cara plana de una puerta o pared, elige Superficie plana."
+      },
+      {
+        "title": "Comprobar las medidas",
+        "icon": "checkmark.seal",
+        "body": "Compara varias medidas del modelo con referencias reales. RTAB-Map suele exportar en metros; comprueba la unidad de otros archivos. Calibrar con referencia aplica una distancia conocida. Corrige la escala global, pero no las deformaciones locales. Deja un margen adicional si las piezas deben encajar con precisión."
+      },
+      {
+        "title": "Guardar y abrir en el PC",
+        "icon": "icloud.and.arrow.up",
+        "body": "Exporta el modelo con textura como ZIP con OBJ, MTL e imágenes. En Guardar en Archivos / nube, elige OneDrive o Google Drive. En el PC, abre el ZIP sincronizado o descargado en el espacio de medición. Guardar proyecto conserva modelo y medidas; CSV exporta los valores y SVG el plano marcado. El navegador no reconstruye archivos .db."
+      }
+    ],
+    "workflow": {
+      "tutorial": "Guía paso a paso",
+      "projects": "Abrir escaneos guardados",
+      "overview": "Vista general",
+      "availableLater": "Disponible después del paso anterior.",
+      "readyTitle": "Empieza aquí. Dedica tiempo a capturar todos los rincones.",
+      "capturedTitle": "Ya tienes el escaneo. Crea el modelo y revisa su geometría.",
+      "modelTitle": "El modelo está listo. Comprueba las medidas importantes con una cinta métrica.",
+      "prepareTitle": "¿Todo listo para escanear?",
+      "prepareBody": "Limpia la lente, busca luz uniforme y mantén los objetos inmóviles. Mide una distancia de referencia reconocible. Incluye el suelo y bordes visibles. Después se abrirá la vista previa de la cámara; pulsa Record para grabar.",
+      "enableLidar": "Activar LiDAR para este escaneo",
+      "scanHint": "Muévete despacio y solapa las vistas.",
+      "measureHint": "Apunta al primer punto y pulsa +, luego al segundo. Usa el botón de detener para terminar.",
+      "stages": [
+        {
+          "title": "Escanear",
+          "detail": "Captura una habitación u objeto con LiDAR e imágenes de cámara."
+        },
+        {
+          "title": "Revisar",
+          "detail": "Crea un modelo con texturas y comprueba las partes que faltan."
+        },
+        {
+          "title": "Medir",
+          "detail": "Elige dos puntos. Mide superficies y planos en el ordenador."
+        },
+        {
+          "title": "Guardar",
+          "detail": "Exporta el modelo en ZIP a Archivos, OneDrive o Google Drive."
+        }
+      ]
+    }
+  },
+  "it": {
+    "name": "Italiano",
+    "title": "Misurare con semplicità",
+    "subtitle": "Il tuo spazio. Il tuo modello. Le tue misure.",
+    "next": "Avanti",
+    "back": "Indietro",
+    "done": "Fine",
+    "close": "Chiudi",
+    "language": "Lingua",
+    "start": "Avvia scansione",
+    "assemble": "Prepara modello",
+    "measure": "Misura distanza",
+    "share": "Esporta",
+    "saveFiles": "Salva in File / cloud",
+    "shareOther": "Altre opzioni",
+    "cloudTitle": "Porta con te la scansione",
+    "cloudHelp": "Installa OneDrive o Google Drive, accedi e attiva il servizio in File → Sfoglia → … → Modifica. Poi scegli la cartella cloud. Il servizio gestisce il trasferimento; verifica lì che sia completato.",
+    "steps": [
+      {
+        "title": "Preparazione",
+        "icon": "viewfinder",
+        "body": "Pulisci la lente e cerca una luce uniforme. La stanza o il cancello deve restare immobile durante la scansione. Misura una distanza di riferimento riconoscibile con un metro per controllare la scala in seguito."
+      },
+      {
+        "title": "Fai il giro",
+        "icon": "camera.viewfinder",
+        "body": "Avvia una nuova sessione in Mapping normale con LiDAR Mode attivo. Attendi l’inizializzazione della fotocamera e premi Record. Riprendi lentamente pavimento, pareti e angoli con viste sovrapposte, poi torna al punto iniziale. Per un cancello, riprendi entrambi i lati se accessibili, includendo pilastri e terreno."
+      },
+      {
+        "title": "Controlla il modello",
+        "icon": "cube.transparent",
+        "body": "Ferma la scansione e conserva il file .db originale. Seleziona Assemble → Optimized mesh → Textured Mesh. Cerca pareti duplicate, buchi e parti sottili mancanti. Le foto mostrano l’aspetto; una texture nitida non garantisce una geometria corretta."
+      },
+      {
+        "title": "Larghezza, altezza e distanza",
+        "icon": "ruler",
+        "body": "Su iPhone, avvia la misura e scegli Measuring → Point to Point Mode. Punta al primo punto e conferma con +, poi al secondo. Sul computer scegli Distanza e fai clic su due punti del modello. Vengono mostrate lunghezza diretta, distanza orizzontale e differenza di altezza."
+      },
+      {
+        "title": "Superficie e pianta",
+        "icon": "square.dashed",
+        "body": "Sul computer scegli Area del pavimento e seleziona gli angoli in ordine. Completa l’area. Sono supportate stanze a L; i contorni incrociati vengono rifiutati. Nella vista dall’alto puoi nascondere il soffitto. Il contorno è tracciato manualmente, senza riconoscimento automatico delle pareti. Esporta la pianta in SVG. Per una faccia piana di cancello o parete scegli Superficie piana."
+      },
+      {
+        "title": "Verifica le misure",
+        "icon": "checkmark.seal",
+        "body": "Confronta più misure del modello con riferimenti reali. RTAB-Map esporta normalmente in metri; controlla l’unità di altri file. Calibra con riferimento applica una distanza nota. Corregge la scala globale, non le deformazioni locali. Prevedi un margine quando i pezzi devono combaciare con precisione."
+      },
+      {
+        "title": "Salva e apri sul PC",
+        "icon": "icloud.and.arrow.up",
+        "body": "Esporta il modello con texture in uno ZIP con OBJ, MTL e immagini. Con Salva in File / cloud scegli OneDrive o Google Drive. Sul PC apri lo ZIP sincronizzato o scaricato nello spazio di misura. Salva progetto conserva modello e misure insieme; CSV esporta i valori, SVG la pianta tracciata. Il browser non ricostruisce file .db."
+      }
+    ],
+    "workflow": {
+      "tutorial": "Guida passo per passo",
+      "projects": "Apri scansioni salvate",
+      "overview": "Panoramica",
+      "availableLater": "Disponibile dopo il passaggio precedente.",
+      "readyTitle": "Inizia qui. Prenditi il tempo per riprendere ogni angolo.",
+      "capturedTitle": "La scansione è pronta. Crea il modello e controlla la geometria.",
+      "modelTitle": "Il modello è pronto. Verifica le misure importanti con un metro.",
+      "prepareTitle": "Tutto pronto per la scansione?",
+      "prepareBody": "Pulisci la lente, cerca una luce uniforme e mantieni gli oggetti immobili. Misura una distanza di riferimento riconoscibile. Inquadra il pavimento e spigoli ben visibili. Si aprirà l’anteprima della fotocamera; premi Record per registrare.",
+      "enableLidar": "Attiva LiDAR per questa scansione",
+      "scanHint": "Muoviti lentamente e sovrapponi le inquadrature.",
+      "measureHint": "Punta al primo punto e premi +, poi al secondo. Per terminare usa il pulsante di arresto.",
+      "stages": [
+        {
+          "title": "Scansiona",
+          "detail": "Acquisisci una stanza o un oggetto con LiDAR e immagini della fotocamera."
+        },
+        {
+          "title": "Controlla",
+          "detail": "Crea un modello con texture e controlla le superfici mancanti."
+        },
+        {
+          "title": "Misura",
+          "detail": "Scegli due punti. Misura superfici e piante sul computer."
+        },
+        {
+          "title": "Salva",
+          "detail": "Esporta il modello in ZIP su File, OneDrive o Google Drive."
+        }
+      ]
+    }
+  },
+  "zh-Hans": {
+    "name": "简体中文",
+    "title": "轻松测量",
+    "subtitle": "你的空间。你的模型。你的尺寸。",
+    "next": "下一步",
+    "back": "上一步",
+    "done": "完成",
+    "close": "关闭",
+    "language": "语言",
+    "start": "开始扫描",
+    "assemble": "准备模型",
+    "measure": "测量距离",
+    "share": "导出",
+    "saveFiles": "存储到文件 / 云盘",
+    "shareOther": "更多选项",
+    "cloudTitle": "随身携带扫描结果",
+    "cloudHelp": "安装 OneDrive 或 Google Drive 并登录，然后在“文件”→“浏览”→“…”→“编辑”中启用该服务。选择云盘文件夹后，由服务商完成上传；请在对应应用中确认上传完成。",
+    "steps": [
+      {
+        "title": "做好准备",
+        "icon": "viewfinder",
+        "body": "清洁镜头，保持光线均匀。扫描时，房间内的物体或大门应保持静止。先用卷尺测量一段容易辨认的参考距离，之后用它检查模型比例。"
+      },
+      {
+        "title": "绕行扫描",
+        "icon": "camera.viewfinder",
+        "body": "新建普通 Mapping 扫描，并开启 LiDAR Mode。等待相机初始化后点击 Record。缓慢扫描地面、墙壁和角落，让相邻画面有所重叠，最后返回起点。如果条件允许，从两侧扫描大门，并包含门柱和地面以帮助定位。"
+      },
+      {
+        "title": "先检查模型",
+        "icon": "cube.transparent",
+        "body": "停止扫描，并保存原始 .db 文件。选择 Assemble → Optimized mesh → Textured Mesh。检查重叠墙面、孔洞以及缺失的细小部件。照片提供外观信息；清晰的纹理并不代表几何形状一定准确。"
+      },
+      {
+        "title": "宽度、高度和距离",
+        "icon": "ruler",
+        "body": "在 iPhone 上启动测量，然后选择 Measuring → Point to Point Mode。对准第一个点并按 + 确认，再选择第二个点。在电脑上选择“距离”，点击模型上的两个点。界面会显示直线距离、水平距离和高度差。"
+      },
+      {
+        "title": "面积和平面图",
+        "icon": "square.dashed",
+        "body": "在电脑上选择“地面面积”，按顺序点击地面角点，再完成轮廓。支持 L 形房间，但不接受交叉轮廓。俯视时可以隐藏顶部。轮廓需要手动标记，不会自动识别墙壁或房间。可将平面图导出为 SVG。测量平整的门面或墙面时，请选择“平面表面积”。"
+      },
+      {
+        "title": "核对尺寸",
+        "icon": "checkmark.seal",
+        "body": "将模型中的多个尺寸与实际测量值比较。RTAB-Map 通常以米导出；其他文件需要核对导入单位。“参考距离校准”可输入已知距离。这只能校正整体比例，不能修复局部扫描变形。需要精确配合的部件应留出适当余量。"
+      },
+      {
+        "title": "保存并在电脑上打开",
+        "icon": "icloud.and.arrow.up",
+        "body": "将带纹理的模型导出为包含 OBJ、MTL 和图片的 ZIP。通过“存储到文件 / 云盘”选择 OneDrive 或 Google Drive。在电脑的测量工作区中打开同步或下载的 ZIP。“保存项目”会一起保存模型和测量结果；CSV 导出数值，SVG 导出手动标记的平面图。浏览器无法重建 .db 文件。"
+      }
+    ],
+    "workflow": {
+      "tutorial": "分步教程",
+      "projects": "打开已保存的扫描",
+      "overview": "返回概览",
+      "availableLater": "完成前面的步骤后可用。",
+      "readyTitle": "从这里开始扫描，仔细拍摄各个角落。",
+      "capturedTitle": "扫描已就绪。请生成模型并检查几何形状。",
+      "modelTitle": "模型已就绪。重要尺寸请用卷尺复核。",
+      "prepareTitle": "准备好扫描了吗？",
+      "prepareBody": "清洁镜头，保持光线均匀和物体静止。用卷尺测量一段容易辨认的参考距离。拍摄时包含地面和明显的边缘。接下来将打开相机预览；点击 Record 开始记录。",
+      "enableLidar": "为此次扫描启用 LiDAR",
+      "scanHint": "缓慢移动，让相邻画面有所重叠。",
+      "measureHint": "对准第一个点并点击 +，再选择第二个点。点击停止按钮结束测量。",
+      "stages": [
+        {
+          "title": "扫描",
+          "detail": "使用 LiDAR 和相机拍摄房间或物体。"
+        },
+        {
+          "title": "检查",
+          "detail": "生成带照片纹理的模型，检查缺失的表面。"
+        },
+        {
+          "title": "测量",
+          "detail": "选择两个点。在电脑上测量面积并绘制平面图。"
+        },
+        {
+          "title": "保存",
+          "detail": "导出 ZIP 模型，存入“文件”、OneDrive 或 Google Drive。"
+        }
+      ]
+    }
+  }
+}

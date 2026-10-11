@@ -1,0 +1,116 @@
+{
+  "images": [
+    {
+      "filename": "Kantura-40.png",
+      "idiom": "iphone",
+      "scale": "2x",
+      "size": "20x20"
+    },
+    {
+      "filename": "Kantura-60.png",
+      "idiom": "iphone",
+      "scale": "3x",
+      "size": "20x20"
+    },
+    {
+      "filename": "Kantura-58.png",
+      "idiom": "iphone",
+      "scale": "2x",
+      "size": "29x29"
+    },
+    {
+      "filename": "Kantura-87.png",
+      "idiom": "iphone",
+      "scale": "3x",
+      "size": "29x29"
+    },
+    {
+      "filename": "Kantura-80.png",
+      "idiom": "iphone",
+      "scale": "2x",
+      "size": "40x40"
+    },
+    {
+      "filename": "Kantura-120.png",
+      "idiom": "iphone",
+      "scale": "3x",
+      "size": "40x40"
+    },
+    {
+      "filename": "Kantura-120.png",
+      "idiom": "iphone",
+      "scale": "2x",
+      "size": "60x60"
+    },
+    {
+      "filename": "Kantura-180.png",
+      "idiom": "iphone",
+      "scale": "3x",
+      "size": "60x60"
+    },
+    {
+      "filename": "Kantura-20.png",
+      "idiom": "ipad",
+      "scale": "1x",
+      "size": "20x20"
+    },
+    {
+      "filename": "Kantura-40.png",
+      "idiom": "ipad",
+      "scale": "2x",
+      "size": "20x20"
+    },
+    {
+      "filename": "Kantura-29.png",
+      "idiom": "ipad",
+      "scale": "1x",
+      "size": "29x29"
+    },
+    {
+      "filename": "Kantura-58.png",
+      "idiom": "ipad",
+      "scale": "2x",
+      "size": "29x29"
+    },
+    {
+      "filename": "Kantura-40.png",
+      "idiom": "ipad",
+      "scale": "1x",
+      "size": "40x40"
+    },
+    {
+      "filename": "Kantura-80.png",
+      "idiom": "ipad",
+      "scale": "2x",
+      "size": "40x40"
+    },
+    {
+      "filename": "Kantura-76.png",
+      "idiom": "ipad",
+      "scale": "1x",
+      "size": "76x76"
+    },
+    {
+      "filename": "Kantura-152.png",
+      "idiom": "ipad",
+      "scale": "2x",
+      "size": "76x76"
+    },
+    {
+      "filename": "Kantura-167.png",
+      "idiom": "ipad",
+      "scale": "2x",
+      "size": "83.5x83.5"
+    },
+    {
+      "filename": "Kantura-1024.png",
+      "idiom": "ios-marketing",
+      "scale": "1x",
+      "size": "1024x1024"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  }
+}

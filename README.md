@@ -1,3 +1,23 @@
+# Kantura — Scan. See. Measure.
+
+An independent RTAB-Map fork focused on measuring rooms and outdoor objects.
+Kantura adds a guided iPhone dashboard, tutorials in German, French, Spanish,
+Italian and Simplified Chinese, and a browser workspace for dimensions and areas.
+
+- [iPhone workflow and installation](app/ios/MEASUREMENT-WORKFLOW.md)
+- [Desktop measurement workspace](tools/scan-workspace/README.md)
+- [Self-host with Docker and a private project library](tools/scan-workspace/README-server.md)
+- [Independent App Store release requirements](docs/APP-STORE-RELEASE.md)
+- [Name and logo](tools/scan-workspace/BRAND.md)
+
+Development preview: direct cloud OAuth and the iPhone workflow require real-account
+and device validation. Floor outlines are traced manually. The current dependency
+bundle is not a cleared App Store release. Existing RTAB-Map notices and licenses apply.
+
+The upstream contribution remains separate from this branded fork.
+
+---
+
 rtabmap
 =======
 

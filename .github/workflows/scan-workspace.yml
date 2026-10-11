@@ -1,0 +1,69 @@
+name: Measurement workspace
+on:
+  push:
+    paths: ['tools/scan-workspace/**', 'app/ios/RTABMapApp/MeasurementGuide.json', '.github/workflows/scan-workspace.yml']
+  pull_request:
+    paths: ['tools/scan-workspace/**', 'app/ios/RTABMapApp/MeasurementGuide.json', '.github/workflows/scan-workspace.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '11.25.0'
+      - run: pnpm install --frozen-lockfile && pnpm test && pnpm check && pnpm build
+        working-directory: tools/scan-workspace
+      - name: Build and smoke-test Docker image
+        working-directory: tools/scan-workspace
+        run: |
+          docker build -f Dockerfile -t kantura ../..
+          docker run -d --name kantura-smoke --read-only --cap-drop ALL --security-opt no-new-privileges --mount type=volume,source=kantura-smoke-data,target=/data -e SERVER_TOKEN=ci-only-random-looking-token-32-characters -p 127.0.0.1:8090:8080 kantura
+          wait_healthy() {
+            for attempt in $(seq 1 20); do
+              if curl -fsS http://127.0.0.1:8090/health; then return 0; fi
+              sleep 1
+            done
+            docker logs kantura-smoke
+            return 1
+          }
+          wait_healthy
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { zipSync, strToU8 } from 'fflate';
+          const base = 'http://127.0.0.1:8090';
+          const authorization = 'Bearer ci-only-random-looking-token-32-characters';
+          assert.equal((await (await fetch(base + '/config.json')).json()).serverEnabled, true);
+          assert.equal((await fetch(base + '/api/projects')).status, 401);
+          assert.equal((await fetch(base + '/kantura.svg')).headers.get('content-type'), 'image/svg+xml');
+          const archive = zipSync({ 'room.obj': strToU8('v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3') });
+          const created = await fetch(base + '/api/projects?name=Container%20persistence', { method: 'POST', headers: { authorization, 'Content-Type': 'application/zip' }, body: archive });
+          assert.equal(created.status, 201);
+          const { project } = await created.json();
+          const restored = await fetch(base + '/api/projects/' + project.id, { headers: { authorization } });
+          assert.deepEqual(new Uint8Array(await restored.arrayBuffer()), archive);
+          NODE
+          docker restart kantura-smoke
+          wait_healthy
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          const list = await fetch('http://127.0.0.1:8090/api/projects', { headers: { authorization: 'Bearer ci-only-random-looking-token-32-characters' } });
+          const { projects } = await list.json();
+          assert.equal(projects.length, 1);
+          assert.equal(projects[0].name, 'Container persistence');
+          NODE
+      - name: Clean up Docker smoke test
+        if: always()
+        run: |
+          docker rm -f kantura-smoke || true
+          docker volume rm kantura-smoke-data || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: measurement-workspace-static
+          path: tools/scan-workspace/dist

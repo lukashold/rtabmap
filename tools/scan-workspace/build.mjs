@@ -1,0 +1,11 @@
+import { build } from 'esbuild';
+import { mkdir, copyFile, writeFile, readFile, realpath } from 'node:fs/promises';
+import { resolve } from 'node:path';
+await mkdir('dist', { recursive: true });
+await build({ entryPoints: ['src/main.js', 'src/auth.js'], bundle: true, format: 'esm', outdir: 'dist', minify: true, sourcemap: true, target: ['es2022'], legalComments: 'linked' });
+for (const file of ['index.html', 'style.css', 'auth.html', 'kantura.svg']) await copyFile(`public/${file}`, `dist/${file}`);
+await writeFile('dist/config.json', JSON.stringify({ googleClientId: '', microsoftClientId: '' }));
+const browserPath=await realpath('node_modules/@azure/msal-browser');
+const notices=[['RTAB-Map / Kantura','../../LICENSE'],['Three.js','node_modules/three/LICENSE'],['fflate','node_modules/fflate/LICENSE'],['MSAL Browser','node_modules/@azure/msal-browser/LICENSE'],['MSAL Common',resolve(browserPath,'../msal-common/LICENSE')]];
+await writeFile('dist/THIRD-PARTY-LICENSES.txt',(await Promise.all(notices.map(async([name,path])=>`${name}\n${'='.repeat(name.length)}\n${await readFile(path,'utf8')}`))).join('\n\n'));
+console.log('Built dist/ (model data stays in the browser).');

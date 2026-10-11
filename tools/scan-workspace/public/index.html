@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="de">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="RTAB-Map: Scans ansehen, Strecken und Flächen messen, Grundrisse exportieren."><title>Kantura · Scan & Measure</title><link rel="icon" type="image/svg+xml" href="./kantura.svg"><link rel="stylesheet" href="./style.css"></head>
+<body>
+  <header class="header">
+    <a class="brand" href="./" aria-label="Kantura"><img class="brand-mark" src="./kantura.svg" alt=""><span>Kantura <small>SCAN · MEASURE</small></span></a>
+    <span class="header-caption" data-i18n="workspace"></span>
+    <div class="header-actions"><select id="language" aria-label="Language"><option value="de">Deutsch</option><option value="fr">Français</option><option value="es">Español</option><option value="it">Italiano</option><option value="zh-Hans">简体中文</option></select><button id="tutorial" class="quiet"><span data-icon="book"></span><span data-i18n="tutorial"></span></button><button id="save" class="primary" disabled><span data-icon="save"></span><span data-i18n="save"></span></button></div>
+  </header>
+  <nav class="workflow" aria-label="Workflow"><button data-guide-step="1"><b>1</b><span id="step-scan"></span></button><span>—</span><button data-guide-step="2"><b>2</b><span id="step-review"></span></button><span>—</span><button data-guide-step="3" class="current"><b>3</b><span data-i18n="workspace"></span></button><span>—</span><button data-guide-step="6"><b>4</b><span data-i18n="save"></span></button><span class="local-badge"><i></i><span data-i18n="local"></span></span></nav>
+  <main class="workspace">
+    <aside class="tools-panel">
+      <div class="panel-title"><span class="eyebrow">KANTURA · powered by RTAB-Map</span><h1 data-i18n="workspace"></h1></div>
+      <button id="open" class="open-button"><span data-icon="folder"></span><span data-i18n="open"></span><span class="plus">+</span></button>
+      <p class="file-types" data-i18n="openHint"></p>
+      <input id="file" type="file" accept=".zip,.obj,.mtl,.ply,.glb,.png,.jpg,.jpeg,.webp,.bmp,.bin" multiple hidden>
+      <div class="tool-group" role="group" aria-label="Measurement tools">
+        <button class="tool" data-mode="distance"><span data-icon="ruler"></span><span data-i18n="distance"></span><kbd>1</kbd></button>
+        <button class="tool" data-mode="floor"><span data-icon="floor"></span><span data-i18n="floor"></span><kbd>2</kbd></button>
+        <button class="tool" data-mode="surface"><span data-icon="surface"></span><span data-i18n="surface"></span><kbd>3</kbd></button>
+      </div>
+      <div id="selection-actions" hidden><button id="finish" class="primary full" data-i18n="finish"></button><div class="button-row"><button id="undo" data-i18n="undo"></button><button id="cancel" data-i18n="cancel"></button></div></div>
+      <div class="divider"></div>
+      <label class="field"><span data-i18n="projectName"></span><input id="project-name" maxlength="200" value=""></label>
+      <details class="settings"><summary data-i18n="scale"></summary><label class="field"><span data-i18n="units"></span><select id="units"><option value="1" data-i18n="meters"></option><option value="0.01" data-i18n="centimeters"></option><option value="0.001" data-i18n="millimeters"></option></select></label><label class="field"><span data-i18n="axis"></span><select id="axis"><option value="z" data-i18n="upZ"></option><option value="y" data-i18n="upY"></option></select></label><button id="calibrate" class="full"><span data-icon="target"></span><span data-i18n="calibrate"></span></button></details>
+      <div id="scale-status" class="scale-note"></div>
+      <button id="cloud" class="cloud-button"><span data-icon="cloud"></span><span data-i18n="storage"></span><span>↗</span></button>
+      <p class="privacy" data-i18n="fileHint"></p>
+    </aside>
+    <section class="model-panel">
+      <div class="view-toolbar"><div class="segmented"><button id="orbit" class="active"><span data-icon="cube"></span><span>3D</span></button><button id="top"><span data-icon="floor"></span><span data-i18n="top"></span></button></div><div class="view-tools"><button id="texture" title="Texture"><span data-icon="image"></span><span data-i18n="texture"></span></button><button id="roof"><span data-icon="layers"></span><span data-i18n="roof"></span></button><button id="fit"><span data-icon="fit"></span><span data-i18n="fit"></span></button></div></div>
+      <div id="stage" aria-label="3D viewport"></div>
+      <div id="empty-overlay"><div class="hero-icon" data-icon="cube"></div><p class="eyebrow">SCAN → MEASURE</p><h2 data-i18n="importTitle"></h2><p data-i18n="importBody"></p><button id="open-hero" class="primary"><span data-icon="folder"></span><span data-i18n="open"></span></button><button id="demo" class="text-button" data-i18n="demo"></button></div>
+      <div id="model-name" class="model-name" hidden></div><div id="demo-badge" class="demo-badge" hidden data-i18n="demoLabel"></div>
+      <div class="viewer-footer"><span id="instruction"></span><span id="point-count"></span></div>
+    </section>
+    <aside class="results-panel"><div class="results-header"><span class="eyebrow" data-i18n="summary"></span><h2><span data-i18n="measurements"></span><span id="measure-count">0</span></h2></div><div id="results-empty"><span data-icon="ruler"></span><p data-i18n="empty"></p></div><ol id="measure-list"></ol><div class="report-actions"><button id="csv" disabled><span data-icon="download"></span><span data-i18n="exportCsv"></span></button><button id="svg" disabled><span data-icon="floor"></span><span data-i18n="exportSvg"></span></button></div></aside>
+  </main>
+  <div id="status" role="status" aria-live="polite"></div>
+  <dialog id="guide-dialog"><div class="dialog-heading"><span class="eyebrow" id="guide-subtitle"></span><button data-close="guide-dialog" class="icon-button" aria-label="Close">×</button></div><div id="guide-illustration"></div><div class="guide-progress" id="guide-progress"></div><h2 id="guide-title"></h2><p id="guide-body"></p><div class="dialog-footer"><button id="guide-back" data-i18n="back"></button><span id="guide-counter"></span><button id="guide-next" class="primary" data-i18n="next"></button></div></dialog>
+  <dialog id="reference-dialog"><div class="dialog-heading"><h2 data-i18n="reference"></h2><button data-close="reference-dialog" class="icon-button" aria-label="Close">×</button></div><form id="reference-form"><label class="field"><span data-i18n="known"></span><input id="reference-length" type="number" min="0.000001" step="any" required></label><button class="primary full" data-i18n="apply"></button></form></dialog>
+  <dialog id="cloud-dialog"><div class="dialog-heading"><h2 data-i18n="storage"></h2><button data-close="cloud-dialog" class="icon-button" aria-label="Close">×</button></div><p data-i18n="cloudHelp"></p><div class="provider-tabs"><button data-provider="microsoft">OneDrive</button><button data-provider="google">Google Drive</button><button data-provider="server" data-i18n="selfhost"></button></div><div id="server-config" hidden><label class="field"><span data-i18n="serverKey"></span><input id="server-token" type="password" autocomplete="off" spellcheck="false"></label></div><details id="cloud-config"><summary data-i18n="configure"></summary><p data-i18n="configureHelp"></p><label class="field"><span data-i18n="googleId"></span><input id="google-id" autocomplete="off"></label><label class="field"><span data-i18n="microsoftId"></span><input id="microsoft-id" autocomplete="off"></label><button id="save-config" data-i18n="configSave"></button></details><div class="button-row"><button id="connect" class="primary" data-i18n="connect"></button><button id="disconnect" data-i18n="disconnect"></button><button id="refresh" data-i18n="refresh"></button></div><button id="upload" class="full" data-i18n="upload" disabled></button><progress id="upload-progress" max="1" value="0" hidden></progress><p id="cloud-status" role="status"></p><p id="provider-help" class="privacy" data-i18n="cloudScope"></p><ul id="cloud-files"></ul></dialog>
+  <script type="module" src="./main.js"></script>
+</body></html>

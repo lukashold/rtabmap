@@ -1,0 +1,14 @@
+**
+!LICENSE
+!tools/
+!tools/scan-workspace/
+!tools/scan-workspace/**
+!app/
+!app/ios/
+!app/ios/RTABMapApp/
+!app/ios/RTABMapApp/MeasurementGuide.json
+tools/scan-workspace/node_modules/
+tools/scan-workspace/dist/
+tools/scan-workspace/.env
+tools/scan-workspace/*.log
+tools/scan-workspace/data/

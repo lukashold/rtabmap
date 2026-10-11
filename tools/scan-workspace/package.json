@@ -1,0 +1,21 @@
+{
+  "name": "rtabmap-measure-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local-first RTAB-Map measurement workspace and multilingual guide",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "node server.mjs",
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check src/main.js && node --check src/cloud.js && node --check src/viewer.js"
+  },
+  "dependencies": {
+    "@azure/msal-browser": "5.25.0",
+    "fflate": "0.8.3",
+    "three": "0.186.1"
+  },
+  "devDependencies": { "esbuild": "0.28.2" },
+  "engines": { "node": ">=22" },
+  "packageManager": "pnpm@11.25.0"
+}

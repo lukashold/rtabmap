@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A817AC020000000000000006 /* MeasurementGuide.json in Resources */ = {isa = PBXBuildFile; fileRef = A817AC020000000000000005 /* MeasurementGuide.json */; };
+		A817AC020000000000000004 /* MeasurementGuideViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC020000000000000003 /* MeasurementGuideViewController.swift */; };
+		A817AC020000000000000002 /* MeasurementGuide.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC020000000000000001 /* MeasurementGuide.swift */; };
 		A817AC010000000000000001 /* ScanTrackingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC010000000000000002 /* ScanTrackingState.swift */; };
 		4E0D83832621F52C00C879AC /* Settings.bundle in Resources */ = {isa = PBXBuildFile; fileRef = 4E0D83822621F52C00C879AC /* Settings.bundle */; };
 		4E10D89C2DE409870015926D /* librtabmap_core.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4EFD0EB0259D5BE500575D88 /* librtabmap_core.a */; };
@@ -128,6 +131,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		A817AC020000000000000005 /* MeasurementGuide.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = MeasurementGuide.json; path = RTABMapApp/MeasurementGuide.json; sourceTree = "<group>"; };
+		A817AC020000000000000003 /* MeasurementGuideViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MeasurementGuideViewController.swift; path = RTABMapApp/MeasurementGuideViewController.swift; sourceTree = "<group>"; };
+		A817AC020000000000000001 /* MeasurementGuide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MeasurementGuide.swift; path = RTABMapApp/MeasurementGuide.swift; sourceTree = "<group>"; };
 		A817AC010000000000000002 /* ScanTrackingState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ScanTrackingState.swift; path = RTABMapApp/ScanTrackingState.swift; sourceTree = "<group>"; };
 		44D4681D2D538A4100B094BA /* RTABMapApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = RTABMapApp.entitlements; path = RTABMapApp/RTABMapApp.entitlements; sourceTree = "<group>"; };
 		4E0D83822621F52C00C879AC /* Settings.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; path = Settings.bundle; sourceTree = "<group>"; };
@@ -481,6 +487,9 @@
 				4EE016B0259BE441008CCE65 /* SceneDelegate.swift */,
 				4EE016AF259BE441008CCE65 /* ViewController.swift */,
 				A817AC010000000000000002 /* ScanTrackingState.swift */,
+				A817AC020000000000000005 /* MeasurementGuide.json */,
+				A817AC020000000000000003 /* MeasurementGuideViewController.swift */,
+				A817AC020000000000000001 /* MeasurementGuide.swift */,
 				4EE016BF259BE464008CCE65 /* Main.storyboard */,
 				4EE016C1259BE464008CCE65 /* LaunchScreen.storyboard */,
 				4EE016BC259BE45C008CCE65 /* Info.plist */,
@@ -816,6 +825,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4E0D83832621F52C00C879AC /* Settings.bundle in Resources */,
+				A817AC020000000000000006 /* MeasurementGuide.json in Resources */,
 				4E20B24E266AB94300316EE6 /* Images.xcassets in Resources */,
 				4EE016C3259BE464008CCE65 /* Main.storyboard in Resources */,
 				4E20B250266AB95600316EE6 /* Images.xcassets in Resources */,
@@ -858,6 +868,8 @@
 				4E2C516825A63119005CEDBD /* VerticalScrollerView.swift in Sources */,
 				4EE016B3259BE441008CCE65 /* ViewController.swift in Sources */,
 				A817AC010000000000000001 /* ScanTrackingState.swift in Sources */,
+				A817AC020000000000000004 /* MeasurementGuideViewController.swift in Sources */,
+				A817AC020000000000000002 /* MeasurementGuide.swift in Sources */,
 				4E2C516725A63119005CEDBD /* DatabaseView.swift in Sources */,
 				4EFD0BAA259D501E00575D88 /* triangle.cpp in Sources */,
 				4EFD0B9D259D501E00575D88 /* segment_drawable.cpp in Sources */,
@@ -1036,7 +1048,7 @@
 		4EE015D7259A2AF0008CCE65 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = KanturaIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_USE_OPTIMIZATION_PROFILE = NO;
@@ -1071,7 +1083,7 @@
 				);
 				MARKETING_VERSION = 0.23.7;
 				OTHER_CFLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = com.introlab.rtabmap;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.lukashold.kantura;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "RTABMapApp/$(SWIFT_MODULE_NAME)-Bridging-Header.h";
@@ -1096,7 +1108,7 @@
 		4EE015D8259A2AF0008CCE65 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = KanturaIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_USE_OPTIMIZATION_PROFILE = NO;
@@ -1132,7 +1144,7 @@
 				MARKETING_VERSION = 0.23.7;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = com.introlab.rtabmap;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.lukashold.kantura;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "RTABMapApp/$(SWIFT_MODULE_NAME)-Bridging-Header.h";

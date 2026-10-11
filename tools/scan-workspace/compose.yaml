@@ -1,0 +1,22 @@
+services:
+  kantura:
+    build:
+      context: ../..
+      dockerfile: tools/scan-workspace/Dockerfile
+    image: kantura:local
+    ports:
+      - "127.0.0.1:8090:8080"
+    environment:
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID:-}
+      SERVER_TOKEN: ${SERVER_TOKEN:-}
+      DATA_DIR: /data
+    volumes:
+      - scan-projects:/data
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+
+volumes:
+  scan-projects:
