@@ -21,3 +21,77 @@ html[dir="rtl"] .video-transcript ol{padding-left:0;padding-inline-start:24px}
 input[type="number"],input[type="url"],input#google-id,input#microsoft-id,input#server-key,#transport-canvas{direction:ltr;unicode-bidi:isolate}
 @media(max-width:850px){html[dir="rtl"] .results-panel{border-right:0}}
 @media(max-width:650px){html[dir="rtl"] .path-card{padding:20px 80px 20px 62px}html[dir="rtl"] .path-icon{left:auto;right:20px}html[dir="rtl"] .video-pill{right:18px}}
+/* Readable guidance and reachable controls on narrow screens. */
+.privacy,.file-types,.measure-detail,#results-empty,.field,.viewer-footer,.model-name,
+.eyebrow,#guide-body,#cloud-dialog>p,.dialog-footer span,.workflow button,
+.tool kbd,.results-header h2>span:last-child,.icon-button,.measure-name button,
+.paths-heading>span,.path-number,.path-arrow{color:var(--muted)}
+.privacy,.file-types,.measure-detail,.field,.viewer-footer,.model-name,.scale-note,
+.home-privacy,.workflow button,.workflow .local-badge,.tool kbd,.button-row button,
+.dialog-footer span,.demo-badge,.model-label,.path-description{font-size:13px}
+.eyebrow,.home-copy>.eyebrow,.language-pills span,.path-number,.paths-heading>span,
+.results-header h2>span:last-child,.workflow b{font-size:12px}
+.brand small{font-size:10px}.demo-badge{color:#705014}.scale-note{color:#795817}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
+select:focus-visible,summary:focus-visible,canvas:focus-visible{outline:3px solid #187657;outline-offset:3px}
+button,a,input,select,textarea{touch-action:manipulation}
+.tools-panel,.results-panel,.home-copy,.home-art{min-width:0}
+button,.field,.report-help,.dialog-description{overflow-wrap:anywhere}
+input,textarea,select{min-width:0}.field textarea{max-width:100%}
+.measure-name .measure-rename{font-size:13px;flex:1;min-height:36px;text-align:start}
+.measure-name .icon-button,.measure-name .locate-button{flex:0 0 36px;min-width:36px!important;min-height:36px;margin:0;color:var(--muted)}
+.results-section li>button:first-child,#catalog-results button{font-size:13px;text-align:start}
+.results-section p{flex:1}.report-help{font-size:13px;line-height:1.7;color:var(--muted)}
+.dialog-description{font-size:15px;line-height:1.8;color:var(--muted);margin:20px 0}
+.dialog-footer{gap:12px;flex-wrap:wrap}.dialog-heading .icon-button{flex-shrink:0}
+.notice,.dialog-feedback{padding:14px 16px;border-radius:12px;line-height:1.75;font-size:14px;background:#f5ecd9;color:#68491c}
+.dialog-feedback,.error-message{background:#fce9e6;color:#842b27}
+.route-options{display:grid;gap:14px;margin-top:24px}
+.route-options button{display:grid;grid-template-columns:41px 1fr;align-items:start;text-align:start;padding:18px;column-gap:15px;row-gap:7px}
+.route-options .path-icon{grid-row:span 2;position:static!important}
+.route-options strong{font-size:17px;line-height:1.5}.route-options button>span:last-child{color:var(--muted);font-size:14px;line-height:1.7}
+.source-field{padding-inline-start:10px;border-inline-start:2px solid #c1ded3;margin-top:-5px}
+.source-field>span{font-size:12px}.source-field select{font-size:12px}
+html[dir="rtl"] .view-tools,html[dir="rtl"] .workflow .local-badge,html[dir="rtl"] .plus{margin-left:0;margin-inline-start:auto}
+html[dir="rtl"] .measure-name .icon-button{margin:0}
+html[dir="rtl"] #catalog-results button,html[dir="rtl"] .results-section li>button:first-child{text-align:start}
+input#server-token{direction:ltr;unicode-bidi:isolate}
+@media(min-width:851px){
+  .workspace{height:max(440px,calc(100dvh - 148px));min-height:0}
+  .tools-panel,.results-panel{min-height:0;overflow-y:auto;overscroll-behavior:contain}
+  .model-panel{height:100%;min-height:0}
+  #measure-list{max-height:none;overflow:visible}
+}
+@media(max-width:850px){
+  .header{height:auto;min-height:76px;flex-wrap:wrap;gap:10px;padding-block:14px}
+  .header-nav{display:flex;flex-basis:100%;order:3;margin:0;gap:6px}
+  .header-nav a{display:inline-flex;padding:10px 13px;min-height:42px;align-items:center}
+  html[dir="rtl"] .header-nav{margin-inline-start:0}
+  .workflow{height:auto;min-height:55px;overflow:visible;flex-wrap:wrap;padding-block:8px}
+  .workflow button{font-size:12px;min-height:38px}.workflow button span{max-width:none;white-space:normal;text-align:start}
+  .tool{font-size:13px}.report-actions button{min-height:44px}
+}
+@media(max-width:560px){
+  .tool-group{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .tool{flex-direction:row;justify-content:flex-start;font-size:13px;padding:9px}
+  .viewer-footer{font-size:12px}.home-ctas button{font-size:13px}
+  .transport-fields fieldset{display:block}.transport-fields .field{margin:12px 0}
+}
+@media(max-width:370px){.header-actions{flex-basis:100%;justify-content:flex-end}.home-copy h1{font-size:40px}}
+@media(pointer:coarse){.measure-name .icon-button,.measure-name .locate-button{min-height:44px;flex-basis:44px;min-width:44px!important}.view-toolbar button,.icon-button{min-height:44px}}
+
+/* On phones, start with tools and model; project details follow below. */
+.mobile-measurement-dock{display:none}
+@media(max-width:560px){
+  .header .brand small{display:none}
+  .workflow{display:none!important}
+  .mobile-measurement-dock{display:block;order:0;padding:12px 14px;background:white;border-bottom:1px solid var(--line)}
+  .dock-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .mobile-measurement-dock .tool{min-width:0;margin:0}
+  .mobile-measurement-dock #selection-actions{padding-top:10px}
+  .mobile-measurement-dock .button-row{margin-bottom:0}
+  .workspace>.model-panel{order:1}
+  .workspace>.tools-panel{order:2}
+  .workspace>.results-panel{order:3}
+  .tools-panel .tool-group{display:none}
+}

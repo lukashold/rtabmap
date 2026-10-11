@@ -1,4 +1,44 @@
-# Development validation — 0.4 preview, 2026-10-11
+# Development validation — 0.4.1 preview, 2026-10-11
+
+## New 0.4.1 usability checks
+
+The Windows integration run passes **88 Node tests**, including two task-lock
+regressions that cover concurrent actions and failure recovery, and a real HTTP
+regression for a client-aborted video stream. Changes separate
+the indoor RoomPlan guide from textured LiDAR capture, add contextual imports,
+improve control contrast and touch targets, and clarify download/transport states.
+Native source changes add wrapped Dynamic Type buttons, keyboard-aware RoomPlan
+results, a scrollable language picker, and direct measurements for saved rooms.
+Compilation does not establish native layout or physical capture usability.
+
+The local build was exercised through the Codex in-app browser at 1280 × 720 and
+390 × 844. The German home, house entry, guide chooser and all seven RoomPlan
+guide steps worked. A desktop synthetic two-point distance produced 2.828 m and
+survived a trip to the overview and back. A mobile three-point floor polygon
+produced 2.61 m² and exposed its finish/cancel actions beside the model. These
+arbitrary synthetic selections are interaction checks, not accuracy benchmarks.
+
+The live pass found and corrected two layout defects: tall desktop sidebars pushed
+the model below the viewport, and mobile settings preceded the model by over
+1100 pixels. Desktop sidebars now scroll separately. Mobile tools and the model
+come before settings. All 15 languages were selected at 390 pixels without
+horizontal page overflow; Arabic direction and a representative screenshot were
+checked. This is not native-speaker review or exhaustive translated-screen testing.
+
+The two-floor synthetic house archive imported with its detected measurements;
+switching to the first-floor bedroom replaced the room data and reset unsaved
+transport values, catalogue search and results. The German video loaded with
+readyState 4 and duration 86.75 s. A measurement HTML report actually downloaded.
+No browser console errors were observed during this pass. A subsequent reload
+exposed a server crash when an MP4 client disconnected after headers were sent.
+The error handler now leaves completed/destroyed responses alone and does not
+send a second set of headers. The regression reproduces the original crash and
+checks successful video/health requests afterward. Opening/closing the video
+dialog and reloading the actual browser also succeeded after the fix.
+Sign-in to real cloud
+accounts, maximum text sizes, assistive technology and a signed iPhone remain open.
+
+Historical checks below apply to their recorded revisions.
 
 ## New 0.4 language coverage
 
@@ -135,7 +175,7 @@ baseline for the original workflow, not device validation of the new 0.2 paths.
 5. Check the deployed Docker revision, storage volume, access token, HTTPS and
    backup/restore procedure. Prior CI confirms its baseline; it does not verify a
    user's host, domain or provider registrations. Have native speakers review the
-   five translations in the actual device/browser layout before public release.
+   fifteen translations in the actual device/browser layout before public release.
 
 Cloud and self-host projects are explicit archive snapshots, with photos included.
 There is no live synchronization, multi-user account system, server reconstruction,

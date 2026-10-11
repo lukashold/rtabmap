@@ -57,7 +57,7 @@ final class MeasurementGuideViewController: UIViewController {
     }
 
     private func button(_ text: String, icon: String, filled: Bool = false, handler: @escaping () -> Void) -> UIButton {
-        let result = UIButton(type: .system)
+        let result = KanturaButton(type: .system)
         result.setTitle("  " + text, for: .normal)
         result.setImage(UIImage(systemName: icon), for: .normal)
         KanturaDesign.button(result, primary: filled)
@@ -138,15 +138,19 @@ final class MeasurementGuideViewController: UIViewController {
             content.addArrangedSubview(library)
             content.setCustomSpacing(28, after: library)
         }
-        let workflowHeading = label(guide.start, style: .title2)
+        let workflowHeading = label("LiDAR · " + guide.start, style: .title2)
         workflowHeading.accessibilityTraits.insert(.header)
         content.addArrangedSubview(workflowHeading)
         let entries: [(Action, String)] = [(.scan, "camera.viewfinder"), (.assemble, "cube.transparent"), (.measure, "ruler"), (.share, "square.and.arrow.up")]
         for (index, entry) in entries.enumerated() where workflow.stages.indices.contains(index) {
+            // The first visit offers two meaningful capture choices. Locked
+            // reconstruction/measurement/export steps stay in the tutorial.
+            if workflowState.phase == .ready && entry.0 != .scan { continue }
             let stage = workflow.stages[index]
             let available = workflowState.availableActions.contains(entry.0)
             let recommended = workflowState.primaryAction == entry.0
-            let card = KanturaActionCard(title: "\(index + 1). \(stage.title)", detail: stage.detail,
+            let detail = available ? stage.detail : stage.detail + "\n" + workflow.availableLater
+            let card = KanturaActionCard(title: "\(index + 1). \(stage.title)", detail: detail,
                                     icon: entry.1, emphasis: recommended ? .mint : .standard, enabled: available)
             card.accessibilityHint = available ? stage.detail : workflow.availableLater
             card.addAction(UIAction { [weak self] _ in self?.perform(entry.0) }, for: .touchUpInside)
@@ -160,7 +164,7 @@ final class MeasurementGuideViewController: UIViewController {
             icon: "play.rectangle.fill", emphasis: .mint)
         video.addAction(UIAction { [weak self] _ in self?.showTutorialVideo() }, for: .touchUpInside)
         content.addArrangedSubview(video)
-        content.addArrangedSubview(button(workflow.tutorial, icon: "text.book.closed") { [weak self] in
+        content.addArrangedSubview(button("LiDAR · " + workflow.tutorial, icon: "text.book.closed") { [weak self] in
             self?.step = 0
             self?.render()
         })
@@ -213,13 +217,13 @@ final class MeasurementGuideViewController: UIViewController {
         lesson.axis = .vertical
         lesson.spacing = 22
         content.addArrangedSubview(KanturaDesign.inset(lesson, padding: 24))
-        let back = button(guide.back, icon: "chevron.left") { [weak self] in
+        let back = button(guide.back, icon: "chevron.backward") { [weak self] in
             self?.step = max(0, step - 1)
             self?.render()
         }
         back.isEnabled = step > 0
         let last = step == guide.steps.count - 1
-        let next = button(last ? guide.done : guide.next, icon: last ? "checkmark" : "chevron.right", filled: true) { [weak self] in
+        let next = button(last ? guide.done : guide.next, icon: last ? "checkmark" : "chevron.forward", filled: true) { [weak self] in
             self?.step = last ? nil : step + 1
             self?.render()
         }
@@ -254,17 +258,54 @@ final class MeasurementGuideViewController: UIViewController {
     }
 
     @objc private func selectLanguage() {
-        guard let guide = guides[MeasurementGuide.selectedLanguage] else { return }
-        let sheet = UIAlertController(title: guide.language, message: nil, preferredStyle: .actionSheet)
-        for language in MeasurementGuide.languages {
-            sheet.addAction(UIAlertAction(title: guides[language]?.name ?? language, style: .default) { [weak self] _ in
-                MeasurementGuide.selectedLanguage = language
-                self?.render()
-                self?.onLanguageChange?()
-            })
+        guard presentedViewController == nil else { return }
+        let languages = KanturaLanguageViewController(style: .insetGrouped)
+        languages.onSelection = { [weak self] language in
+            MeasurementGuide.selectedLanguage = language
+            self?.render()
+            self?.onLanguageChange?()
+            UIAccessibility.post(notification: .screenChanged, argument: self?.navigationItem.leftBarButtonItem)
         }
-        sheet.addAction(UIAlertAction(title: guide.close, style: .cancel))
-        sheet.popoverPresentationController?.barButtonItem = navigationItem.leftBarButtonItem
-        present(sheet, animated: true)
+        let navigation = UINavigationController(rootViewController: languages)
+        navigation.modalPresentationStyle = .formSheet
+        present(navigation, animated: true)
     }
+}
+
+private final class KanturaLanguageViewController: UITableViewController {
+    var onSelection: ((String) -> Void)?
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        let guide = MeasurementGuide.all[MeasurementGuide.selectedLanguage]
+        title = guide?.language
+        KanturaDesign.navigation(self)
+        tableView.backgroundColor = KanturaDesign.background
+        tableView.rowHeight = UITableView.automaticDimension
+        tableView.estimatedRowHeight = 60
+        navigationItem.rightBarButtonItem = UIBarButtonItem(title: guide?.close, style: .done, target: self, action: #selector(close))
+    }
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { MeasurementGuide.languages.count }
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let language = MeasurementGuide.languages[indexPath.row]
+        let cell = UITableViewCell(style: .default, reuseIdentifier: nil)
+        cell.backgroundColor = KanturaDesign.surface
+        cell.textLabel?.text = MeasurementGuide.all[language]?.name ?? language
+        cell.textLabel?.font = .preferredFont(forTextStyle: .body)
+        cell.textLabel?.adjustsFontForContentSizeCategory = true
+        cell.textLabel?.numberOfLines = 0
+        cell.textLabel?.textColor = KanturaDesign.text
+        cell.directionalLayoutMargins = NSDirectionalEdgeInsets(top: 18, leading: 20, bottom: 18, trailing: 20)
+        cell.accessibilityLanguage = language
+        let selected = language == MeasurementGuide.selectedLanguage
+        cell.accessoryType = selected ? .checkmark : .none
+        if selected { cell.accessibilityTraits.insert(.selected) }
+        return cell
+    }
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let language = MeasurementGuide.languages[indexPath.row]
+        let callback = onSelection
+        dismiss(animated: true) { callback?(language) }
+    }
+    @objc private func close() { dismiss(animated: true) }
 }

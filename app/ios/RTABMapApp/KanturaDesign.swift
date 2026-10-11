@@ -49,6 +49,8 @@ enum KanturaDesign {
         button.titleLabel?.font = .preferredFont(forTextStyle: .headline)
         button.titleLabel?.adjustsFontForContentSizeCategory = true
         button.titleLabel?.numberOfLines = 0
+        button.titleLabel?.lineBreakMode = .byWordWrapping
+        button.titleLabel?.textAlignment = .center
         button.contentEdgeInsets = UIEdgeInsets(top: 17, left: 20, bottom: 17, right: 20)
         button.layer.cornerRadius = 18
         button.layer.cornerCurve = .continuous
@@ -70,6 +72,31 @@ enum KanturaDesign {
             child.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -padding)
         ])
         return card
+    }
+}
+
+/// UIButton's default intrinsic height can remain one line even when its title
+/// wraps. Recompute it at the actual constrained width for large text/languages.
+final class KanturaButton: UIButton {
+    private var measuredWidth: CGFloat = 0
+    override var intrinsicContentSize: CGSize {
+        let original = super.intrinsicContentSize
+        guard bounds.width > 0, let label = titleLabel else { return original }
+        let imageWidth = image(for: .normal)?.size.width ?? 0
+        let width = max(1, bounds.width - contentEdgeInsets.left - contentEdgeInsets.right - imageWidth)
+        let titleSize = label.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
+        return CGSize(width: original.width, height: max(56, titleSize.height + contentEdgeInsets.top + contentEdgeInsets.bottom))
+    }
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        if measuredWidth != bounds.width {
+            measuredWidth = bounds.width
+            invalidateIntrinsicContentSize()
+        }
+    }
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        invalidateIntrinsicContentSize()
     }
 }
 
@@ -127,7 +154,7 @@ final class KanturaActionCard: UIButton {
         let copy = UIStackView(arrangedSubviews: [heading, subtitle])
         copy.axis = .vertical
         copy.spacing = 7
-        let arrow = UIImageView(image: UIImage(systemName: enabled ? "arrow.up.right" : "lock"))
+        let arrow = UIImageView(image: UIImage(systemName: enabled ? "chevron.forward" : "lock"))
         arrow.tintColor = foreground
         arrow.contentMode = .scaleAspectFit
         arrow.widthAnchor.constraint(equalToConstant: 18).isActive = true

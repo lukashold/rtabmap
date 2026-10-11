@@ -136,6 +136,7 @@ export function createAppServer(root = fileURLToPath(new URL('./dist', import.me
         res.writeHead(200, { 'Content-Type': 'application/zip', 'Content-Length': project.size, 'Content-Disposition': `attachment; filename="${project.id}.rtabmeasure.zip"` });
         await pipeline(createReadStream(join(storageBase, project.id, 'scan.zip')), res);
       } catch (error) {
+        if (res.destroyed || res.writableEnded) return;
         if (res.headersSent) { res.destroy(); return; }
         if (req.method === 'POST') { res.setHeader('Connection', 'close'); req.resume(); }
         if (error.status === 401) res.setHeader('WWW-Authenticate', 'Bearer realm="KANTURA project library"');
@@ -172,7 +173,13 @@ export function createAppServer(root = fileURLToPath(new URL('./dist', import.me
         return;
       }
       res.end(req.method === 'HEAD' ? undefined : await readFile(canonicalFile));
-    } catch { res.writeHead(404).end(); }
+    } catch {
+      // pipeline destroys its response when the browser closes a video or seeks
+      // away. Headers may already be on the wire; do not attempt a second reply.
+      if (res.destroyed || res.writableEnded) return;
+      if (res.headersSent) { res.destroy(); return; }
+      res.writeHead(404).end();
+    }
   });
   server.requestTimeout = 120000;
   server.headersTimeout = 15000;

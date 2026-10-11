@@ -1129,7 +1129,7 @@
 				CODE_SIGN_ENTITLEMENTS = RTABMapApp/RTABMapApp.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = 3RRB6NV8U9;
 				EXCLUDED_ARCHS = "";
@@ -1155,7 +1155,7 @@
 					"$(PROJECT_DIR)/RTABMapApp/Libraries/share/OpenCV/3rdparty/lib",
 					"$(PROJECT_DIR)/RTABMapApp/Libraries/lib/opencv4/3rdparty",
 				);
-				MARKETING_VERSION = 0.23.7;
+				MARKETING_VERSION = 0.4.1;
 				OTHER_CFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.lukashold.kantura;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1189,7 +1189,7 @@
 				CODE_SIGN_ENTITLEMENTS = RTABMapApp/RTABMapApp.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = 3RRB6NV8U9;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -1215,7 +1215,7 @@
 					"$(PROJECT_DIR)/RTABMapApp/Libraries/share/OpenCV/3rdparty/lib",
 					"$(PROJECT_DIR)/RTABMapApp/Libraries/lib/opencv4/3rdparty",
 				);
-				MARKETING_VERSION = 0.23.7;
+				MARKETING_VERSION = 0.4.1;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.lukashold.kantura;

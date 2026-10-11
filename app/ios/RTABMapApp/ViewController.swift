@@ -2308,6 +2308,7 @@ class ViewController: GLKViewController, ARSessionDelegate, RTABMapObserver, UIP
         guard prepareForRoomPlanPresentation() else { return }
         if #available(iOS 17.0, *), RoomPlanViewController.isSupported {
             let room = RoomPlanViewController()
+            room.onNewRoom = { [weak self] in self?.showRoomPlan() }
             room.onClose = { [weak self] in
                 self?.roomPlanPresented = false
                 self?.resetNoTouchTimer(true)

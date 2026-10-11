@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { get } from 'node:http';
 import { createAppServer } from '../server.mjs';
 import { guide } from '../src/i18n.js';
 import { extraLocales, supportedLanguages } from '../locales/index.js';
@@ -21,7 +22,7 @@ async function withMediaServer(run) {
       writeFile(join(root, 'demo.vtt'), captions)
     ]);
     await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
-    await run(`http://127.0.0.1:${server.address().port}`);
+    await run(`http://127.0.0.1:${server.address().port}`, { root, server });
   } finally {
     if (server.listening) await new Promise(resolve => server.close(resolve));
     await rm(root, { recursive: true, force: true });
@@ -39,6 +40,46 @@ test('MP4 delivery preserves the full bytes and declares video type, length and 
     assert.equal(response.headers.get('content-range'), null);
     assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
     assert.deepEqual(await bodyBytes(response), video);
+  });
+});
+
+test('aborting an MP4 response after its first bytes leaves the server available for later requests', { timeout: 10000 }, async () => {
+  await withMediaServer(async (url, { root, server }) => {
+    const size = 8 * 1024 * 1024;
+    await writeFile(join(root, 'abort.mp4'), Buffer.alloc(size, 0x5a));
+    // Observe the server response as well as the client: this must interrupt a
+    // live pipeline, not merely cancel after the complete file was buffered.
+    let complete;
+    const closed = new Promise(resolve => {
+      server.on('request', (request, response) => {
+        if (request.url === '/abort.mp4') response.once('close', () => {
+          complete = response.writableFinished;
+          resolve();
+        });
+      });
+    });
+    let received = 0;
+    await new Promise((resolve, reject) => {
+      const request = get(`${url}/abort.mp4`, response => {
+        if (response.statusCode !== 200) { response.resume(); reject(new Error(`Unexpected status ${response.statusCode}`)); return; }
+        response.once('error', reject);
+        response.once('data', bytes => {
+          received += bytes.length;
+          response.destroy();
+          request.destroy();
+        });
+        response.once('close', resolve);
+      });
+      request.once('error', reject);
+    });
+    await closed;
+    await new Promise(resolve => setImmediate(resolve));
+    assert.ok(received > 0 && received < size, 'client cancelled before receiving the full file');
+    assert.equal(complete, false, 'server pipeline was interrupted before completing');
+    const next = await fetch(`${url}/demo.mp4`);
+    assert.equal(next.status, 200);
+    assert.deepEqual(await bodyBytes(next), video);
+    assert.equal(await (await fetch(`${url}/health`)).text(), 'ok');
   });
 });
 
