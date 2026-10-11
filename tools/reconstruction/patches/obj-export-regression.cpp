@@ -57,7 +57,7 @@ static void Export(const unsigned atlasCount) {
     // dereferenced it anyway and segfaulted after otherwise valid texturing.
     Check(atlasCount == 2 || mesh.faceTexindices.empty(), "Single atlas must use implicit texture zero");
     const std::string name = "/tmp/kantura-obj-regression/atlas" + std::to_string(atlasCount);
-    Check(mesh.SaveOBJ((name + ".obj").c_str()), "OBJ export failed");
+    Check(mesh.Save((name + ".obj").c_str()), "OBJ export failed");
     const std::string obj = Read(name + ".obj");
     Check(Lines(obj, "v ") == 4, "Export changed vertex count");
     Check(Lines(obj, "vt ") == 6, "Texture coordinates missing");
