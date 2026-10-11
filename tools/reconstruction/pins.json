@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "verifiedAt": "2026-10-11",
+  "architecture": "linux/amd64",
+  "images": {
+    "cpu": "ubuntu:22.04@sha256:5ec03bb3441e8b0bf3b4f9cd4629a1ae763010dc3035bb8da3ae6cf026486401",
+    "cuda": "nvidia/cuda:12.1.1-devel-ubuntu22.04@sha256:7012e535a47883527d402da998384c30b936140c05e2537158c80b8143ee7425"
+  },
+  "sources": {
+    "colmap": { "repository": "https://github.com/colmap/colmap.git", "revision": "682ea9ac4020a143047758739259b3ff04dabe8d", "release": "3.11.1", "license": "BSD-3-Clause" },
+    "openmvs": { "repository": "https://github.com/cdcseacave/openMVS.git", "revision": "ce03889e2055a3d6cbcae9dd5a93b5eeea94b909", "release": "v2.3.0", "license": "AGPL-3.0" },
+    "opensplat": { "repository": "https://github.com/WebODM/OpenSplat.git", "revision": "62fd86fe3b62644b65890557ad9bf397abdc7cfb", "release": "v1.2.2", "license": "AGPL-3.0" },
+    "vcglib": { "repository": "https://github.com/cnr-isti-vclab/vcglib.git", "revision": "6ac9e0c647a63e0e037813a1e92bd050d13efc85", "release": "2023.12", "license": "See retained source headers and COPYING" },
+    "poselib": { "repository": "https://github.com/PoseLib/PoseLib.git", "revision": "8028473d92c9347794a0e3d3541863b5cbb15743", "archiveSha256": "20ff75d14c839dcab3d38fb51503c47088898f394b812472a758ec17720a54c2", "license": "BSD-3-Clause; fetched by pinned COLMAP CMake" }
+  },
+  "libtorch": {
+    "version": "2.2.1",
+    "cpu": "https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.2.1%2Bcpu.zip",
+    "cuda": "https://download.pytorch.org/libtorch/cu121/libtorch-cxx11-abi-shared-with-deps-2.2.1%2Bcu121.zip",
+    "source": "https://github.com/pytorch/pytorch/tree/v2.2.1",
+    "cpuSha256": "13b7f53cdedf83ca6b8fa86a0011889a9c025ce49d8da531fea926f0bdfdca01",
+    "cpuBytes": 182681505,
+    "note": "CPU archive downloaded in full from the official version URL with its official redirect on 2026-10-11 and SHA256 verified. CUDA URL is versioned but its archive hash has not been independently verified; build records the downloaded hash."
+  }
+}

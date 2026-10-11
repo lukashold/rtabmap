@@ -1,0 +1,73 @@
+name: Photo reconstruction
+on:
+  push:
+    branches: ['kantura/main']
+    paths: ['tools/reconstruction/**', 'tools/validation/**', '.github/workflows/reconstruction.yml']
+  pull_request:
+    paths: ['tools/reconstruction/**', 'tools/validation/**', '.github/workflows/reconstruction.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: reconstruction-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  cpu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install image contract dependencies
+        run: python -m pip install -r tools/reconstruction/requirements.txt
+      - name: Test archive and job contracts
+        run: python -m unittest discover -s tools/reconstruction/test -v
+      - uses: docker/setup-buildx-action@v3
+      - name: Build actual CPU reconstruction engines
+        uses: docker/build-push-action@v6
+        with:
+          context: tools/reconstruction
+          file: tools/reconstruction/Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: kantura-reconstruction:ci
+          cache-from: type=gha,scope=kantura-reconstruction-cpu
+          cache-to: type=gha,mode=max,scope=kantura-reconstruction-cpu
+      - name: Generate original synthetic multi-view photos
+        run: python tools/validation/procedural-capture.py --output /tmp/synthetic-photos.zip
+      - name: Start private real worker
+        env:
+          RECONSTRUCTION_TOKEN: ci-synthetic-data-only-token-32-characters
+        run: |
+          docker run -d --name kantura-reconstruction --read-only --cap-drop ALL \
+            --security-opt no-new-privileges --cpus=2 --memory=6g \
+            --mount type=volume,source=kantura-reconstruction-ci,target=/data \
+            --tmpfs /tmp:rw,nosuid,size=1g \
+            -p 127.0.0.1:4180:4180 \
+            -e RECONSTRUCTION_TOKEN -e SPLAT_ITERATIONS=10 -e IMAGE_MAX_SIDE=384 \
+            -e WORKER_THREADS=2 kantura-reconstruction:ci
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4180/health; then exit 0; fi
+            sleep 2
+          done
+          docker logs kantura-reconstruction
+          exit 1
+      - name: Run real photogrammetry and Gaussian-splat processing
+        env:
+          RECONSTRUCTION_TOKEN: ci-synthetic-data-only-token-32-characters
+        run: python tools/validation/reconstruction-smoke.py --archive /tmp/synthetic-photos.zip --output reconstruction-smoke --timeout 1200
+      - name: Worker diagnostics
+        if: always()
+        run: docker logs kantura-reconstruction || true
+      - name: Save real synthetic pipeline artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-reconstruction-results
+          path: reconstruction-smoke
+          if-no-files-found: ignore
+      - name: Remove validation container
+        if: always()
+        run: docker rm -f kantura-reconstruction || true
