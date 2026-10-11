@@ -1,0 +1,62 @@
+{
+  "language": "hi",
+  "duration": 69.093,
+  "narration": "eSpeak NG formant",
+  "voice": {
+    "name": "Hindi",
+    "identifier": "inc\\hi",
+    "language": "hi"
+  },
+  "chapters": [
+    {
+      "id": "start",
+      "start": 0,
+      "end": 8.562,
+      "title": "स्कैन चुनें"
+    },
+    {
+      "id": "capture",
+      "start": 8.562,
+      "end": 17.436,
+      "title": "एक कमरा कैप्चर करें"
+    },
+    {
+      "id": "organize",
+      "start": 17.436,
+      "end": 26.568,
+      "title": "इमारत, मंज़िल, कमरा"
+    },
+    {
+      "id": "inspect",
+      "start": 26.568,
+      "end": 35.126,
+      "title": "कंप्यूटर पर जाँचें"
+    },
+    {
+      "id": "measure",
+      "start": 35.126,
+      "end": 41.793,
+      "title": "फ़ीते के माप से तुलना करें"
+    },
+    {
+      "id": "photos",
+      "start": 41.793,
+      "end": 49.021,
+      "title": "फ़ोटो जोड़ें"
+    },
+    {
+      "id": "share",
+      "start": 49.021,
+      "end": 58.359,
+      "title": "सहेजें और साझा करें"
+    },
+    {
+      "id": "transport",
+      "start": 58.359,
+      "end": 69.093,
+      "title": "परिवहन की जगह का अनुमान"
+    }
+  ],
+  "bytes": 1329624,
+  "synthetic": true
+}

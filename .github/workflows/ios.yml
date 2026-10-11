@@ -107,7 +107,7 @@ jobs:
       - name: Verify offline tutorial bundle
         run: |
           python3 - <<'PY'
-          import json
+          import json, plistlib, subprocess
           from pathlib import Path
           languages = json.loads(Path('app/ios/RTABMapApp/MeasurementGuide.json').read_text())
           folder = Path('build/Build/Products/Release-iphoneos/RTABMapApp.app/videos')
@@ -116,7 +116,10 @@ jobs:
               assert video.stat().st_size > 100_000, video
               with video.open('rb') as stream:
                   assert stream.read(8)[4:8] == b'ftyp', video
-          print('Verified all six bundled offline MP4s.')
+              strings = folder.parent / (language + '.lproj') / 'InfoPlist.strings'
+              words = plistlib.loads(subprocess.check_output(['plutil', '-convert', 'xml1', '-o', '-', str(strings)]))
+              assert words['NSCameraUsageDescription'] and words['NSLocationWhenInUseUsageDescription'], strings
+          print('Verified all fifteen bundled offline MP4s.')
           PY
 
       - name: Package app (unsigned .ipa)

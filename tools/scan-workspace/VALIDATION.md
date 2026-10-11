@@ -1,4 +1,23 @@
-# Development validation — 0.3 preview, 2026-10-11
+# Development validation — 0.4 preview, 2026-10-11
+
+## New 0.4 language coverage
+
+The Windows run passes **85 Node tests**. Fifteen complete UI dictionaries,
+native guides and video scripts share the same supported-language set. Coverage
+checks the nine additional localized measurement/transport reports, regional
+aliases (including legacy `in` to Indonesian), native/browser pack synchronization
+and Arabic RTL document direction. Geometry and numeric inputs retain their axes.
+All fifteen narrated H.264/AAC tutorials were completely decoded with FFmpeg.
+Arabic, Hindi and Bengali text uses HarfBuzz, Unicode bidi ordering and FreeType;
+the complete text sets were checked for missing glyphs and representative video
+frames were inspected. Japanese uses a kana speech reading and Arabic a
+vocalized reading; ordinary written captions remain unchanged.
+
+Xcode now includes fifteen localized camera/GPS usage descriptions and declares
+the supported bundle languages. CI verifies those files and all fifteen MP4s in
+the app. Translations/synthetic voices need native-speaker review, the new layouts
+need live browser/device review, and scan accuracy still needs physical trials.
+The underlying RTAB-Map expert menus retain their upstream English strings.
 
 ## New 0.3 design, language and video checks
 

@@ -1,4 +1,5 @@
 import guide from '../../../app/ios/RTABMapApp/MeasurementGuide.json' with { type: 'json' };
+import { extraLocales } from '../locales/index.js';
 export { guide };
 const keys = ['workspace','open','demo','save','cloud','tutorial','importTitle','importBody','openHint','distance','floor','surface','finish','undo','cancel','orbit','top','fit','texture','geometry','roof','measurements','empty','projectName','units','axis','calibrate','reference','known','apply','exportCsv','exportSvg','local','demoLabel','pickTwo','pickArea','pickReference','navigateHint','loading','ready','saved','error','remove','horizontal','vertical','perimeter','scale','model','configure','connect','disconnect','upload','refresh','cloudHelp','clientIds','googleId','microsoftId','configSave','cloudEmpty','close','invalidPoints','invalidScale','degenerate','notPlanar','duplicatePoint','selfIntersection','invalidProject','noFloor','unsupported','tooLarge','missingAsset','badArchive','multipleModels','namePrompt','replace','changed','progress','calibrated','unverified','download','upZ','upY','meters','centimeters','millimeters','configureHelp','cloudScope','fileHint','summary','next','back','done','noModel','networkError'];
 const values={
@@ -16,7 +17,8 @@ export const dictionaries=Object.fromEntries(Object.entries(values).map(([lang,l
 export function resolveLanguage(value='de') {
   const preferred=typeof value==='string'?value.toLowerCase().replaceAll('_','-'):'de';
   if(preferred.startsWith('zh')) return 'zh-Hans';
-  return dictionaries[preferred.slice(0,2)] ? preferred.slice(0,2) : 'de';
+  const code=preferred.slice(0,2)==='in'?'id':preferred.slice(0,2);
+  return dictionaries[code] ? code : 'de';
 }
 const serverText={
   en:['Self-hosted server','Server key','Projects on your Docker server. Find the key in your .env file. It stays in memory only until the page closes. These actions require a configured server.','Cloud / Server'],
@@ -27,3 +29,4 @@ const serverText={
   'zh-Hans':['自托管服务器','服务器密钥','项目保存在你的 Docker 服务器上。密钥位于 .env 文件中，仅在页面关闭前保留在内存中。未配置服务器时，这些操作不可用。','云盘 / 服务器']
 };
 for(const [lang,values]of Object.entries(serverText))Object.assign(dictionaries[lang],Object.fromEntries(['selfhost','serverKey','serverHelp','storage'].map((key,i)=>[key,values[i]])));
+for(const [language,pack] of Object.entries(extraLocales)) dictionaries[language]=pack.ui;

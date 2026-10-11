@@ -4,7 +4,7 @@ KANTURA is an independent RTAB-Map fork for guided room/object capture and pract
 
 **Maintainer setup:** The fork's default branch is currently `master`. In GitHub repository **Settings → Default branch**, select `kantura/main` so the KANTURA README appears on the repository home page and its issue forms become available. Contributors should target `kantura/main` for KANTURA pull requests regardless of the default branch.
 
-[Deutsch](docs/contributing/de.md) · [Français](docs/contributing/fr.md) · [Español](docs/contributing/es.md) · [Italiano](docs/contributing/it.md) · [简体中文](docs/contributing/zh-Hans.md)
+[Deutsch](docs/contributing/de.md) · [Français](docs/contributing/fr.md) · [Español](docs/contributing/es.md) · [Italiano](docs/contributing/it.md) · [简体中文](docs/contributing/zh-Hans.md) · [Português](docs/contributing/pt.md) · [العربية](docs/contributing/ar.md) · [हिन्दी](docs/contributing/hi.md) · [বাংলা](docs/contributing/bn.md) · [Русский](docs/contributing/ru.md) · [日本語](docs/contributing/ja.md) · [한국어](docs/contributing/ko.md) · [Bahasa Indonesia](docs/contributing/id.md) · [Türkçe](docs/contributing/tr.md)
 
 ## Find a useful task
 
@@ -19,7 +19,8 @@ Be constructive, describe observable behavior and respect other contributors. Us
 Use a complete checkout, Node.js 24 and pnpm 11.25.0. From the repository root:
 
 ```sh
-git switch kantura/main
+git clone --branch kantura/main https://github.com/lukashold/rtabmap.git
+cd rtabmap
 git switch -c your-feature-branch
 cd tools/scan-workspace
 corepack enable
@@ -45,6 +46,11 @@ bash app/ios/Tests/run-measurement-guide-tests.sh
 Passing these checks does not validate ARKit/RoomPlan capture. A useful device report includes the revision, device model, iOS version, capture mode, reproduction steps, expected/actual behavior and whether the sample is synthetic or real. For measurements, record the scan result, physical reference, method and units. Try one room and one gate when relevant; test interruption, save/reopen/export, note photos and Files providers. RoomPlan is an indoor path. Separate rooms are not automatically aligned, and the transport estimate does not perform full scanned-route collision detection.
 
 ## Translate and improve tutorials
+
+Nine additional language packs live in `tools/scan-workspace/locales/<code>.json`.
+Run `pnpm locales:sync` after editing a pack, then test and build. Arabic uses RTL;
+model coordinates and numeric inputs retain their original direction. Review
+translations and synthetic speech with native speakers before a public release.
 
 Check UI wording in `tools/scan-workspace/src/i18n.js` and `experience-i18n.js`, native guide content in `app/ios/RTABMapApp/MeasurementGuide.json`, and video scripts in `tools/scan-workspace/public/videos/scripts.json`. Preserve keys, scene IDs, units, placeholders and the distinction between demonstrated and device-verified behavior. Keep captions aligned with narration. Explain your locale and proposed wording in a translation issue or PR; include a screenshot for clipped text. The video's English narration does not mean every native screen has an English KANTURA rewrite.
 

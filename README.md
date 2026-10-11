@@ -5,8 +5,9 @@
 An independent RTAB-Map fork focused on measuring rooms and outdoor objects.
 Kantura adds guided iPhone capture, indoor RoomPlan import, separate rooms grouped
 by building/floor, and a browser workspace for dimensions, areas and photo notes.
-The KANTURA dashboard, viewer and tutorials support German, English, French,
-Spanish, Italian and Simplified Chinese.
+The KANTURA guided dashboard, room workflow, viewer, reports and tutorials support
+15 languages: German, English, French, Spanish, Italian, Simplified Chinese,
+Portuguese, Arabic, Hindi, Bengali, Russian, Japanese, Korean, Indonesian and Turkish.
 
 - [iPhone workflow and installation](app/ios/MEASUREMENT-WORKFLOW.md)
 - [Desktop measurement workspace](tools/scan-workspace/README.md)

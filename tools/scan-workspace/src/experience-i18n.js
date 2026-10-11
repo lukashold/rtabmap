@@ -1,4 +1,5 @@
 // Additive labels for room imports, photo notes, reports and reference checks.
+import { extraLocales } from '../locales/index.js';
 // Keep this module independent of the base dictionary so consumers can merge it.
 export const experienceDictionaries = {
   en: {
@@ -290,9 +291,10 @@ for (const [language, values] of Object.entries(planningValues)) {
 const clearanceLabels={de:'Verbleibender Abstand',fr:'Marge restante',es:'Espacio restante',it:'Spazio rimanente','zh-Hans':'剩余空间',en:'Remaining clearance'};
 for(const [lang,label] of Object.entries(clearanceLabels))experienceDictionaries[lang].remainingClearance=label;
 export const experienceKeys = Object.freeze(Object.keys(experienceDictionaries.de));
+for(const [language,pack] of Object.entries(extraLocales)) experienceDictionaries[language]=pack.experience;
 
 export function experienceText(language, key) {
   const value = typeof language === 'string' ? language.toLowerCase().replaceAll('_', '-') : 'de';
-  const code = value.startsWith('zh') ? 'zh-Hans' : value.slice(0, 2);
+  const code = value.startsWith('zh') ? 'zh-Hans' : value.slice(0, 2)==='in' ? 'id' : value.slice(0, 2);
   return experienceDictionaries[code]?.[key] ?? experienceDictionaries.de[key] ?? key;
 }

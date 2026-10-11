@@ -231,8 +231,14 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
             field.tintColor = KanturaDesign.tint
             field.layer.cornerRadius = 12
             field.layer.cornerCurve = .continuous
-            field.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 12, height: 48))
-            field.leftViewMode = .always
+            let paddingView = UIView(frame: CGRect(x: 0, y: 0, width: 12, height: 48))
+            if MeasurementGuide.isRightToLeft {
+                field.rightView = paddingView
+                field.rightViewMode = .always
+            } else {
+                field.leftView = paddingView
+                field.leftViewMode = .always
+            }
             field.rightView = UIView(frame: CGRect(x: 0, y: 0, width: 12, height: 48))
             field.rightViewMode = .always
             field.placeholder = text(key)

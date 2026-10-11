@@ -1,0 +1,62 @@
+{
+  "language": "bn",
+  "duration": 72.029,
+  "narration": "eSpeak NG formant",
+  "voice": {
+    "name": "Bengali",
+    "identifier": "inc\\bn",
+    "language": "bn"
+  },
+  "chapters": [
+    {
+      "id": "start",
+      "start": 0,
+      "end": 8.779,
+      "title": "স্ক্যান বাছুন"
+    },
+    {
+      "id": "capture",
+      "start": 8.779,
+      "end": 17.656,
+      "title": "একটি ঘর ক্যাপচার করুন"
+    },
+    {
+      "id": "organize",
+      "start": 17.656,
+      "end": 26.947,
+      "title": "ভবন, তলা, ঘর"
+    },
+    {
+      "id": "inspect",
+      "start": 26.947,
+      "end": 35.761,
+      "title": "কম্পিউটারে যাচাই করুন"
+    },
+    {
+      "id": "measure",
+      "start": 35.761,
+      "end": 42.827,
+      "title": "ফিতার মাপ তুলনা করুন"
+    },
+    {
+      "id": "photos",
+      "start": 42.827,
+      "end": 49.835,
+      "title": "ছবি যোগ করুন"
+    },
+    {
+      "id": "share",
+      "start": 49.835,
+      "end": 60.662,
+      "title": "সংরক্ষণ ও শেয়ার করুন"
+    },
+    {
+      "id": "transport",
+      "start": 60.662,
+      "end": 72.029,
+      "title": "পরিবহনের জায়গা অনুমান করুন"
+    }
+  ],
+  "bytes": 1400464,
+  "synthetic": true
+}

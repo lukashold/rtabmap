@@ -4,6 +4,24 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>de</string>
+		<string>en</string>
+		<string>fr</string>
+		<string>es</string>
+		<string>it</string>
+		<string>zh-Hans</string>
+		<string>pt</string>
+		<string>ar</string>
+		<string>hi</string>
+		<string>bn</string>
+		<string>ru</string>
+		<string>ja</string>
+		<string>ko</string>
+		<string>id</string>
+		<string>tr</string>
+	</array>
 	<key>CFBundleDisplayName</key>
 	<string>Kantura</string>
 	<key>CFBundleExecutable</key>

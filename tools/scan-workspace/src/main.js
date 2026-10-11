@@ -11,8 +11,10 @@ import { assessTransport } from './transport.js';
 import { applianceCatalog } from './appliance-catalog.js';
 import { designDictionaries } from './design-i18n.js';
 import videos from '../public/videos/scripts.json' with { type: 'json' };
+import { supportedLanguages, directionFor } from '../locales/index.js';
 
 const $=id=>document.getElementById(id);
+$('language').replaceChildren();for(const code of supportedLanguages){const option=document.createElement('option');option.value=code;option.textContent=guide[code].name;$('language').append(option);}
 const storage={get(key){try{return localStorage.getItem(key);}catch{return null;}},set(key,value){try{localStorage.setItem(key,value);}catch{}}};
 let language=resolveLanguage(storage.get('rtab-language')||navigator.language),bundle,measurements=[],notes=[],checks=[],pending=[],scale=1,upAxis='z',mode='orbit',dirty=false,calibrated=false,busy=false,guideStep=0;
 let building={name:'',rooms:[],activeRoom:null},addingRoom=false,selectedMeasurement=null,editingNote,notePoint,removePhoto=false,photoPreviewURL,transportResult,transportRecord;
@@ -60,7 +62,7 @@ function refresh(){
   viewer?.drawMeasurements(measurements.filter(m=>m.source!=='roomplan'||m.id===selectedMeasurement),pending,scale,format,notes.filter(n=>!n.id.startsWith('roomplan-')||n.id===editingNote),openNote);renderNotes();renderChecks();refreshRooms();refreshRouteSources();refreshCloudButtons();
 }
 function translate(){
-  document.documentElement.lang=language;$('language').value=language;
+  document.documentElement.lang=language;document.documentElement.dir=directionFor(language);$('language').value=language;
   document.querySelector('.brand').setAttribute('aria-label',`Kantura · ${t('home')}`);
   document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=t(el.dataset.i18n));
   document.querySelectorAll('button').forEach(el=>{const label=el.querySelector('[data-i18n]');if(label)el.setAttribute('aria-label',t(label.dataset.i18n));});

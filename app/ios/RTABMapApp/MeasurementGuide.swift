@@ -42,11 +42,13 @@ struct MeasurementGuide: Decodable {
         all[selectedLanguage]?.roomPlan?[key] ?? all["de"]?.roomPlan?[key] ?? key
     }
 
-    static let languages = ["de", "fr", "es", "it", "zh-Hans", "en"]
+    static let languages = ["de", "en", "fr", "es", "it", "zh-Hans", "pt", "ar", "hi", "bn", "ru", "ja", "ko", "id", "tr"]
+    static var isRightToLeft: Bool { selectedLanguage == "ar" }
     static let all = load()
     static func languageCode(_ preferred: String) -> String {
         let code = preferred.lowercased().replacingOccurrences(of: "_", with: "-")
         if code.hasPrefix("zh") { return "zh-Hans" }
+        if code == "in" || code.hasPrefix("in-") { return "id" }
         return languages.first(where: { code == $0 || code.hasPrefix($0 + "-") }) ?? "de"
     }
     static var selectedLanguage: String {

@@ -1,0 +1,25 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:09.888
+Esta é uma demonstração animada, não uma digitalização real. Escolha RoomPlan para interiores ou digitalização LiDAR para texturas e portões.
+
+00:00:09.888 --> 00:00:20.541
+Caminhe lentamente por uma divisão. Mostre o chão, as paredes, as portas e as janelas. Siga as indicações da câmara durante a captura com RoomPlan.
+
+00:00:20.541 --> 00:00:31.228
+Conclua a captura e dê nome ao edifício, ao piso e à divisão. Guarde os ficheiros. Cada divisão mantém o seu próprio sistema de coordenadas separado.
+
+00:00:31.228 --> 00:00:41.976
+Abra o ficheiro da divisão Kantura no computador e adicione mais divisões. Inspecione as superfícies, as falhas visíveis e as dimensões importadas.
+
+00:00:41.976 --> 00:00:51.429
+Selecione uma distância e meça-a também com fita métrica. Introduza esse comprimento de referência; o Kantura mostra a diferença.
+
+00:00:51.429 --> 00:01:00.415
+Coloque uma nota no modelo. Adicione uma descrição e uma fotografia para explicar o local. Uma fotografia não é outra medição.
+
+00:01:00.415 --> 00:01:09.965
+Descarregue o relatório e imprima-o para PDF. Guarde o projeto localmente, no armazenamento na nuvem configurado ou no seu servidor Docker.
+
+00:01:09.965 --> 00:01:23.223
+O transporte verifica volumes simplificados. Degraus individuais, corrimãos e pessoas que transportam o objeto não são calculados. Verifique o percurso real e as instruções do fabricante.

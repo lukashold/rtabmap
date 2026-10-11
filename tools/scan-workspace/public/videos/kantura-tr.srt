@@ -1,0 +1,31 @@
+1
+00:00:00,000 --> 00:00:10,928
+Bu bir animasyon gösterimidir, gerçek tarama değildir. İç mekânlar için RoomPlan'ı, dokular ve bahçe kapıları için LiDAR taramasını seçin.
+
+2
+00:00:10,928 --> 00:00:22,434
+Tek bir odada yavaşça dolaşın. Zemini, duvarları, kapıları ve pencereleri gösterin. RoomPlan taraması sırasında kamera yönlendirmelerini izleyin.
+
+3
+00:00:22,434 --> 00:00:31,538
+Taramayı bitirip bina, kat ve odayı adlandırın. Dosyaları kaydedin. Her oda kendi ayrı koordinat sistemini korur.
+
+4
+00:00:31,538 --> 00:00:41,988
+Kantura oda dosyasını bilgisayarınızda açın ve başka odalar ekleyin. Yüzeyleri, görünür boşlukları ve içe aktarılan boyutları inceleyin.
+
+5
+00:00:41,988 --> 00:00:49,871
+Bir mesafe seçin ve şerit metreyle de ölçün. Bu referans uzunluğunu girin; Kantura farkı gösterir.
+
+6
+00:00:49,871 --> 00:00:58,715
+Modele bir not yerleştirin. Konumu açıklamak için açıklama ve fotoğraf ekleyin. Fotoğraf ek bir ölçüm değildir.
+
+7
+00:00:58,715 --> 00:01:08,632
+Raporu indirip PDF'ye yazdırın. Projeyi yerel olarak, yapılandırılmış bulut depolamasına veya Docker sunucunuza kaydedin.
+
+8
+00:01:08,632 --> 00:01:22,390
+Taşıma kontrolü basitleştirilmiş sınır hacimlerini inceler. Tek tek basamaklar, korkuluklar ve taşıyan kişiler hesaplanmaz. Gerçek güzergâhı ve üretici talimatlarını kontrol edin.

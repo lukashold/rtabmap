@@ -4,7 +4,7 @@ python render-videos.py --languages en fr es it zh-Hans --audio-dir /path/to/nar
 Optional speech sends only the public narration text to Microsoft's Edge TTS.
 Generated MP4, VTT and SRT files are self-hosted assets; playback needs no TTS.
 """
-import argparse, asyncio, hashlib, json, math, subprocess, wave
+import argparse, asyncio, hashlib, json, math, subprocess, wave, importlib.util, sys
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 import imageio_ffmpeg
@@ -12,10 +12,26 @@ import imageio_ffmpeg
 ROOT=Path(__file__).resolve().parent
 OUT=ROOT/'public/videos'
 CACHE=ROOT/'.video-cache'
+_spec=importlib.util.spec_from_file_location('kantura_shaped_text',ROOT/'shaped-text.py')
+_shaped=importlib.util.module_from_spec(_spec);sys.modules[_spec.name]=_shaped;_spec.loader.exec_module(_shaped)
+Draw=_shaped.Draw;ShapedFont=_shaped.ShapedFont
 W,H,FPS=1280,720,24
 INK='#251a40'; MINT='#70edc5'; PAPER='#faf9f6'; MUTED='#746980'
 VOICES={'de':'de-DE-KatjaNeural','en':'en-US-JennyNeural','fr':'fr-FR-DeniseNeural','es':'es-ES-ElviraNeural','it':'it-IT-ElsaNeural','zh-Hans':'zh-CN-XiaoxiaoNeural'}
 LABELS={'de':['Beispiel','Haus','Etage','Raum','Referenz','Notiz'], 'en':['Example','Building','Floor','Room','Reference','Note'], 'fr':['Exemple','Bâtiment','Étage','Pièce','Référence','Note'], 'es':['Ejemplo','Edificio','Planta','Habitación','Referencia','Nota'], 'it':['Esempio','Edificio','Piano','Stanza','Riferimento','Nota'], 'zh-Hans':['示例','建筑','楼层','房间','参考尺寸','备注']}
+
+LABELS.update({
+'pt':['Exemplo','Edifício','Piso','Divisão','Referência','Nota'],
+'ar':['مثال','مبنى','طابق','غرفة','مرجع','ملاحظة'],
+'hi':['उदाहरण','भवन','मंज़िल','कमरा','संदर्भ','टिप्पणी'],
+'bn':['উদাহরণ','ভবন','তলা','ঘর','রেফারেন্স','নোট'],
+'ru':['Пример','Здание','Этаж','Комната','Эталон','Заметка'],
+'ja':['例','建物','階','部屋','基準','メモ'],
+'ko':['예시','건물','층','방','기준','메모'],
+'id':['Contoh','Gedung','Lantai','Ruangan','Acuan','Catatan'],
+'tr':['Örnek','Bina','Kat','Oda','Referans','Not']})
+CJK={'zh-Hans','ja','ko'}
+COMPLEX={'ar','hi','bn'}
 
 def font_path(chinese=False):
     choices=['C:/Windows/Fonts/msyh.ttc','/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc','/System/Library/Fonts/PingFang.ttc'] if chinese else ['C:/Windows/Fonts/segoeui.ttf','/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf','/System/Library/Fonts/Supplemental/Arial.ttf']
@@ -59,25 +75,29 @@ def room(draw,cx,cy,s=1,progress=1):
     return floor
 
 def base_frame(scene,index,language,fonts):
-    image=Image.new('RGB',(W,H),PAPER);draw=ImageDraw.Draw(image)
+    image=Image.new('RGB',(W,H),PAPER);draw=Draw(image)
     rounded(draw,(58,34,103,79),INK,12);logo(draw,65,39,30)
     draw.text((119,36),'Kantura',font=fonts['brand'],fill=INK)
     draw.text((119,67),'SCAN · MEASURE',font=fonts['small'],fill=MUTED)
     rounded(draw,(970,39,1222,79),'#e6f4ed',18)
     center_text(draw,(1096,47),f'{LABELS[language][0]} · {language.upper()}',fonts['small'],'#285f4b')
     draw.text((62,110),f'{index+1:02d} / 08',font=fonts['small'],fill=MUTED)
-    title_lines=wrap(draw,scene['title'],fonts['title'],1130,language=='zh-Hans')
-    for j,line in enumerate(title_lines[:2]):draw.text((62,139+j*48),line,font=fonts['title'],fill=INK)
+    title_lines=wrap(draw,scene['title'],fonts['title'],1130,language in CJK)
+    for j,line in enumerate(title_lines[:2]):draw.text((W-62-draw.textlength(line,font=fonts['title']) if language=='ar' else 62,139+j*48),line,font=fonts['title'],fill=INK)
     rounded(draw,(42,544,1238,673),INK,24)
-    lines=wrap(draw,scene['caption'],fonts['caption'],1098,language=='zh-Hans')
-    if len(lines)>3:raise RuntimeError(f'Caption too long: {language}/{scene["id"]}')
-    top=562+(3-len(lines))*15
-    for j,line in enumerate(lines):draw.text((86,top+j*33),line,font=fonts['caption'],fill='#fffaf2')
+    lines=wrap(draw,scene['caption'],fonts['caption'],1098,language in CJK)
+    caption_font=fonts['caption'];advance=33
+    if len(lines)>3:
+        caption_font=fonts['captionSmall'];advance=27
+        lines=wrap(draw,scene['caption'],caption_font,1098,language in CJK)
+    if len(lines)>4:raise RuntimeError(f'Caption too long: {language}/{scene["id"]}')
+    top=553+(4-len(lines))*13
+    for j,line in enumerate(lines):draw.text((W-86-draw.textlength(line,font=caption_font) if language=='ar' else 86,top+j*advance),line,font=caption_font,fill='#fffaf2')
     for i in range(8):rounded(draw,(62+i*147,691,194+i*147,696),MINT if i<=index else '#e0d9e5',2)
     return image
 
 def animate(image,scene_id,t,language,fonts):
-    draw=ImageDraw.Draw(image);ease=(1-math.cos(min(1,t)*math.pi))/2
+    draw=Draw(image);ease=(1-math.cos(min(1,t)*math.pi))/2
     if scene_id in ['start','capture']:
         rounded(draw,(192,209,391,524),INK,32);rounded(draw,(205,233,378,505),'#eee8f5',20)
         room(draw,293,418,.4, min(1,t*2))
@@ -168,12 +188,17 @@ async def render_language(language,script,args,ffmpeg):
         for path in paths:
             pcm=audio_pcm(path,ffmpeg);audio.append(pcm+b'\0'*int(.5*24000*2));durations.append(len(pcm)/48000+.5)
     else:
-        durations=[max(6,len(s['narration'])/5 if language=='zh-Hans' else len(s['narration'].split())/2.5) for s in scenes]
+        durations=[max(6,len(s['narration'])/5 if language in CJK else len(s['narration'].split())/2.5) for s in scenes]
     wav=cache/'narration.wav'
     if audio:
         with wave.open(str(wav),'wb') as f:f.setnchannels(1);f.setsampwidth(2);f.setframerate(24000);f.writeframes(b''.join(audio))
-    fontfile=args.font_cjk or font_path(True) if language=='zh-Hans' else args.font_latin or font_path()
-    fonts={name:ImageFont.truetype(fontfile,size) for name,size in [('brand',29),('title',42),('caption',25),('small',19),('medium',30)]}
+    if language in {'hi','bn'}:
+        fontfile=args.font_indic or next((p for p in ['C:/Windows/Fonts/Nirmala.ttf','/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf' if language=='hi' else '/usr/share/fonts/truetype/noto/NotoSansBengali-Regular.ttf'] if Path(p).is_file()),None)
+        if not fontfile:raise RuntimeError('Install an Indic font or pass --font-indic.')
+    elif language=='ko':fontfile=args.font_cjk or ('C:/Windows/Fonts/malgun.ttf' if Path('C:/Windows/Fonts/malgun.ttf').is_file() else font_path(True))
+    else:fontfile=args.font_cjk or font_path(True) if language in CJK else args.font_latin or font_path()
+    factory=ShapedFont if language in COMPLEX else ImageFont.truetype
+    fonts={name:factory(fontfile,size) for name,size in [('brand',29),('title',42),('caption',25),('captionSmall',21),('small',19),('medium',30)]}
     captions=[];srt=[];vtt=['WEBVTT\n'];elapsed=0
     for i,(scene,duration) in enumerate(zip(scenes,durations)):
         end=elapsed+duration;captions.append({'id':scene['id'],'start':round(elapsed,3),'end':round(end,3),'title':scene['title']})
@@ -204,7 +229,7 @@ async def render_language(language,script,args,ffmpeg):
     return result
 
 async def main():
-    parser=argparse.ArgumentParser();parser.add_argument('--languages',nargs='+',default=list(VOICES));parser.add_argument('--narration',choices=['none','edge'],default='none');parser.add_argument('--audio-dir',help='Folder with <language>/<scene>.wav and manifest.json');parser.add_argument('--font-latin');parser.add_argument('--font-cjk');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('--languages',nargs='+',default=list(LABELS));parser.add_argument('--narration',choices=['none','edge'],default='none');parser.add_argument('--audio-dir',help='Folder with <language>/<scene>.wav and manifest.json');parser.add_argument('--font-latin');parser.add_argument('--font-cjk');parser.add_argument('--font-indic');args=parser.parse_args()
     scripts=json.loads((OUT/'scripts.json').read_text(encoding='utf-8'));ffmpeg=imageio_ffmpeg.get_ffmpeg_exe()
     global SPEECH_LIMIT;SPEECH_LIMIT=asyncio.Semaphore(2)
     results=[]

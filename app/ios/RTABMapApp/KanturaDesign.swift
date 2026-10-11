@@ -30,6 +30,9 @@ enum KanturaDesign {
     }
 
     static func navigation(_ controller: UIViewController) {
+        let direction: UISemanticContentAttribute = MeasurementGuide.isRightToLeft ? .forceRightToLeft : .forceLeftToRight
+        controller.view.semanticContentAttribute = direction
+        controller.navigationController?.navigationBar.semanticContentAttribute = direction
         let appearance = UINavigationBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = background

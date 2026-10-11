@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createAppServer } from '../server.mjs';
 import { guide } from '../src/i18n.js';
+import { extraLocales, supportedLanguages } from '../locales/index.js';
 
 // Transport fixtures only: byte ranges must work without decoding or checking in
 // a media binary. Distinct bytes make off-by-one and suffix errors observable.
@@ -107,11 +108,12 @@ test('WebVTT captions retain UTF-8 text and the browser subtitle MIME type', asy
   });
 });
 
-test('video scripts cover all six guide languages with the complete narrated workflow', async () => {
+test('video scripts cover all fifteen guide languages with the complete narrated workflow', async () => {
   const scripts = JSON.parse(await readFile(new URL('../public/videos/scripts.json', import.meta.url), 'utf8'));
   assert.equal(scripts.version, 1);
   assert.deepEqual(Object.keys(scripts.languages).sort(), Object.keys(guide).sort());
-  assert.equal(Object.keys(scripts.languages).length, 6);
+  assert.deepEqual(Object.keys(scripts.languages).sort(), [...supportedLanguages].sort());
+  assert.equal(Object.keys(scripts.languages).length, 15);
   const sceneIds = ['start', 'capture', 'organize', 'inspect', 'measure', 'photos', 'share', 'transport'];
   const requiredText = (value, label) => {
     assert.equal(typeof value, 'string', label);
@@ -119,6 +121,7 @@ test('video scripts cover all six guide languages with the complete narrated wor
     assert.doesNotMatch(value, /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/, label);
   };
   for (const [language, script] of Object.entries(scripts.languages)) {
+    if (extraLocales[language]) assert.deepEqual(script, extraLocales[language].video, `${language}: video script matches its locale pack`);
     for (const key of ['title', 'description']) requiredText(script[key], `${language}/${key}`);
     assert.deepEqual(script.scenes.map(scene => scene.id), sceneIds, `${language}: chapter order`);
     for (const scene of script.scenes) {

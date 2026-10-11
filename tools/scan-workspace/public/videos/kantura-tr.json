@@ -1,0 +1,62 @@
+{
+  "language": "tr",
+  "duration": 82.39,
+  "narration": "eSpeak NG formant",
+  "voice": {
+    "name": "Turkish",
+    "identifier": "trk\\tr",
+    "language": "tr"
+  },
+  "chapters": [
+    {
+      "id": "start",
+      "start": 0,
+      "end": 10.928,
+      "title": "Tarama seçin"
+    },
+    {
+      "id": "capture",
+      "start": 10.928,
+      "end": 22.434,
+      "title": "Bir oda tarayın"
+    },
+    {
+      "id": "organize",
+      "start": 22.434,
+      "end": 31.538,
+      "title": "Bina, kat, oda"
+    },
+    {
+      "id": "inspect",
+      "start": 31.538,
+      "end": 41.988,
+      "title": "Bilgisayarınızda inceleyin"
+    },
+    {
+      "id": "measure",
+      "start": 41.988,
+      "end": 49.871,
+      "title": "Şerit metre ölçümüyle karşılaştırın"
+    },
+    {
+      "id": "photos",
+      "start": 49.871,
+      "end": 58.715,
+      "title": "Fotoğraf ekleyin"
+    },
+    {
+      "id": "share",
+      "start": 58.715,
+      "end": 68.632,
+      "title": "Kaydedin ve paylaşın"
+    },
+    {
+      "id": "transport",
+      "start": 68.632,
+      "end": 82.39,
+      "title": "Taşıma alanını tahmin edin"
+    }
+  ],
+  "bytes": 1587580,
+  "synthetic": true
+}

@@ -324,6 +324,492 @@
           "narration": "搬运只检查简化包围体，不计算台阶、栏杆和人员。请核对实地路线及厂商说明。"
         }
       ]
+    },
+    "pt": {
+      "title": "Primeiros passos com KANTURA",
+      "description": "Demonstração animada e sintética da prévia de desenvolvimento do KANTURA. Não é uma captura real nem prova da precisão das medições.",
+      "scenes": [
+        {
+          "id": "start",
+          "title": "Escolher uma digitalização",
+          "caption": "Esta é uma demonstração animada, não uma digitalização real. Escolha RoomPlan para interiores ou digitalização LiDAR para texturas e portões.",
+          "narration": "Esta é uma demonstração animada, não uma digitalização real. Escolha RoomPlan para interiores ou digitalização LiDAR para texturas e portões."
+        },
+        {
+          "id": "capture",
+          "title": "Captar uma divisão",
+          "caption": "Caminhe lentamente por uma divisão. Mostre o chão, as paredes, as portas e as janelas. Siga as indicações da câmara durante a captura com RoomPlan.",
+          "narration": "Caminhe lentamente por uma divisão. Mostre o chão, as paredes, as portas e as janelas. Siga as indicações da câmara durante a captura com RoomPlan."
+        },
+        {
+          "id": "organize",
+          "title": "Edifício, piso, divisão",
+          "caption": "Conclua a captura e dê nome ao edifício, ao piso e à divisão. Guarde os ficheiros. Cada divisão mantém o seu próprio sistema de coordenadas separado.",
+          "narration": "Conclua a captura e dê nome ao edifício, ao piso e à divisão. Guarde os ficheiros. Cada divisão mantém o seu próprio sistema de coordenadas separado."
+        },
+        {
+          "id": "inspect",
+          "title": "Rever no computador",
+          "caption": "Abra o ficheiro da divisão Kantura no computador e adicione mais divisões. Inspecione as superfícies, as falhas visíveis e as dimensões importadas.",
+          "narration": "Abra o ficheiro da divisão Kantura no computador e adicione mais divisões. Inspecione as superfícies, as falhas visíveis e as dimensões importadas."
+        },
+        {
+          "id": "measure",
+          "title": "Comparar com a fita métrica",
+          "caption": "Selecione uma distância e meça-a também com fita métrica. Introduza esse comprimento de referência; o Kantura mostra a diferença.",
+          "narration": "Selecione uma distância e meça-a também com fita métrica. Introduza esse comprimento de referência; o Kantura mostra a diferença."
+        },
+        {
+          "id": "photos",
+          "title": "Adicionar uma fotografia",
+          "caption": "Coloque uma nota no modelo. Adicione uma descrição e uma fotografia para explicar o local. Uma fotografia não é outra medição.",
+          "narration": "Coloque uma nota no modelo. Adicione uma descrição e uma fotografia para explicar o local. Uma fotografia não é outra medição."
+        },
+        {
+          "id": "share",
+          "title": "Guardar e partilhar",
+          "caption": "Descarregue o relatório e imprima-o para PDF. Guarde o projeto localmente, no armazenamento na nuvem configurado ou no seu servidor Docker.",
+          "narration": "Descarregue o relatório e imprima-o para PDF. Guarde o projeto localmente, no armazenamento na nuvem configurado ou no seu servidor Docker."
+        },
+        {
+          "id": "transport",
+          "title": "Estimar espaço para transporte",
+          "caption": "O transporte verifica volumes simplificados. Degraus individuais, corrimãos e pessoas que transportam o objeto não são calculados. Verifique o percurso real e as instruções do fabricante.",
+          "narration": "O transporte verifica volumes simplificados. Degraus individuais, corrimãos e pessoas que transportam o objeto não são calculados. Verifique o percurso real e as instruções do fabricante."
+        }
+      ]
+    },
+    "ar": {
+      "title": "البداية مع KANTURA",
+      "description": "عرض اصطناعي متحرك للنسخة التجريبية قيد التطوير من KANTURA. ليس التقاطًا فعليًا ولا دليلًا على دقة القياس.",
+      "scenes": [
+        {
+          "id": "start",
+          "title": "اختيار المسح",
+          "caption": "هذا عرض متحرك، وليس مسحًا فعليًا. اختر RoomPlan للمساحات الداخلية، أو مسح LiDAR للأنسجة والبوابات.",
+          "narration": "هذا عرض متحرك، وليس مسحًا فعليًا. اختر RoomPlan للمساحات الداخلية، أو مسح LiDAR للأنسجة والبوابات."
+        },
+        {
+          "id": "capture",
+          "title": "التقاط غرفة واحدة",
+          "caption": "امشِ ببطء في غرفة واحدة. أظهر الأرضية والجدران والأبواب والنوافذ. اتبع إرشادات الكاميرا أثناء الالتقاط باستخدام RoomPlan.",
+          "narration": "امشِ ببطء في غرفة واحدة. أظهر الأرضية والجدران والأبواب والنوافذ. اتبع إرشادات الكاميرا أثناء الالتقاط باستخدام RoomPlan."
+        },
+        {
+          "id": "organize",
+          "title": "المبنى والطابق والغرفة",
+          "caption": "أنه الالتقاط وسمِّ المبنى والطابق والغرفة. احفظ الملفات. تحتفظ كل غرفة بنظام إحداثيات مستقل.",
+          "narration": "أنه الالتقاط وسمِّ المبنى والطابق والغرفة. احفظ الملفات. تحتفظ كل غرفة بنظام إحداثيات مستقل."
+        },
+        {
+          "id": "inspect",
+          "title": "المراجعة على الحاسوب",
+          "caption": "افتح ملف غرفة Kantura على الحاسوب وأضف غرفًا أخرى. افحص الأسطح والفراغات الظاهرة والأبعاد المستوردة.",
+          "narration": "افتح ملف غرفة Kantura على الحاسوب وأضف غرفًا أخرى. افحص الأسطح والفراغات الظاهرة والأبعاد المستوردة."
+        },
+        {
+          "id": "measure",
+          "title": "المقارنة بقياس الشريط",
+          "caption": "اختر مسافة وقِسها بشريط أيضًا. أدخل هذا الطول المرجعي؛ يعرض Kantura الفرق.",
+          "narration": "اختر مسافة وقِسها بشريط أيضًا. أدخل هذا الطول المرجعي؛ يعرض Kantura الفرق."
+        },
+        {
+          "id": "photos",
+          "title": "إضافة صورة",
+          "caption": "ضع ملاحظة على النموذج. أضف وصفًا وصورة لشرح الموضع. الصورة ليست قياسًا آخر.",
+          "narration": "ضع ملاحظة على النموذج. أضف وصفًا وصورة لشرح الموضع. الصورة ليست قياسًا آخر."
+        },
+        {
+          "id": "share",
+          "title": "الحفظ والمشاركة",
+          "caption": "نزّل التقرير واطبعه بصيغة PDF. احفظ المشروع محليًا أو في تخزين سحابي مُعدّ أو على خادم Docker الخاص بك.",
+          "narration": "نزّل التقرير واطبعه بصيغة PDF. احفظ المشروع محليًا أو في تخزين سحابي مُعدّ أو على خادم Docker الخاص بك."
+        },
+        {
+          "id": "transport",
+          "title": "تقدير مساحة النقل",
+          "caption": "يفحص النقل أحيازًا مبسطة. لا تُحتسب الدرجات المنفردة والدرابزين والأشخاص الحاملون. افحص المسار الفعلي وتعليمات المصنّع.",
+          "narration": "يفحص النقل أحيازًا مبسطة. لا تُحتسب الدرجات المنفردة والدرابزين والأشخاص الحاملون. افحص المسار الفعلي وتعليمات المصنّع."
+        }
+      ]
+    },
+    "hi": {
+      "title": "KANTURA की शुरुआत",
+      "description": "KANTURA के विकास पूर्वावलोकन का एनिमेटेड, कृत्रिम प्रदर्शन। यह असली कैप्चर या माप की सटीकता का प्रमाण नहीं है।",
+      "scenes": [
+        {
+          "id": "start",
+          "title": "स्कैन चुनें",
+          "caption": "यह एनिमेटेड डेमो है, असली स्कैन नहीं। अंदर के कमरों के लिए RoomPlan और टेक्सचर तथा गेट के लिए LiDAR स्कैन चुनें।",
+          "narration": "यह एनिमेटेड डेमो है, असली स्कैन नहीं। अंदर के कमरों के लिए RoomPlan और टेक्सचर तथा गेट के लिए LiDAR स्कैन चुनें।"
+        },
+        {
+          "id": "capture",
+          "title": "एक कमरा कैप्चर करें",
+          "caption": "एक कमरे में धीरे चलें। फ़र्श, दीवारें, दरवाज़े और खिड़कियाँ दिखाएँ। RoomPlan कैप्चर के दौरान कैमरे के निर्देश मानें।",
+          "narration": "एक कमरे में धीरे चलें। फ़र्श, दीवारें, दरवाज़े और खिड़कियाँ दिखाएँ। RoomPlan कैप्चर के दौरान कैमरे के निर्देश मानें।"
+        },
+        {
+          "id": "organize",
+          "title": "इमारत, मंज़िल, कमरा",
+          "caption": "कैप्चर पूरा करके इमारत, मंज़िल और कमरे को नाम दें। फ़ाइलें सहेजें। हर कमरे की अपनी अलग निर्देशांक प्रणाली रहती है।",
+          "narration": "कैप्चर पूरा करके इमारत, मंज़िल और कमरे को नाम दें। फ़ाइलें सहेजें। हर कमरे की अपनी अलग निर्देशांक प्रणाली रहती है।"
+        },
+        {
+          "id": "inspect",
+          "title": "कंप्यूटर पर जाँचें",
+          "caption": "Kantura कमरे की फ़ाइल कंप्यूटर पर खोलें और और कमरे जोड़ें। सतहें, दिखते खाली हिस्से और आयात किए माप जाँचें।",
+          "narration": "Kantura कमरे की फ़ाइल कंप्यूटर पर खोलें और और कमरे जोड़ें। सतहें, दिखते खाली हिस्से और आयात किए माप जाँचें।"
+        },
+        {
+          "id": "measure",
+          "title": "फ़ीते के माप से तुलना करें",
+          "caption": "दूरी चुनें और फ़ीते से भी मापें। वह संदर्भ लंबाई दर्ज करें; Kantura अंतर दिखाएगा।",
+          "narration": "दूरी चुनें और फ़ीते से भी मापें। वह संदर्भ लंबाई दर्ज करें; Kantura अंतर दिखाएगा।"
+        },
+        {
+          "id": "photos",
+          "title": "फ़ोटो जोड़ें",
+          "caption": "मॉडल पर नोट रखें। जगह समझाने के लिए विवरण और फ़ोटो जोड़ें। फ़ोटो कोई अतिरिक्त माप नहीं है।",
+          "narration": "मॉडल पर नोट रखें। जगह समझाने के लिए विवरण और फ़ोटो जोड़ें। फ़ोटो कोई अतिरिक्त माप नहीं है।"
+        },
+        {
+          "id": "share",
+          "title": "सहेजें और साझा करें",
+          "caption": "रिपोर्ट डाउनलोड करके PDF में प्रिंट करें। प्रोजेक्ट स्थानीय रूप से, कॉन्फ़िगर किए क्लाउड स्टोरेज या अपने Docker सर्वर पर सहेजें।",
+          "narration": "रिपोर्ट डाउनलोड करके PDF में प्रिंट करें। प्रोजेक्ट स्थानीय रूप से, कॉन्फ़िगर किए क्लाउड स्टोरेज या अपने Docker सर्वर पर सहेजें।"
+        },
+        {
+          "id": "transport",
+          "title": "परिवहन की जगह का अनुमान",
+          "caption": "परिवहन सरल स्थान-घेरों की जाँच करता है। अलग-अलग पायदान, रेलिंग और सामान उठाने वाले लोग गणना में नहीं हैं। असली मार्ग और निर्माता के निर्देश जाँचें।",
+          "narration": "परिवहन सरल स्थान-घेरों की जाँच करता है। अलग-अलग पायदान, रेलिंग और सामान उठाने वाले लोग गणना में नहीं हैं। असली मार्ग और निर्माता के निर्देश जाँचें।"
+        }
+      ]
+    },
+    "bn": {
+      "title": "KANTURA দিয়ে শুরু",
+      "description": "KANTURA-এর উন্নয়নাধীন সংস্করণের অ্যানিমেটেড কৃত্রিম প্রদর্শন। এটি আসল ক্যাপচার বা পরিমাপের নির্ভুলতার প্রমাণ নয়।",
+      "scenes": [
+        {
+          "id": "start",
+          "title": "স্ক্যান বাছুন",
+          "caption": "এটি অ্যানিমেটেড ডেমো, আসল স্ক্যান নয়। ভেতরের ঘরের জন্য RoomPlan, আর টেক্সচার ও গেটের জন্য LiDAR স্ক্যান বাছুন।",
+          "narration": "এটি অ্যানিমেটেড ডেমো, আসল স্ক্যান নয়। ভেতরের ঘরের জন্য RoomPlan, আর টেক্সচার ও গেটের জন্য LiDAR স্ক্যান বাছুন।"
+        },
+        {
+          "id": "capture",
+          "title": "একটি ঘর ক্যাপচার করুন",
+          "caption": "একটি ঘরে ধীরে হাঁটুন। মেঝে, দেয়াল, দরজা ও জানালা দেখান। RoomPlan ক্যাপচারের সময় ক্যামেরার নির্দেশনা মানুন।",
+          "narration": "একটি ঘরে ধীরে হাঁটুন। মেঝে, দেয়াল, দরজা ও জানালা দেখান। RoomPlan ক্যাপচারের সময় ক্যামেরার নির্দেশনা মানুন।"
+        },
+        {
+          "id": "organize",
+          "title": "ভবন, তলা, ঘর",
+          "caption": "ক্যাপচার শেষ করে ভবন, তলা ও ঘরের নাম দিন। ফাইল সংরক্ষণ করুন। প্রতিটি ঘরের আলাদা স্থানাঙ্ক ব্যবস্থা থাকে।",
+          "narration": "ক্যাপচার শেষ করে ভবন, তলা ও ঘরের নাম দিন। ফাইল সংরক্ষণ করুন। প্রতিটি ঘরের আলাদা স্থানাঙ্ক ব্যবস্থা থাকে।"
+        },
+        {
+          "id": "inspect",
+          "title": "কম্পিউটারে যাচাই করুন",
+          "caption": "কম্পিউটারে Kantura ঘরের ফাইল খুলে আরও ঘর যোগ করুন। পৃষ্ঠ, দৃশ্যমান ফাঁক ও আমদানি করা মাপ পরীক্ষা করুন।",
+          "narration": "কম্পিউটারে Kantura ঘরের ফাইল খুলে আরও ঘর যোগ করুন। পৃষ্ঠ, দৃশ্যমান ফাঁক ও আমদানি করা মাপ পরীক্ষা করুন।"
+        },
+        {
+          "id": "measure",
+          "title": "ফিতার মাপ তুলনা করুন",
+          "caption": "দূরত্ব বেছে ফিতা দিয়েও মাপুন। সেই রেফারেন্স দৈর্ঘ্য লিখুন; Kantura পার্থক্য দেখায়।",
+          "narration": "দূরত্ব বেছে ফিতা দিয়েও মাপুন। সেই রেফারেন্স দৈর্ঘ্য লিখুন; Kantura পার্থক্য দেখায়।"
+        },
+        {
+          "id": "photos",
+          "title": "ছবি যোগ করুন",
+          "caption": "মডেলে নোট বসান। স্থান বোঝাতে বিবরণ ও ছবি যোগ করুন। ছবি আরেকটি পরিমাপ নয়।",
+          "narration": "মডেলে নোট বসান। স্থান বোঝাতে বিবরণ ও ছবি যোগ করুন। ছবি আরেকটি পরিমাপ নয়।"
+        },
+        {
+          "id": "share",
+          "title": "সংরক্ষণ ও শেয়ার করুন",
+          "caption": "প্রতিবেদন ডাউনলোড করে PDF-তে প্রিন্ট করুন। প্রকল্প স্থানীয়ভাবে, কনফিগার করা ক্লাউড স্টোরেজ বা নিজের Docker সার্ভারে সংরক্ষণ করুন।",
+          "narration": "প্রতিবেদন ডাউনলোড করে PDF-তে প্রিন্ট করুন। প্রকল্প স্থানীয়ভাবে, কনফিগার করা ক্লাউড স্টোরেজ বা নিজের Docker সার্ভারে সংরক্ষণ করুন।"
+        },
+        {
+          "id": "transport",
+          "title": "পরিবহনের জায়গা অনুমান করুন",
+          "caption": "পরিবহন সরলীকৃত স্থানসীমা পরীক্ষা করে। আলাদা ধাপ, রেলিং ও বহনকারীদের গণনায় ধরা হয় না। আসল পথ ও নির্মাতার নির্দেশনা পরীক্ষা করুন।",
+          "narration": "পরিবহন সরলীকৃত স্থানসীমা পরীক্ষা করে। আলাদা ধাপ, রেলিং ও বহনকারীদের গণনায় ধরা হয় না। আসল পথ ও নির্মাতার নির্দেশনা পরীক্ষা করুন।"
+        }
+      ]
+    },
+    "ru": {
+      "title": "Начало работы с KANTURA",
+      "description": "Анимированная синтетическая демонстрация разрабатываемой версии KANTURA. Это не реальная съёмка и не подтверждение точности измерений.",
+      "scenes": [
+        {
+          "id": "start",
+          "title": "Выберите скан",
+          "caption": "Это анимация, а не реальный скан. Для помещений используйте RoomPlan, для текстур и ворот — сканирование LiDAR.",
+          "narration": "Это анимация, а не реальный скан. Для помещений используйте RoomPlan, для текстур и ворот — сканирование LiDAR."
+        },
+        {
+          "id": "capture",
+          "title": "Снимите одну комнату",
+          "caption": "Медленно обойдите комнату. Показывайте пол, стены, двери и окна. Следуйте подсказкам камеры при съёмке RoomPlan.",
+          "narration": "Медленно обойдите комнату. Показывайте пол, стены, двери и окна. Следуйте подсказкам камеры при съёмке RoomPlan."
+        },
+        {
+          "id": "organize",
+          "title": "Здание, этаж, комната",
+          "caption": "Завершите съёмку и назовите здание, этаж и комнату. Сохраните файлы. У каждой комнаты остаётся отдельная система координат.",
+          "narration": "Завершите съёмку и назовите здание, этаж и комнату. Сохраните файлы. У каждой комнаты остаётся отдельная система координат."
+        },
+        {
+          "id": "inspect",
+          "title": "Проверьте на компьютере",
+          "caption": "Откройте файл комнаты Kantura на компьютере и добавьте другие комнаты. Проверьте поверхности, заметные пробелы и импортированные размеры.",
+          "narration": "Откройте файл комнаты Kantura на компьютере и добавьте другие комнаты. Проверьте поверхности, заметные пробелы и импортированные размеры."
+        },
+        {
+          "id": "measure",
+          "title": "Сравните с рулеткой",
+          "caption": "Выберите расстояние и измерьте его рулеткой. Введите эталонную длину: Kantura покажет разницу.",
+          "narration": "Выберите расстояние и измерьте его рулеткой. Введите эталонную длину: Kantura покажет разницу."
+        },
+        {
+          "id": "photos",
+          "title": "Добавьте фото",
+          "caption": "Разместите заметку на модели. Добавьте описание и фото, чтобы пояснить место. Фото не является дополнительным измерением.",
+          "narration": "Разместите заметку на модели. Добавьте описание и фото, чтобы пояснить место. Фото не является дополнительным измерением."
+        },
+        {
+          "id": "share",
+          "title": "Сохраните и поделитесь",
+          "caption": "Скачайте отчёт и напечатайте его в PDF. Сохраните проект локально, в настроенном облаке или на своём Docker-сервере.",
+          "narration": "Скачайте отчёт и напечатайте его в PDF. Сохраните проект локально, в настроенном облаке или на своём Docker-сервере."
+        },
+        {
+          "id": "transport",
+          "title": "Оцените место для переноса",
+          "caption": "Проверяются упрощённые габариты. Отдельные ступени, перила и люди не рассчитываются. Проверьте реальный путь и инструкции производителя.",
+          "narration": "Проверяются упрощённые габариты. Отдельные ступени, перила и люди не рассчитываются. Проверьте реальный путь и инструкции производителя."
+        }
+      ]
+    },
+    "ja": {
+      "title": "KANTURA のはじめ方",
+      "description": "開発中の KANTURA を紹介する合成アニメーションです。実際の撮影ではなく、測定精度を示すものでもありません。",
+      "scenes": [
+        {
+          "id": "start",
+          "title": "スキャンを選ぶ",
+          "caption": "これは実際のスキャンではなくアニメーションです。屋内は RoomPlan、写真テクスチャや門は LiDAR スキャンを選びます。",
+          "narration": "これは実際のスキャンではなくアニメーションです。屋内は RoomPlan、写真テクスチャや門は LiDAR スキャンを選びます。"
+        },
+        {
+          "id": "capture",
+          "title": "1部屋を撮影",
+          "caption": "1つの部屋をゆっくり回り、床、壁、ドア、窓を映します。RoomPlan 撮影中はカメラの案内に従ってください。",
+          "narration": "1つの部屋をゆっくり回り、床、壁、ドア、窓を映します。RoomPlan 撮影中はカメラの案内に従ってください。"
+        },
+        {
+          "id": "organize",
+          "title": "建物・階・部屋",
+          "caption": "撮影を終え、建物、階、部屋に名前を付けて保存します。各部屋は独立した座標系のままです。",
+          "narration": "撮影を終え、建物、階、部屋に名前を付けて保存します。各部屋は独立した座標系のままです。"
+        },
+        {
+          "id": "inspect",
+          "title": "パソコンで確認",
+          "caption": "Kantura の部屋ファイルをパソコンで開き、他の部屋を追加します。面、目に見える欠け、読み込んだ寸法を確認します。",
+          "narration": "Kantura の部屋ファイルをパソコンで開き、他の部屋を追加します。面、目に見える欠け、読み込んだ寸法を確認します。"
+        },
+        {
+          "id": "measure",
+          "title": "巻尺と比較",
+          "caption": "距離を選び、巻尺でも測ります。その基準長を入力すると、Kantura が差を表示します。",
+          "narration": "距離を選び、巻尺でも測ります。その基準長を入力すると、Kantura が差を表示します。"
+        },
+        {
+          "id": "photos",
+          "title": "写真を追加",
+          "caption": "モデル上にメモを置き、場所の説明と写真を追加します。写真は追加の測定にはなりません。",
+          "narration": "モデル上にメモを置き、場所の説明と写真を追加します。写真は追加の測定にはなりません。"
+        },
+        {
+          "id": "share",
+          "title": "保存して共有",
+          "caption": "レポートをダウンロードして PDF に印刷します。プロジェクトは端末内、設定済みクラウド、Docker サーバーに保存できます。",
+          "narration": "レポートをダウンロードして PDF に印刷します。プロジェクトは端末内、設定済みクラウド、Docker サーバーに保存できます。"
+        },
+        {
+          "id": "transport",
+          "title": "搬入スペースを推定",
+          "caption": "搬入確認は簡略化した外接空間を扱います。個々の段、手すり、作業者は計算しません。実際の経路とメーカーの指示を確認してください。",
+          "narration": "搬入確認は簡略化した外接空間を扱います。個々の段、手すり、作業者は計算しません。実際の経路とメーカーの指示を確認してください。"
+        }
+      ]
+    },
+    "ko": {
+      "title": "KANTURA 시작하기",
+      "description": "개발 중인 KANTURA를 보여 주는 합성 애니메이션입니다. 실제 촬영이나 측정 정확도의 증거가 아닙니다.",
+      "scenes": [
+        {
+          "id": "start",
+          "title": "스캔 선택",
+          "caption": "실제 스캔이 아닌 애니메이션 예제입니다. 실내는 RoomPlan, 텍스처와 대문은 LiDAR 스캔을 선택하세요.",
+          "narration": "실제 스캔이 아닌 애니메이션 예제입니다. 실내는 RoomPlan, 텍스처와 대문은 LiDAR 스캔을 선택하세요."
+        },
+        {
+          "id": "capture",
+          "title": "방 하나 촬영",
+          "caption": "방 하나를 천천히 돌며 바닥, 벽, 문, 창문을 보여 주세요. RoomPlan 촬영 중 카메라 안내를 따르세요.",
+          "narration": "방 하나를 천천히 돌며 바닥, 벽, 문, 창문을 보여 주세요. RoomPlan 촬영 중 카메라 안내를 따르세요."
+        },
+        {
+          "id": "organize",
+          "title": "건물, 층, 방",
+          "caption": "촬영을 마치고 건물, 층, 방 이름을 붙인 뒤 저장하세요. 각 방은 독립적인 좌표계를 유지합니다.",
+          "narration": "촬영을 마치고 건물, 층, 방 이름을 붙인 뒤 저장하세요. 각 방은 독립적인 좌표계를 유지합니다."
+        },
+        {
+          "id": "inspect",
+          "title": "컴퓨터에서 확인",
+          "caption": "컴퓨터에서 Kantura 방 파일을 열고 다른 방을 추가하세요. 표면, 눈에 띄는 빈 곳, 가져온 치수를 확인하세요.",
+          "narration": "컴퓨터에서 Kantura 방 파일을 열고 다른 방을 추가하세요. 표면, 눈에 띄는 빈 곳, 가져온 치수를 확인하세요."
+        },
+        {
+          "id": "measure",
+          "title": "줄자 측정과 비교",
+          "caption": "거리를 선택하고 줄자로도 재세요. 기준 길이를 입력하면 Kantura가 차이를 표시합니다.",
+          "narration": "거리를 선택하고 줄자로도 재세요. 기준 길이를 입력하면 Kantura가 차이를 표시합니다."
+        },
+        {
+          "id": "photos",
+          "title": "사진 추가",
+          "caption": "모델에 메모를 놓고 위치 설명과 사진을 추가하세요. 사진은 추가 측정값이 아닙니다.",
+          "narration": "모델에 메모를 놓고 위치 설명과 사진을 추가하세요. 사진은 추가 측정값이 아닙니다."
+        },
+        {
+          "id": "share",
+          "title": "저장하고 공유",
+          "caption": "보고서를 내려받아 PDF로 인쇄하세요. 프로젝트는 로컬, 설정된 클라우드 또는 Docker 서버에 저장합니다.",
+          "narration": "보고서를 내려받아 PDF로 인쇄하세요. 프로젝트는 로컬, 설정된 클라우드 또는 Docker 서버에 저장합니다."
+        },
+        {
+          "id": "transport",
+          "title": "운반 공간 추정",
+          "caption": "단순화된 외접 공간을 확인합니다. 개별 계단, 난간, 운반자는 계산하지 않습니다. 실제 경로와 제조사 지침을 확인하세요.",
+          "narration": "단순화된 외접 공간을 확인합니다. 개별 계단, 난간, 운반자는 계산하지 않습니다. 실제 경로와 제조사 지침을 확인하세요."
+        }
+      ]
+    },
+    "id": {
+      "title": "Memulai dengan KANTURA",
+      "description": "Demonstrasi animasi sintetis dari pratinjau pengembangan KANTURA. Bukan pemindaian nyata atau bukti akurasi pengukuran.",
+      "scenes": [
+        {
+          "id": "start",
+          "title": "Pilih pemindaian",
+          "caption": "Ini demonstrasi animasi, bukan hasil pindai nyata. Pilih RoomPlan untuk ruang dalam, atau pemindaian LiDAR untuk tekstur dan gerbang.",
+          "narration": "Ini demonstrasi animasi, bukan hasil pindai nyata. Pilih RoomPlan untuk ruang dalam, atau pemindaian LiDAR untuk tekstur dan gerbang."
+        },
+        {
+          "id": "capture",
+          "title": "Pindai satu ruangan",
+          "caption": "Berjalanlah perlahan di satu ruangan. Tampilkan lantai, dinding, pintu, dan jendela. Ikuti panduan kamera selama pemindaian RoomPlan.",
+          "narration": "Berjalanlah perlahan di satu ruangan. Tampilkan lantai, dinding, pintu, dan jendela. Ikuti panduan kamera selama pemindaian RoomPlan."
+        },
+        {
+          "id": "organize",
+          "title": "Bangunan, lantai, ruangan",
+          "caption": "Selesaikan pemindaian dan beri nama bangunan, lantai, serta ruangan. Simpan berkas. Setiap ruangan tetap memiliki sistem koordinatnya sendiri.",
+          "narration": "Selesaikan pemindaian dan beri nama bangunan, lantai, serta ruangan. Simpan berkas. Setiap ruangan tetap memiliki sistem koordinatnya sendiri."
+        },
+        {
+          "id": "inspect",
+          "title": "Tinjau di komputer",
+          "caption": "Buka berkas ruangan Kantura di komputer dan tambahkan ruangan lain. Periksa permukaan, bagian yang terlihat hilang, dan dimensi yang diimpor.",
+          "narration": "Buka berkas ruangan Kantura di komputer dan tambahkan ruangan lain. Periksa permukaan, bagian yang terlihat hilang, dan dimensi yang diimpor."
+        },
+        {
+          "id": "measure",
+          "title": "Bandingkan pengukuran meteran",
+          "caption": "Pilih jarak dan ukur juga dengan meteran. Masukkan panjang acuan tersebut; Kantura menampilkan selisihnya.",
+          "narration": "Pilih jarak dan ukur juga dengan meteran. Masukkan panjang acuan tersebut; Kantura menampilkan selisihnya."
+        },
+        {
+          "id": "photos",
+          "title": "Tambahkan foto",
+          "caption": "Tempatkan catatan pada model. Tambahkan deskripsi dan foto untuk menjelaskan lokasi. Foto bukan pengukuran tambahan.",
+          "narration": "Tempatkan catatan pada model. Tambahkan deskripsi dan foto untuk menjelaskan lokasi. Foto bukan pengukuran tambahan."
+        },
+        {
+          "id": "share",
+          "title": "Simpan dan bagikan",
+          "caption": "Unduh laporan dan cetak ke PDF. Simpan proyek secara lokal, ke penyimpanan awan yang dikonfigurasi, atau ke server Docker Anda.",
+          "narration": "Unduh laporan dan cetak ke PDF. Simpan proyek secara lokal, ke penyimpanan awan yang dikonfigurasi, atau ke server Docker Anda."
+        },
+        {
+          "id": "transport",
+          "title": "Perkirakan ruang pemindahan",
+          "caption": "Pemeriksaan pemindahan menggunakan volume pembatas sederhana. Anak tangga, pagar pengaman, dan orang yang mengangkat tidak dihitung. Periksa jalur sebenarnya dan petunjuk produsen.",
+          "narration": "Pemeriksaan pemindahan menggunakan volume pembatas sederhana. Anak tangga, pagar pengaman, dan orang yang mengangkat tidak dihitung. Periksa jalur sebenarnya dan petunjuk produsen."
+        }
+      ]
+    },
+    "tr": {
+      "title": "KANTURA'ya başlangıç",
+      "description": "KANTURA geliştirme önizlemesinin animasyonlu, sentetik gösterimi. Gerçek bir tarama veya ölçüm doğruluğunun kanıtı değildir.",
+      "scenes": [
+        {
+          "id": "start",
+          "title": "Tarama seçin",
+          "caption": "Bu bir animasyon gösterimidir, gerçek tarama değildir. İç mekânlar için RoomPlan'ı, dokular ve bahçe kapıları için LiDAR taramasını seçin.",
+          "narration": "Bu bir animasyon gösterimidir, gerçek tarama değildir. İç mekânlar için RoomPlan'ı, dokular ve bahçe kapıları için LiDAR taramasını seçin."
+        },
+        {
+          "id": "capture",
+          "title": "Bir oda tarayın",
+          "caption": "Tek bir odada yavaşça dolaşın. Zemini, duvarları, kapıları ve pencereleri gösterin. RoomPlan taraması sırasında kamera yönlendirmelerini izleyin.",
+          "narration": "Tek bir odada yavaşça dolaşın. Zemini, duvarları, kapıları ve pencereleri gösterin. RoomPlan taraması sırasında kamera yönlendirmelerini izleyin."
+        },
+        {
+          "id": "organize",
+          "title": "Bina, kat, oda",
+          "caption": "Taramayı bitirip bina, kat ve odayı adlandırın. Dosyaları kaydedin. Her oda kendi ayrı koordinat sistemini korur.",
+          "narration": "Taramayı bitirip bina, kat ve odayı adlandırın. Dosyaları kaydedin. Her oda kendi ayrı koordinat sistemini korur."
+        },
+        {
+          "id": "inspect",
+          "title": "Bilgisayarınızda inceleyin",
+          "caption": "Kantura oda dosyasını bilgisayarınızda açın ve başka odalar ekleyin. Yüzeyleri, görünür boşlukları ve içe aktarılan boyutları inceleyin.",
+          "narration": "Kantura oda dosyasını bilgisayarınızda açın ve başka odalar ekleyin. Yüzeyleri, görünür boşlukları ve içe aktarılan boyutları inceleyin."
+        },
+        {
+          "id": "measure",
+          "title": "Şerit metre ölçümüyle karşılaştırın",
+          "caption": "Bir mesafe seçin ve şerit metreyle de ölçün. Bu referans uzunluğunu girin; Kantura farkı gösterir.",
+          "narration": "Bir mesafe seçin ve şerit metreyle de ölçün. Bu referans uzunluğunu girin; Kantura farkı gösterir."
+        },
+        {
+          "id": "photos",
+          "title": "Fotoğraf ekleyin",
+          "caption": "Modele bir not yerleştirin. Konumu açıklamak için açıklama ve fotoğraf ekleyin. Fotoğraf ek bir ölçüm değildir.",
+          "narration": "Modele bir not yerleştirin. Konumu açıklamak için açıklama ve fotoğraf ekleyin. Fotoğraf ek bir ölçüm değildir."
+        },
+        {
+          "id": "share",
+          "title": "Kaydedin ve paylaşın",
+          "caption": "Raporu indirip PDF'ye yazdırın. Projeyi yerel olarak, yapılandırılmış bulut depolamasına veya Docker sunucunuza kaydedin.",
+          "narration": "Raporu indirip PDF'ye yazdırın. Projeyi yerel olarak, yapılandırılmış bulut depolamasına veya Docker sunucunuza kaydedin."
+        },
+        {
+          "id": "transport",
+          "title": "Taşıma alanını tahmin edin",
+          "caption": "Taşıma kontrolü basitleştirilmiş sınır hacimlerini inceler. Tek tek basamaklar, korkuluklar ve taşıyan kişiler hesaplanmaz. Gerçek güzergâhı ve üretici talimatlarını kontrol edin.",
+          "narration": "Taşıma kontrolü basitleştirilmiş sınır hacimlerini inceler. Tek tek basamaklar, korkuluklar ve taşıyan kişiler hesaplanmaz. Gerçek güzergâhı ve üretici talimatlarını kontrol edin."
+        }
+      ]
     }
   }
 }

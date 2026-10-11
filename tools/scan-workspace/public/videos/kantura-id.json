@@ -1,0 +1,62 @@
+{
+  "language": "id",
+  "duration": 79.354,
+  "narration": "eSpeak NG formant",
+  "voice": {
+    "name": "Indonesian",
+    "identifier": "poz\\id",
+    "language": "id"
+  },
+  "chapters": [
+    {
+      "id": "start",
+      "start": 0,
+      "end": 9.787,
+      "title": "Pilih pemindaian"
+    },
+    {
+      "id": "capture",
+      "start": 9.787,
+      "end": 19.829,
+      "title": "Pindai satu ruangan"
+    },
+    {
+      "id": "organize",
+      "start": 19.829,
+      "end": 30.403,
+      "title": "Bangunan, lantai, ruangan"
+    },
+    {
+      "id": "inspect",
+      "start": 30.403,
+      "end": 40.371,
+      "title": "Tinjau di komputer"
+    },
+    {
+      "id": "measure",
+      "start": 40.371,
+      "end": 48.385,
+      "title": "Bandingkan pengukuran meteran"
+    },
+    {
+      "id": "photos",
+      "start": 48.385,
+      "end": 57.276,
+      "title": "Tambahkan foto"
+    },
+    {
+      "id": "share",
+      "start": 57.276,
+      "end": 66.936,
+      "title": "Simpan dan bagikan"
+    },
+    {
+      "id": "transport",
+      "start": 66.936,
+      "end": 79.354,
+      "title": "Perkirakan ruang pemindahan"
+    }
+  ],
+  "bytes": 1548911,
+  "synthetic": true
+}

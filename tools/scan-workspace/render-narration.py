@@ -20,6 +20,7 @@ import importlib.metadata
 import importlib.util
 import json
 from pathlib import Path
+import re
 import urllib.request
 import wave
 
@@ -29,8 +30,39 @@ ROOT = Path(__file__).resolve().parent
 REVISION = 'c10ece1aade47bb51c153c893d14e5bf8e5b7117'
 VOICE = 'en_US-ljspeech-medium'
 VOICE_PATH = 'en/en_US/ljspeech/medium'
-ESPEAK = {'de': 'de', 'fr': 'fr', 'es': 'es', 'it': 'it', 'zh-Hans': 'cmn'}
+ESPEAK = {
+    'de': 'de', 'fr': 'fr', 'es': 'es', 'it': 'it', 'zh-Hans': 'cmn',
+    'pt': 'pt', 'ar': 'ar', 'hi': 'hi', 'bn': 'bn', 'ru': 'ru',
+    'ja': 'ja', 'ko': 'ko', 'id': 'id', 'tr': 'tr',
+}
 SCENE_IDS = ['start', 'capture', 'organize', 'inspect', 'measure', 'photos', 'share', 'transport']
+
+
+def read_pronunciations(path, languages):
+    """Japanese and Arabic need explicit readings; never substitute English."""
+    if not path.is_file():
+        if {'ja', 'ar'}.intersection(languages):
+            raise ValueError('Japanese/Arabic require --readings with kana/vocalized text: ' + str(path))
+        return {}, None
+    data = path.read_bytes()
+    document = json.loads(data.decode('utf-8'))
+    if document.get('version') != 1 or not isinstance(document.get('languages'), dict):
+        raise ValueError('Invalid pronunciation file schema')
+    readings = document['languages']
+    for language in set(languages).intersection({'ja', 'ar'}):
+        scenes = readings.get(language)
+        if not isinstance(scenes, dict) or set(scenes) != set(SCENE_IDS):
+            raise ValueError('Missing or unexpected pronunciation scene IDs: ' + language)
+        for scene_id, value in scenes.items():
+            if not isinstance(value, str) or not value.strip() or len(value) > 2000:
+                raise ValueError('Invalid pronunciation text: ' + language + '/' + scene_id)
+            if re.search(r'[A-Za-z]', value):
+                raise ValueError('Spell product names in the reading script: ' + language + '/' + scene_id)
+            if language == 'ja' and (re.search(r'[\u3400-\u9fff\uf900-\ufaff]', value) or not re.search(r'[\u3040-\u30ff]', value)):
+                raise ValueError('Japanese eSpeak readings must use kana, not kanji: ' + scene_id)
+            if language == 'ar' and not re.search(r'[\u064b-\u0652]', value):
+                raise ValueError('Arabic eSpeak readings must be vocalized: ' + scene_id)
+    return readings, hashlib.sha256(data).hexdigest()
 
 
 def read_url(url):
@@ -150,8 +182,10 @@ class FormantVoice:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--languages', nargs='+', choices=['de', 'en', 'fr', 'es', 'it', 'zh-Hans'], default=['en', 'fr', 'es', 'it', 'zh-Hans'])
+    parser.add_argument('--languages', nargs='+', choices=['en', *ESPEAK], default=['en', 'fr', 'es', 'it', 'zh-Hans'])
     parser.add_argument('--scripts', type=Path, default=ROOT / 'public/videos/scripts.json')
+    parser.add_argument('--readings', type=Path, default=ROOT / 'public/videos/pronunciation.json',
+                        help='Japanese kana and vocalized Arabic readings; captions stay unchanged')
     parser.add_argument('--output-dir', required=True, type=Path)
     parser.add_argument('--model-dir', type=Path)
     parser.add_argument('--download-models', action='store_true')
@@ -162,6 +196,7 @@ def main():
     if 'en' in args.languages and args.model_dir is None:
         parser.error('English requires --model-dir outside the distributed project')
     scripts = json.loads(args.scripts.read_text(encoding='utf-8'))
+    readings, readings_hash = read_pronunciations(args.readings, args.languages)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     summary = {}
     for language in args.languages:
@@ -183,15 +218,19 @@ def main():
             formant = FormantVoice(language, args.rate)
             result = dict(formant.metadata)
         result.update({'language': language, 'scenes': [], 'scriptsSha256': hashlib.sha256(args.scripts.read_bytes()).hexdigest()})
+        if language in {'ja', 'ar'}:
+            result['readingsSha256'] = readings_hash
         try:
             for scene in scenes:
                 path = target / (scene['id'] + '.wav')
+                spoken_text = readings[language][scene['id']] if language in {'ja', 'ar'} else scene['narration']
                 if formant:
-                    formant.synthesize(scene['narration'], path)
+                    formant.synthesize(spoken_text, path)
                 else:
                     with wave.open(str(path), 'wb') as audio:
-                        voice.synthesize_wav(scene['narration'], audio, syn_config=config)
-                record = {'id': scene['id'], 'path': str(path.resolve()), 'text': scene['narration'], **inspect_wav(path)}
+                        voice.synthesize_wav(spoken_text, audio, syn_config=config)
+                record = {'id': scene['id'], 'path': str(path.resolve()), 'text': scene['narration'],
+                          'spokenText': spoken_text, **inspect_wav(path)}
                 result['scenes'].append(record)
                 print(f'{language}/{scene["id"]}.wav: {record["duration"]:.2f}s', flush=True)
         finally:

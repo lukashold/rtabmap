@@ -42,7 +42,7 @@ jobs:
           assert.equal((await (await fetch(base + '/config.json')).json()).serverEnabled, true);
           assert.equal((await fetch(base + '/api/projects')).status, 401);
           assert.equal((await fetch(base + '/kantura.svg')).headers.get('content-type'), 'image/svg+xml');
-          for (const language of ['de', 'en', 'fr', 'es', 'it', 'zh-Hans']) {
+          for (const language of Object.keys(JSON.parse(await (await import('node:fs/promises')).readFile('../../app/ios/RTABMapApp/MeasurementGuide.json','utf8')))) {
             const video = await fetch(base + '/videos/kantura-' + language + '.mp4', { headers: { Range: 'bytes=0-31' } });
             assert.equal(video.status, 206);
             assert.equal(video.headers.get('content-type'), 'video/mp4');

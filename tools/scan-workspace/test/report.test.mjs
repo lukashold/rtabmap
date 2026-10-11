@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { floorplanDXF, measurementReport } from '../src/report.js';
+import { extraLocales, directionFor } from '../locales/index.js';
 
 const floor = { kind: 'floor', label: 'Wohnzimmer', points: [[0, 0, 0], [4000, 0, 0], [4000, 0, 3000], [0, 0, 3000]] };
 const project = { version: 1, name: 'Haus', upAxis: 'z', scale: 0.001, calibrated: false, measurements: [floor, { kind: 'distance', label: 'Tor diagonal', points: [[0, 0, 0], [3000, 12000, 4000]] }, { kind: 'surface', label: 'Torfläche', points: [[0, 0, 0], [2000, 0, 0], [2000, 3000, 0], [0, 3000, 0]] }] };
@@ -93,18 +94,18 @@ test('report safely escapes project and measurement text, custom translations an
   assert.equal((html.match(/<script>/g) || []).length, 1, 'only the static print script is executable');
 });
 
-test('report has six localized variants and supports distance-only projects without fabricating a plan', () => {
+test('the original six report languages support distance-only projects without fabricating a plan', () => {
   const titles = { de: 'Messbericht', fr: 'Rapport de mesures', es: 'Informe de medidas', it: 'Rapporto di misura', 'zh-Hans': '测量报告', en: 'Measurement report' };
   for (const [language, title] of Object.entries(titles)) {
     const html = measurementReport({ ...project, calibrated: true, measurements: [project.measurements[1]] }, { language, createdAt });
     assert.ok(html.includes(title));
-    assert.ok(html.includes(`<html lang="${language}">`));
+    assert.ok(html.includes(`<html lang="${language}" dir="ltr">`));
     assert.doesNotMatch(html, /<svg\b/);
   }
-  assert.match(measurementReport(project, { language: 'zh-CN', createdAt }), /<html lang="zh-Hans">/);
-  assert.match(measurementReport(project, { language: 'en-US', createdAt }), /<html lang="en">/);
-  assert.match(measurementReport(project, { language: 'EN_gb', createdAt }), /<html lang="en">/);
-  assert.match(measurementReport(project, { language: 'nl-NL', createdAt }), /<html lang="de">/);
+  assert.match(measurementReport(project, { language: 'zh-CN', createdAt }), /<html lang="zh-Hans" dir="ltr">/);
+  assert.match(measurementReport(project, { language: 'en-US', createdAt }), /<html lang="en" dir="ltr">/);
+  assert.match(measurementReport(project, { language: 'EN_gb', createdAt }), /<html lang="en" dir="ltr">/);
+  assert.match(measurementReport(project, { language: 'nl-NL', createdAt }), /<html lang="de" dir="ltr">/);
 });
 
 test('report shows current reference deviations after calibration without claiming accuracy', () => {
@@ -163,7 +164,7 @@ test('transport report recomputes the verdict instead of trusting stored results
   assert.match(html, /diese können von Katalogmaßen abweichen/);
 });
 
-test('transport verdicts, reasons and explicit assumptions are available in all six report languages', () => {
+test('transport verdicts, reasons and explicit assumptions remain available in the original six report languages', () => {
   const expected = {
     de: ['Transportabschätzung', 'Im geprüften Hüllraum möglich', 'Stufen und Geländern'],
     fr: ['Estimation du transport', 'Possible dans l’enveloppe vérifiée', 'marches individuelles'],
@@ -181,6 +182,31 @@ test('transport verdicts, reasons and explicit assumptions are available in all 
   const uncertain = measurementReport(transportProject({ input }), { language: 'de', createdAt });
   assert.match(uncertain, /<p class="transport-verdict uncertain">Weitere Prüfung nötig<\/p>/);
   assert.match(uncertain, /Eine versetzte Bewegung muss am tatsächlichen Weg geprüft werden/);
+});
+
+test('all nine additional locales render measurement and transport reports with translated limitations and direction', () => {
+  const escaped = value => value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+  assert.equal(Object.keys(extraLocales).length,9);
+  for(const [language,pack]of Object.entries(extraLocales)){
+    const html=measurementReport(transportProject(),{language,createdAt});
+    assert.ok(html.includes(`<html lang="${language}" dir="${language==='ar'?'rtl':'ltr'}">`),language);
+    for(const value of [pack.report.report,pack.report.unverified,pack.report.note,pack.report.planNote,pack.transportReport.title,pack.transportReport.recalculated,pack.transportReport.catalogNotice,pack.experience.possible,pack.experience.objectWidth,...pack.assumptions]){
+      assert.ok(typeof value==='string'&&value.length,`${language}: nonempty report translation`);
+      assert.ok(html.includes(escaped(value)),`${language}: ${value}`);
+    }
+    assert.equal(pack.assumptions.length,7,language);
+    assert.doesNotMatch(html,/rectangular_object|no_carriers_or_equipment|upright_envelope_fits|centred_turn_on_rectangular_landing/);
+    assert.ok(html.includes(new Intl.NumberFormat(language,{minimumFractionDigits:3,maximumFractionDigits:3}).format(2.03)),`${language}: localized metric dimension`);
+  }
+});
+
+test('report locale aliases retain the selected language and Arabic reading direction', () => {
+  const aliases={'pt-BR':'pt','ar-EG':'ar','hi-IN':'hi','bn-BD':'bn','ru-RU':'ru','ja-JP':'ja','ko-KR':'ko','id-ID':'id','tr-TR':'tr','in_ID':'id'};
+  for(const [alias,language]of Object.entries(aliases)){
+    const html=measurementReport(project,{language:alias,createdAt});
+    assert.ok(html.includes(`<html lang="${language}" dir="${directionFor(language)}">`),alias);
+    assert.ok(html.includes(extraLocales[language].report.report),alias);
+  }
 });
 
 test('transport report escapes arbitrary model names and never treats imported source URLs or partial model matches as catalogue evidence', () => {

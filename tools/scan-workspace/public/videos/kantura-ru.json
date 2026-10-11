@@ -1,0 +1,62 @@
+{
+  "language": "ru",
+  "duration": 60.683,
+  "narration": "eSpeak NG formant",
+  "voice": {
+    "name": "Russian",
+    "identifier": "zle\\ru",
+    "language": "ru"
+  },
+  "chapters": [
+    {
+      "id": "start",
+      "start": 0,
+      "end": 7.465,
+      "title": "Выберите скан"
+    },
+    {
+      "id": "capture",
+      "start": 7.465,
+      "end": 14.923,
+      "title": "Снимите одну комнату"
+    },
+    {
+      "id": "organize",
+      "start": 14.923,
+      "end": 22.713,
+      "title": "Здание, этаж, комната"
+    },
+    {
+      "id": "inspect",
+      "start": 22.713,
+      "end": 30.989,
+      "title": "Проверьте на компьютере"
+    },
+    {
+      "id": "measure",
+      "start": 30.989,
+      "end": 37.448,
+      "title": "Сравните с рулеткой"
+    },
+    {
+      "id": "photos",
+      "start": 37.448,
+      "end": 44.886,
+      "title": "Добавьте фото"
+    },
+    {
+      "id": "share",
+      "start": 44.886,
+      "end": 52.424,
+      "title": "Сохраните и поделитесь"
+    },
+    {
+      "id": "transport",
+      "start": 52.424,
+      "end": 60.683,
+      "title": "Оцените место для переноса"
+    }
+  ],
+  "bytes": 1186715,
+  "synthetic": true
+}

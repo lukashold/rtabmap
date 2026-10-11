@@ -1,0 +1,62 @@
+{
+  "language": "ar",
+  "duration": 88.579,
+  "narration": "eSpeak NG formant",
+  "voice": {
+    "name": "Arabic",
+    "identifier": "sem\\ar",
+    "language": "ar"
+  },
+  "chapters": [
+    {
+      "id": "start",
+      "start": 0,
+      "end": 11.288,
+      "title": "اختيار المسح"
+    },
+    {
+      "id": "capture",
+      "start": 11.288,
+      "end": 24.254,
+      "title": "التقاط غرفة واحدة"
+    },
+    {
+      "id": "organize",
+      "start": 24.254,
+      "end": 34.779,
+      "title": "المبنى والطابق والغرفة"
+    },
+    {
+      "id": "inspect",
+      "start": 34.779,
+      "end": 45.739,
+      "title": "المراجعة على الحاسوب"
+    },
+    {
+      "id": "measure",
+      "start": 45.739,
+      "end": 54.099,
+      "title": "المقارنة بقياس الشريط"
+    },
+    {
+      "id": "photos",
+      "start": 54.099,
+      "end": 63.503,
+      "title": "إضافة صورة"
+    },
+    {
+      "id": "share",
+      "start": 63.503,
+      "end": 75.35,
+      "title": "الحفظ والمشاركة"
+    },
+    {
+      "id": "transport",
+      "start": 75.35,
+      "end": 88.579,
+      "title": "تقدير مساحة النقل"
+    }
+  ],
+  "bytes": 1662583,
+  "synthetic": true
+}

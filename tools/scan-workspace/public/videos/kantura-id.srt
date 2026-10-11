@@ -1,0 +1,31 @@
+1
+00:00:00,000 --> 00:00:09,787
+Ini demonstrasi animasi, bukan hasil pindai nyata. Pilih RoomPlan untuk ruang dalam, atau pemindaian LiDAR untuk tekstur dan gerbang.
+
+2
+00:00:09,787 --> 00:00:19,829
+Berjalanlah perlahan di satu ruangan. Tampilkan lantai, dinding, pintu, dan jendela. Ikuti panduan kamera selama pemindaian RoomPlan.
+
+3
+00:00:19,829 --> 00:00:30,403
+Selesaikan pemindaian dan beri nama bangunan, lantai, serta ruangan. Simpan berkas. Setiap ruangan tetap memiliki sistem koordinatnya sendiri.
+
+4
+00:00:30,403 --> 00:00:40,371
+Buka berkas ruangan Kantura di komputer dan tambahkan ruangan lain. Periksa permukaan, bagian yang terlihat hilang, dan dimensi yang diimpor.
+
+5
+00:00:40,371 --> 00:00:48,385
+Pilih jarak dan ukur juga dengan meteran. Masukkan panjang acuan tersebut; Kantura menampilkan selisihnya.
+
+6
+00:00:48,385 --> 00:00:57,276
+Tempatkan catatan pada model. Tambahkan deskripsi dan foto untuk menjelaskan lokasi. Foto bukan pengukuran tambahan.
+
+7
+00:00:57,276 --> 00:01:06,936
+Unduh laporan dan cetak ke PDF. Simpan proyek secara lokal, ke penyimpanan awan yang dikonfigurasi, atau ke server Docker Anda.
+
+8
+00:01:06,936 --> 00:01:19,354
+Pemeriksaan pemindahan menggunakan volume pembatas sederhana. Anak tangga, pagar pengaman, dan orang yang mengangkat tidak dihitung. Periksa jalur sebenarnya dan petunjuk produsen.

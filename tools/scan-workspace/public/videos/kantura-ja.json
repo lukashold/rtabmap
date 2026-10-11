@@ -1,0 +1,62 @@
+{
+  "language": "ja",
+  "duration": 73.409,
+  "narration": "eSpeak NG formant",
+  "voice": {
+    "name": "Japanese",
+    "identifier": "jpx\\ja",
+    "language": "ja"
+  },
+  "chapters": [
+    {
+      "id": "start",
+      "start": 0,
+      "end": 8.438,
+      "title": "スキャンを選ぶ"
+    },
+    {
+      "id": "capture",
+      "start": 8.438,
+      "end": 17.909,
+      "title": "1部屋を撮影"
+    },
+    {
+      "id": "organize",
+      "start": 17.909,
+      "end": 26.551,
+      "title": "建物・階・部屋"
+    },
+    {
+      "id": "inspect",
+      "start": 26.551,
+      "end": 35.838,
+      "title": "パソコンで確認"
+    },
+    {
+      "id": "measure",
+      "start": 35.838,
+      "end": 43.83,
+      "title": "巻尺と比較"
+    },
+    {
+      "id": "photos",
+      "start": 43.83,
+      "end": 51.743,
+      "title": "写真を追加"
+    },
+    {
+      "id": "share",
+      "start": 51.743,
+      "end": 60.953,
+      "title": "保存して共有"
+    },
+    {
+      "id": "transport",
+      "start": 60.953,
+      "end": 73.409,
+      "title": "搬入スペースを推定"
+    }
+  ],
+  "bytes": 1391338,
+  "synthetic": true
+}

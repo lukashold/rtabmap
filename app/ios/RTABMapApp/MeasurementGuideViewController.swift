@@ -67,6 +67,7 @@ final class MeasurementGuideViewController: UIViewController {
 
     private func render() {
         guard let guide = guides[MeasurementGuide.selectedLanguage] else { return }
+        KanturaDesign.navigation(self)
         title = "KANTURA"
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: guide.close, style: .done, target: self, action: #selector(closeGuide))
         navigationItem.leftBarButtonItem = UIBarButtonItem(title: guide.language, style: .plain, target: self, action: #selector(selectLanguage))
