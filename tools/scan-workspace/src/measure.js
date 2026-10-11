@@ -106,5 +106,5 @@ export function floorplanSVG(measurements, scale, name='Floor plan') {
     const center=pts.reduce((a,b)=>[a[0]+b[0]/pts.length,a[1]+b[1]/pts.length],[0,0]);
     body+=`<text x="${center[0]}" y="${center[1]}" text-anchor="middle">${escapeXML(m.label)} · ${area.toFixed(3)} m²</text>`;
   }
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width*ratio+140} ${height*ratio+160}"><rect width="100%" height="100%" fill="white"/><g font-family="sans-serif" font-size="14" fill="#1e1b4b"><text x="30" y="35">${escapeXML(name)}</text>${body}<text x="30" y="${height*ratio+140}">RTAB-Map · manually traced · m · verify against a reference</text></g></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width*ratio+140} ${height*ratio+160}"><rect width="100%" height="100%" fill="white"/><g font-family="sans-serif" font-size="14" fill="#1e1b4b"><text x="30" y="35">${escapeXML(name)}</text>${body}<text x="30" y="${height*ratio+140}">KANTURA · floor contours · m · verify against a reference</text></g></svg>`;
 }
