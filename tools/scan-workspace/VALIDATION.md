@@ -18,6 +18,8 @@ passed the Swift guide/RoomPlan Foundation checks, core build, Xcode app build
 and unsigned IPA packaging. Signing, installation and LiDAR capture still need
 the physical iPhone. The two-room browser project also survived upload and
 reopening through the local server with its attached photo and reference check.
+The viewer and transport form were also exercised at a 390-pixel viewport;
+export buttons wrap and hidden icon labels retain accessible names.
 
 - Native indoor RoomPlan capture exports `.kantura-room.json` and USDZ, stores a
   local library and groups separate captures by building and floor. Browser
