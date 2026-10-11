@@ -8,6 +8,16 @@ on:
     paths: &ios_paths
       - '.github/workflows/ios.yml'
       - 'app/ios/**'
+      - 'tools/scan-workspace/src/splat-*.js'
+      - 'tools/scan-workspace/src/native-splat-*.js'
+      - 'tools/scan-workspace/src/capture-i18n.js'
+      - 'tools/scan-workspace/src/i18n.js'
+      - 'tools/scan-workspace/src/ux-i18n.js'
+      - 'tools/scan-workspace/locales/**'
+      - 'tools/scan-workspace/native-splat-build.mjs'
+      - 'tools/scan-workspace/public/native-splat.html'
+      - 'tools/scan-workspace/package.json'
+      - 'tools/scan-workspace/pnpm-lock.yaml'
       - 'tools/scan-workspace/public/videos/**'
       - 'app/android/jni/**'
       - 'corelib/**'
@@ -38,6 +48,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '11.25.0'
+      - name: Build offline native splat viewer assets
+        working-directory: tools/scan-workspace
+        run: pnpm install --frozen-lockfile && pnpm build:native-splat
 
       - name: Select Xcode ${{ env.XCODE_VERSION }}
         uses: maxim-lobanov/setup-xcode@v1
@@ -120,6 +140,11 @@ jobs:
               words = plistlib.loads(subprocess.check_output(['plutil', '-convert', 'xml1', '-o', '-', str(strings)]))
               assert words['NSCameraUsageDescription'] and words['NSLocationWhenInUseUsageDescription'], strings
           print('Verified all fifteen bundled offline MP4s.')
+          splats = folder.parent / 'SplatViewerAssets'
+          assert (splats / 'index.html').is_file()
+          assert (splats / 'viewer.js').stat().st_size > 100_000
+          assert 'MIT' in (splats / 'THIRD-PARTY-LICENSES.txt').read_text()
+          print('Verified separately bundled offline Gaussian-splat viewer assets.')
           PY
 
       - name: Package app (unsigned .ipa)

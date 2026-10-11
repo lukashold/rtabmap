@@ -11,6 +11,9 @@ importers:
       '@azure/msal-browser':
         specifier: 5.25.0
         version: 5.25.0
+      '@mkkellogg/gaussian-splats-3d':
+        specifier: 0.4.7
+        version: 0.4.7(three@0.186.1)
       fflate:
         specifier: 0.8.3
         version: 0.8.3
@@ -188,6 +191,11 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@mkkellogg/gaussian-splats-3d@0.4.7':
+    resolution: {integrity: sha512-0vy9/i9sJLFH/v3WJZ4axCsqjkToe8UsV3xY7bvK5EUC0akiRsWZODoCiSzpxhTLNyzSKTsyQKozIFeNA5RWRA==}
+    peerDependencies:
+      three: '>=0.160.0'
+
   esbuild@0.28.2:
     resolution: {integrity: sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA==}
     engines: {node: '>=18'}
@@ -284,6 +292,10 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.2':
     optional: true
+
+  '@mkkellogg/gaussian-splats-3d@0.4.7(three@0.186.1)':
+    dependencies:
+      three: 0.186.1
 
   esbuild@0.28.2:
     optionalDependencies:

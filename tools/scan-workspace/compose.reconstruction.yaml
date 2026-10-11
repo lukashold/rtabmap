@@ -1,0 +1,37 @@
+# Optional CPU reconstruction. Requires a strong SERVER_TOKEN in .env.
+# On Apple Silicon this AMD64 image runs under emulation; use native Object Capture
+# for local Apple photogrammetry. GPU/native MPS configuration is a separate route.
+services:
+  kantura:
+    environment:
+      RECONSTRUCTION_URL: http://reconstruction:4180
+    depends_on:
+      reconstruction:
+        condition: service_healthy
+  reconstruction:
+    platform: linux/amd64
+    build:
+      context: ../reconstruction
+      dockerfile: Dockerfile
+      args:
+        GPU_RUNTIME: CPU
+        BUILD_JOBS: ${RECONSTRUCTION_BUILD_JOBS:-2}
+    image: kantura-reconstruction:0.5.0
+    environment:
+      RECONSTRUCTION_TOKEN: ${SERVER_TOKEN:?Set a random SERVER_TOKEN of at least 32 characters in .env}
+      DATA_DIR: /data
+      WORKER_DEVICE: cpu
+      WORKER_THREADS: ${RECONSTRUCTION_THREADS:-2}
+      IMAGE_MAX_SIDE: ${RECONSTRUCTION_IMAGE_MAX_SIDE:-1600}
+      SPLAT_ITERATIONS: ${RECONSTRUCTION_SPLAT_ITERATIONS:-1000}
+    volumes:
+      - reconstruction-projects:/data
+    tmpfs:
+      - /tmp:rw,nosuid,size=1g
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    # Worker stays private on the Compose network; no new public port is opened.
+volumes:
+  reconstruction-projects:

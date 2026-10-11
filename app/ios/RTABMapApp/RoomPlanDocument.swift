@@ -21,6 +21,34 @@ struct RoomPlanDocument: Codable {
         let confidence: String
         let polygonCorners: [[Double]]?
 
+        struct Measurement: Equatable {
+            enum Kind: Equatable { case width, height, area }
+            let kind: Kind
+            let value: Double
+            var unit: String { kind == .area ? "m²" : "m" }
+        }
+
+        /// Architectural surfaces use local X for width and local Y for height;
+        /// these are bounding extents, not necessarily a rectangular outline.
+        /// Never present local Z as measured wall/floor thickness. Floors require
+        /// their detected polygon, rather than a bounding-box area estimate.
+        /// Bounds/polygon contract (Apple documentation):
+        /// https://developer.apple.com/documentation/roomplan/capturedroom/surface/dimensions
+        /// https://developer.apple.com/documentation/roomplan/capturedroom/surface/polygoncorners
+        /// Additional local-axis example from an independent developer, not an
+        /// Apple API guarantee: https://developer.apple.com/forums/thread/713409
+        var displayMeasurements: [Measurement] {
+            if kind == "floor" {
+                guard let area = polygonArea else { return [] }
+                return [Measurement(kind: .area, value: area)]
+            }
+            guard ["wall", "door", "window", "opening"].contains(kind),
+                  dimensions.count == 3,
+                  dimensions.allSatisfy({ $0.isFinite && $0 >= 0 }) else { return [] }
+            return [Measurement(kind: .width, value: dimensions[0]),
+                    Measurement(kind: .height, value: dimensions[1])]
+        }
+
         var polygonArea: Double? {
             guard let corners = polygonCorners, corners.count >= 3,
                   corners.allSatisfy({ $0.count == 3 && $0.allSatisfy(\.isFinite) }) else { return nil }

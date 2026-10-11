@@ -37,9 +37,17 @@ struct MeasurementGuide: Decodable {
     let steps: [Step]
     let workflow: Workflow?
     let roomPlan: [String: String]?
+    let objectCapture: [String: String]?
+    let splat: [String: String]?
 
     static func roomText(_ key: String) -> String {
         all[selectedLanguage]?.roomPlan?[key] ?? all["de"]?.roomPlan?[key] ?? key
+    }
+    static func objectText(_ key: String) -> String {
+        all[selectedLanguage]?.objectCapture?[key] ?? all["de"]?.objectCapture?[key] ?? key
+    }
+    static func splatText(_ key: String) -> String {
+        all[selectedLanguage]?.splat?[key] ?? all["de"]?.splat?[key] ?? key
     }
 
     static let languages = ["de", "en", "fr", "es", "it", "zh-Hans", "pt", "ar", "hi", "bn", "ru", "ja", "ko", "id", "tr"]

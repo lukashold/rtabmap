@@ -453,28 +453,47 @@ private enum RoomPlanPresentation {
         formatter.minimumFractionDigits = 2
         formatter.maximumFractionDigits = 2
         func number(_ value: Double) -> String { formatter.string(from: NSNumber(value: value)) ?? String(format: "%.2f", value) }
+        // RoomPlan confidence describes the recognized category, not an accuracy
+        // estimate for dimensions. Explain it once before the individual values.
+        stack.addArrangedSubview(KanturaDesign.label(MeasurementGuide.roomText("confidenceHelp"), style: .footnote, secondary: true))
         var counts: [String: Int] = [:]
         for surface in document.surfaces {
             counts[surface.kind, default: 0] += 1
             let title = MeasurementGuide.roomText(surface.kind) + " \(counts[surface.kind]!)"
             let heading = KanturaDesign.label(title, style: .headline)
-            let measurement: String
-            if surface.kind == "floor", let area = surface.polygonArea {
-                measurement = "\(number(area)) m²"
-            } else {
-                measurement = surface.dimensions.map { number($0) }.joined(separator: " × ") + " m"
+            let content = UIStackView(arrangedSubviews: [heading])
+            var accessibility = [title]
+            for measurement in surface.displayMeasurements {
+                let key: String
+                switch measurement.kind {
+                case .width: key = "dimensionWidth"
+                case .height: key = "dimensionHeight"
+                case .area: key = "dimensionArea"
+                }
+                let label = MeasurementGuide.roomText(key)
+                let value = "\(number(measurement.value)) \(measurement.unit)"
+                // Isolate the numeric value and SI unit, keeping the translated
+                // label in the natural reading direction (including Arabic).
+                let metric = KanturaDesign.label(label + ": \u{2066}" + value + "\u{2069}", style: .title2)
+                metric.font = UIFontMetrics(forTextStyle: .title2).scaledFont(for: .monospacedDigitSystemFont(ofSize: 23, weight: .semibold))
+                content.addArrangedSubview(metric)
+                accessibility.append(label + ": " + value)
             }
-            // Preserve X/Y/Z order and the unit in an Arabic interface.
-            let metric = KanturaDesign.label("\u{2066}" + measurement + "\u{2069}", style: .title2)
-            metric.font = UIFontMetrics(forTextStyle: .title2).scaledFont(for: .monospacedDigitSystemFont(ofSize: 23, weight: .semibold))
+            if surface.kind == "floor", surface.displayMeasurements.isEmpty {
+                let unavailable = MeasurementGuide.roomText("areaUnavailable")
+                content.addArrangedSubview(KanturaDesign.label(unavailable, style: .body, secondary: true))
+                accessibility.append(unavailable)
+            }
             let confidenceText = MeasurementGuide.roomText("confidence") + ": " + MeasurementGuide.roomText(surface.confidence)
             let confidence = KanturaDesign.label(confidenceText, style: .footnote, secondary: true)
-            let content = UIStackView(arrangedSubviews: [heading, metric, confidence])
+            content.addArrangedSubview(confidence)
+            accessibility.append(confidenceText)
             content.axis = .vertical
             content.spacing = 10
             let card = KanturaDesign.inset(content)
             card.isAccessibilityElement = true
-            card.accessibilityLabel = [title, measurement, confidenceText].joined(separator: ", ")
+            card.accessibilityLabel = accessibility.joined(separator: ", ")
+            card.accessibilityLanguage = MeasurementGuide.selectedLanguage
             stack.addArrangedSubview(card)
         }
     }

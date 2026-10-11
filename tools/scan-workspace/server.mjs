@@ -5,6 +5,7 @@ import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import { pipeline } from 'node:stream/promises';
 import { resolve, extname, sep, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createReconstructionProxy } from './reconstruction-proxy.mjs';
 
 export const MAX_PROJECT_BYTES = 200 * 1024 * 1024;
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -29,6 +30,9 @@ export function createAppServer(root = fileURLToPath(new URL('./dist', import.me
   const token = options.token ?? process.env.SERVER_TOKEN ?? '';
   const maxBytes = options.maxBytes ?? MAX_PROJECT_BYTES;
   const enabled = Boolean(dataDir && token);
+  const reconstructionURL = options.reconstructionURL ?? process.env.RECONSTRUCTION_URL ?? '';
+  if (reconstructionURL && !enabled) throw new Error('Reconstruction requires DATA_DIR and SERVER_TOKEN');
+  const reconstructionProxy = createReconstructionProxy(reconstructionURL, token, options.reconstructionLimits);
   if (enabled && token.length < 32) throw new Error('SERVER_TOKEN must contain at least 32 characters. Generate a random token.');
   if (!Number.isSafeInteger(maxBytes) || maxBytes <= 0 || maxBytes > MAX_PROJECT_BYTES) throw new Error('Invalid project size limit');
   const tokenDigest = digest(token);
@@ -116,6 +120,11 @@ export function createAppServer(root = fileURLToPath(new URL('./dist', import.me
         const authorization = req.headers.authorization || '';
         if (!authorization.startsWith('Bearer ') || !timingSafeEqual(digest(authorization.slice(7)), tokenDigest)) throw fail(401, 'unauthorized');
         await storageReady;
+        if (path === '/api/reconstruction' || path.startsWith('/api/reconstruction/')) {
+          if (!reconstructionProxy) throw fail(503, 'reconstruction_disabled');
+          await reconstructionProxy(req, res, path, url);
+          return;
+        }
         if (path === '/api/projects') {
           if (req.method === 'POST') { await receiveProject(req, res, url); return; }
           if (req.method !== 'GET') throw fail(405, 'method_not_allowed');
@@ -149,7 +158,7 @@ export function createAppServer(root = fileURLToPath(new URL('./dist', import.me
       if (path === '/health') { res.setHeader('Content-Type', 'text/plain'); res.end(req.method === 'HEAD' ? undefined : 'ok'); return; }
       if (path === '/config.json') {
         res.setHeader('Content-Type', 'application/json');
-        res.end(req.method === 'HEAD' ? undefined : JSON.stringify({ googleClientId: process.env.GOOGLE_CLIENT_ID || '', microsoftClientId: process.env.MICROSOFT_CLIENT_ID || '', serverEnabled: enabled })); return;
+        res.end(req.method === 'HEAD' ? undefined : JSON.stringify({ googleClientId: process.env.GOOGLE_CLIENT_ID || '', microsoftClientId: process.env.MICROSOFT_CLIENT_ID || '', serverEnabled: enabled, reconstructionEnabled: Boolean(reconstructionProxy) })); return;
       }
       const file = resolve(base, '.' + (path === '/' ? '/index.html' : path));
       if (!file.startsWith(base + sep)) { res.writeHead(404).end(); return; }

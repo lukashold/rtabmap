@@ -10,6 +10,8 @@ final class MeasurementGuideViewController: UIViewController {
     var onClose: (() -> Void)?
     var onRoomPlan: (() -> Void)?
     var onRoomPlanLibrary: (() -> Void)?
+    var onObjectCapture: (() -> Void)?
+    var onSplat: (() -> Void)?
     var workflowState = MeasurementWorkflowState(phase: .ready, canReconstruct: false, hasProjects: false)
     private let guides = MeasurementGuide.all
     private var step: Int?
@@ -137,13 +139,31 @@ final class MeasurementGuideViewController: UIViewController {
             }, for: .touchUpInside)
             content.addArrangedSubview(library)
             content.setCustomSpacing(28, after: library)
+            let photos = KanturaActionCard(title: MeasurementGuide.objectText("title"),
+                detail: MeasurementGuide.objectText("detail"), icon: "camera.aperture", emphasis: .mint)
+            photos.addAction(UIAction { [weak self] _ in
+                guard let self = self else { return }
+                let callback = self.onObjectCapture
+                let closed = self.onClose
+                self.dismiss(animated: true) { closed?(); callback?() }
+            }, for: .touchUpInside)
+            content.addArrangedSubview(photos)
+            let splat = KanturaActionCard(title: MeasurementGuide.splatText("title"),
+                detail: MeasurementGuide.splatText("detail"), icon: "sparkles")
+            splat.addAction(UIAction { [weak self] _ in
+                guard let self = self else { return }
+                let callback = self.onSplat
+                let closed = self.onClose
+                self.dismiss(animated: true) { closed?(); callback?() }
+            }, for: .touchUpInside)
+            content.addArrangedSubview(splat)
         }
         let workflowHeading = label("LiDAR · " + guide.start, style: .title2)
         workflowHeading.accessibilityTraits.insert(.header)
         content.addArrangedSubview(workflowHeading)
         let entries: [(Action, String)] = [(.scan, "camera.viewfinder"), (.assemble, "cube.transparent"), (.measure, "ruler"), (.share, "square.and.arrow.up")]
         for (index, entry) in entries.enumerated() where workflow.stages.indices.contains(index) {
-            // The first visit offers two meaningful capture choices. Locked
+            // The first visit offers supported capture choices. Locked
             // reconstruction/measurement/export steps stay in the tutorial.
             if workflowState.phase == .ready && entry.0 != .scan { continue }
             let stage = workflow.stages[index]

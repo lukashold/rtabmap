@@ -95,3 +95,26 @@ input#server-token{direction:ltr;unicode-bidi:isolate}
   .workspace>.results-panel{order:3}
   .tools-panel .tool-group{display:none}
 }
+
+/* Explicit, optional edge/corner snapping: CSS-pixel feedback above the model. */
+.snap-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.snap-toggle{display:flex;align-items:center;gap:8px;font-size:13px;line-height:1.5;cursor:pointer;flex:1;min-width:0}
+.snap-toggle input{width:20px;height:20px;accent-color:#5d34a4;flex-shrink:0}
+.snap-explanation{font-size:13px;color:var(--muted)}.snap-explanation summary{list-style:none;cursor:pointer;font-size:22px;padding:3px 8px;min-height:36px;line-height:1.3}
+.snap-explanation[open]{flex-basis:100%;order:3}.snap-explanation p{margin:6px 0;line-height:1.7}
+#snap-status{width:100%;margin:0;font-size:12px;line-height:1.6;color:#59358a}
+.snap-marker{position:absolute;z-index:5;pointer-events:none;width:20px;height:20px;border:3px solid #702fc3;outline:2px solid #fff;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 2px 5px #251a4055}
+.snap-marker.vertex{border-radius:2px;background:#ffffff88}
+@media(max-width:560px){.snap-controls{margin-top:8px;padding-top:6px}.snap-toggle{font-size:13px}}
+
+.capture-entry,.splat-actions,.job-artifacts{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+.splat-dialog{width:min(1100px,97vw)}.reconstruction-dialog{width:min(760px,96vw)}
+#splat-stage{position:relative;width:100%;height:min(60vh,650px);min-height:280px;background:var(--ink);border-radius:14px;overflow:hidden}
+#splat-stage canvas{display:block;touch-action:none}.splat-actions button{font-size:13px}
+#splat-status,#reconstruction-feedback{min-height:1.5em;overflow-wrap:anywhere;line-height:1.6}
+#reconstruction-jobs{list-style:none;padding:0}#reconstruction-jobs>li{border-top:1px solid var(--line);padding:18px 0;overflow-wrap:anywhere}
+#reconstruction-jobs p,.reconstruction-dialog>p{line-height:1.7}.job-artifacts button{font-size:13px}
+#workspace-splats,#workspace-photo-jobs{margin-top:10px;font-size:13px}
+@media(max-width:560px){.splat-dialog,.reconstruction-dialog{padding:16px}.splat-dialog .notice{font-size:12px;padding:10px}.splat-actions{gap:6px}.splat-actions button{flex:1 1 40%;padding:8px}.capture-entry button{flex:1}#splat-stage{height:45vh;min-height:240px}}
+
+#reconstruction-token{direction:ltr;unicode-bidi:isolate}

@@ -7,6 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A817AC080000000000000002 /* SplatDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC080000000000000001 /* SplatDocument.swift */; };
+		A817AC080000000000000004 /* SplatViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC080000000000000003 /* SplatViewController.swift */; };
+		A817AC080000000000000006 /* SplatViewerAssets in Resources */ = {isa = PBXBuildFile; fileRef = A817AC080000000000000005 /* SplatViewerAssets */; };
+		A817AC070000000000000002 /* PhotoDataset.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC070000000000000001 /* PhotoDataset.swift */; };
+		A817AC070000000000000004 /* ObjectCaptureViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC070000000000000003 /* ObjectCaptureViewController.swift */; };
 		A817AC060000000000000002 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = A817AC060000000000000001 /* InfoPlist.strings */; };
 		A817AC050000000000000002 /* videos in Resources */ = {isa = PBXBuildFile; fileRef = A817AC050000000000000001 /* videos */; };
 		A817AC040000000000000002 /* KanturaDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC040000000000000001 /* KanturaDesign.swift */; };
@@ -137,6 +142,11 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		A817AC080000000000000001 /* SplatDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SplatDocument.swift; path = RTABMapApp/SplatDocument.swift; sourceTree = "<group>"; };
+		A817AC080000000000000003 /* SplatViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SplatViewController.swift; path = RTABMapApp/SplatViewController.swift; sourceTree = "<group>"; };
+		A817AC080000000000000005 /* SplatViewerAssets */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SplatViewerAssets; path = RTABMapApp/SplatViewerAssets; sourceTree = "<group>"; };
+		A817AC070000000000000001 /* PhotoDataset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PhotoDataset.swift; path = RTABMapApp/PhotoDataset.swift; sourceTree = "<group>"; };
+		A817AC070000000000000003 /* ObjectCaptureViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ObjectCaptureViewController.swift; path = RTABMapApp/ObjectCaptureViewController.swift; sourceTree = "<group>"; };
 		A817AC060000000000000010 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "de"; path = "RTABMapApp/Translations/de.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 		A817AC060000000000000011 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "en"; path = "RTABMapApp/Translations/en.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 		A817AC060000000000000012 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "fr"; path = "RTABMapApp/Translations/fr.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
@@ -519,6 +529,11 @@
 				A817AC020000000000000003 /* MeasurementGuideViewController.swift */,
 				A817AC020000000000000001 /* MeasurementGuide.swift */,
 				A817AC030000000000000001 /* RoomPlanDocument.swift */,
+				A817AC070000000000000001 /* PhotoDataset.swift */,
+				A817AC080000000000000001 /* SplatDocument.swift */,
+				A817AC080000000000000003 /* SplatViewController.swift */,
+				A817AC080000000000000005 /* SplatViewerAssets */,
+				A817AC070000000000000003 /* ObjectCaptureViewController.swift */,
 				A817AC040000000000000001 /* KanturaDesign.swift */,
 				A817AC030000000000000003 /* RoomPlanViewController.swift */,
 				4EE016BF259BE464008CCE65 /* Main.storyboard */,
@@ -871,6 +886,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A817AC080000000000000006 /* SplatViewerAssets in Resources */,
 				4E0D83832621F52C00C879AC /* Settings.bundle in Resources */,
 				A817AC060000000000000002 /* InfoPlist.strings in Resources */,
 				A817AC020000000000000006 /* MeasurementGuide.json in Resources */,
@@ -920,6 +936,10 @@
 				A817AC020000000000000004 /* MeasurementGuideViewController.swift in Sources */,
 				A817AC020000000000000002 /* MeasurementGuide.swift in Sources */,
 				A817AC030000000000000002 /* RoomPlanDocument.swift in Sources */,
+				A817AC070000000000000002 /* PhotoDataset.swift in Sources */,
+				A817AC080000000000000002 /* SplatDocument.swift in Sources */,
+				A817AC080000000000000004 /* SplatViewController.swift in Sources */,
+				A817AC070000000000000004 /* ObjectCaptureViewController.swift in Sources */,
 				A817AC040000000000000002 /* KanturaDesign.swift in Sources */,
 				A817AC030000000000000004 /* RoomPlanViewController.swift in Sources */,
 				4E2C516725A63119005CEDBD /* DatabaseView.swift in Sources */,
@@ -1129,7 +1149,7 @@
 				CODE_SIGN_ENTITLEMENTS = RTABMapApp/RTABMapApp.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = 3RRB6NV8U9;
 				EXCLUDED_ARCHS = "";
@@ -1155,7 +1175,7 @@
 					"$(PROJECT_DIR)/RTABMapApp/Libraries/share/OpenCV/3rdparty/lib",
 					"$(PROJECT_DIR)/RTABMapApp/Libraries/lib/opencv4/3rdparty",
 				);
-				MARKETING_VERSION = 0.4.1;
+				MARKETING_VERSION = 0.5.0;
 				OTHER_CFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.lukashold.kantura;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1189,7 +1209,7 @@
 				CODE_SIGN_ENTITLEMENTS = RTABMapApp/RTABMapApp.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = 3RRB6NV8U9;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -1215,7 +1235,7 @@
 					"$(PROJECT_DIR)/RTABMapApp/Libraries/share/OpenCV/3rdparty/lib",
 					"$(PROJECT_DIR)/RTABMapApp/Libraries/lib/opencv4/3rdparty",
 				);
-				MARKETING_VERSION = 0.4.1;
+				MARKETING_VERSION = 0.5.0;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.lukashold.kantura;

@@ -32,3 +32,6 @@ vcpkg/
 vcpkg_installed/
 vcpkg_binaries/
 vcpkg_deps_from_source/
+
+# Built from the shared, licensed splat viewer sources before the iOS build.
+app/ios/RTABMapApp/SplatViewerAssets/

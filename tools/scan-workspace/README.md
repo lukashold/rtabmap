@@ -1,6 +1,50 @@
-# KANTURA measurement workspace — 0.4.1 preview
+# KANTURA measurement workspace — 0.5.0 preview
 
 A browser workspace for measuring room scans and outdoor objects such as gates. Import a KANTURA RoomPlan capture or a textured model, organize separate rooms by building and floor, add measurements and photo notes, and save a portable project archive. The guided interface, tutorial, reports and animated videos support 15 languages: German, English, French, Spanish, Italian, Simplified Chinese, Portuguese, Arabic, Hindi, Bengali, Russian, Japanese, Korean, Indonesian and Turkish.
+
+The 0.5.0 work adds optional geometry snapping, a Gaussian-splat viewer and explicit
+photo-reconstruction jobs. The native app gains Apple Object Capture/photogrammetry
+and a separate local splat preview. These additions are development features until
+their build, rendering and device checks are recorded in [VALIDATION.md](VALIDATION.md).
+See the [Polycam capability roadmap](../../docs/POLYCAM-ROADMAP.md) and the
+[independent implementation rules](../../docs/INDEPENDENT-IMPLEMENTATION.md).
+
+## Optional edge and corner assistance
+
+Enable **Snap to edges/corners** when selecting measurement points. Assistance is
+off by default, uses a 12-CSS-pixel radius and shows the proposed/selected point.
+It uses static mesh boundaries and creases of at least 30 degrees in world space,
+excluding coplanar triangle diagonals and straight tessellation vertices. Mesh
+boundaries may also be holes or scan artifacts: assistance does not recognize
+architectural components or correct scan errors. Existing measurements are not
+silently changed. Disable assistance for free point selection.
+
+Extraction is capped at 100,000 triangles and 20,000 eligible edge segments. If a
+model exceeds those limits, no partial snap index is used. Point clouds, skinned
+or instanced meshes, morph targets and partial triangle draw ranges remain freely
+measurable without assistance. Clipped/occluded points are filtered, with a bounded
+visibility-check budget. Dense scenes still need real-device performance tests.
+
+## Photo reconstruction and Gaussian splats
+
+The splat viewer is separate from the measurement model. It reads validated
+`.splat` or supported Gaussian `.ply` files with anisotropic scales, rotation and
+opacity; ordinary PLY meshes retain the original import path. The renderer shows
+the base spherical-harmonic color, retaining the original file for download.
+Splats have no trustworthy selectable mesh surface and do not automatically
+establish metric scale, so the splat view does not expose measurement tools.
+
+Photo jobs require an explicitly configured private reconstruction worker and
+an explicit upload. Their API is proxied on the same origin after authentication;
+the operator's internal worker origin and token are not public configuration.
+No job is complete merely because upload or queueing succeeded. The worker checks
+real output artifacts before publishing them. Its [API contract](../reconstruction/API.md)
+and [worker instructions](../reconstruction/README.md) document input, limits,
+hardware requirements, dependency provenance and validation boundaries.
+
+Photo-derived geometry requires a known reference to establish usable scale.
+Successful reconstruction, visual fidelity and metric accuracy are separate
+properties. Original room/gate LiDAR measurements remain available independently.
 
 ## Learn and contribute
 

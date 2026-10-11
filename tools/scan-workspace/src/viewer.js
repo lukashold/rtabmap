@@ -7,6 +7,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { strFromU8, strToU8 } from 'fflate';
 import { resolveAsset } from './files.js';
 import { MeasureError, resultFor } from './measure.js';
+import { buildSnapIndex, findSnap, visibleSnapPoint } from './snapping.js';
+import { splatPlyHeader } from './splat-data.js';
 
 function disposeTree(object) {
   const textures=new Set(),materials=new Set();
@@ -34,6 +36,7 @@ export async function parseModel(bundle) {
       if(mtls.length){const path=resolveAsset(mtls[0],bundle.assets,base);const material=new MTLLoader(manager).parse(strFromU8(bundle.assets[path]),path.includes('/')?path.slice(0,path.lastIndexOf('/')+1):'');loader.setMaterials(material);}
       root=loader.parse(text);
     } else if(/\.ply$/i.test(bundle.model)) {
+      if(splatPlyHeader(bytes))throw new MeasureError('splatSeparate');
       const geometry=new PLYLoader().parse(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength));
       if(geometry.index){geometry.computeVertexNormals();root=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({vertexColors:geometry.hasAttribute('color'),color:geometry.hasAttribute('color')?0xffffff:0xd8d5e8,roughness:.9,side:THREE.DoubleSide}));}
       else root=new THREE.Points(geometry,new THREE.PointsMaterial({vertexColors:geometry.hasAttribute('color'),color:geometry.hasAttribute('color')?0xffffff:0x796eb8,size:.008}));
@@ -56,7 +59,8 @@ export async function parseModel(bundle) {
 
 export class Viewer {
   constructor(container,onPick) {
-    this.container=container;this.onPick=onPick;this.mode='orbit';this.top=false;this.roof=false;this.textured=true;this.labels=[];
+    this.container=container;this.onPick=onPick;this.mode='orbit';this.top=false;this.roof=false;this.textured=true;this.labels=[];this.snapEnabled=false;
+    this.snapMarker=document.createElement('div');this.snapMarker.className='snap-marker';this.snapMarker.hidden=true;this.snapMarker.setAttribute('aria-hidden','true');container.append(this.snapMarker);
     this.renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});
     this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));this.renderer.setClearColor(0xf0f1f5);this.renderer.localClippingEnabled=true;
     this.renderer.domElement.tabIndex=0;this.renderer.domElement.setAttribute('aria-label','3D model');container.append(this.renderer.domElement);
@@ -65,17 +69,22 @@ export class Viewer {
     this.perspective=new THREE.PerspectiveCamera(42,1,.01,10000);this.orthographic=new THREE.OrthographicCamera(-5,5,5,-5,.01,10000);this.camera=this.perspective;
     this.annotation=new THREE.Group();this.scene.add(this.annotation);this.ray=new THREE.Raycaster();this.clip=new THREE.Plane(new THREE.Vector3(0,-1,0),100);
     this.setControls();this.observer=new ResizeObserver(()=>this.resize());this.observer.observe(container);
-    this.renderer.domElement.addEventListener('pointerdown',e=>this.down=[e.clientX,e.clientY]);
+    this.renderer.domElement.addEventListener('pointerdown',e=>{this.down=[e.clientX,e.clientY];this.pointerPreview(e);});
+    this.renderer.domElement.addEventListener('pointermove',e=>this.pointerPreview(e));
+    this.renderer.domElement.addEventListener('pointerleave',()=>this.clearSnap());
+    this.renderer.domElement.addEventListener('pointercancel',()=>{this.down=null;this.clearSnap();});
     this.renderer.domElement.addEventListener('pointerup',e=>{
       if(e.button!==0||this.mode==='orbit'||!this.root||!this.down||Math.hypot(e.clientX-this.down[0],e.clientY-this.down[1])>5)return;
-      const rect=this.renderer.domElement.getBoundingClientRect();
+      this.down=null;
+      const snap=this.snapAt(e.clientX,e.clientY),rect=this.renderer.domElement.getBoundingClientRect();
       this.ray.setFromCamera(new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1),this.camera);
       this.ray.params.Points.threshold=this.span*.005;
       const hit=this.ray.intersectObject(this.root,true).find(h=>!this.roof||h.point.y<=this.clip.constant+1e-7);
-      if(hit){let point=hit.point;if(hit.object.isPoints&&Number.isInteger(hit.index))point=new THREE.Vector3().fromBufferAttribute(hit.object.geometry.attributes.position,hit.index).applyMatrix4(hit.object.matrixWorld);this.onPick(point.toArray());}
+      if(snap){this.onPick(snap.point.toArray());this.showSnap(snap,true);}
+      else if(hit){let point=hit.point;if(hit.object.isPoints&&Number.isInteger(hit.index))point=new THREE.Vector3().fromBufferAttribute(hit.object.geometry.attributes.position,hit.index).applyMatrix4(hit.object.matrixWorld);this.onPick(point.toArray());this.clearSnap();this.onSnapChange?.({picked:true,kind:'free'});}
     });
   }
-  setControls(){this.controls?.dispose();this.controls=new OrbitControls(this.camera,this.renderer.domElement);this.controls.enableRotate=!this.top;this.controls.addEventListener('change',()=>this.render());}
+  setControls(){this.controls?.dispose();this.controls=new OrbitControls(this.camera,this.renderer.domElement);this.controls.enableRotate=!this.top;this.controls.addEventListener('change',()=>{this.clearSnap();this.render();});}
   resize(){const {width,height}=this.container.getBoundingClientRect();if(!width||!height)return;this.renderer.setSize(width,height);this.perspective.aspect=width/height;this.perspective.updateProjectionMatrix();const extent=(this.span||5)*.65;this.orthographic.left=-extent*width/height;this.orthographic.right=extent*width/height;this.orthographic.top=extent;this.orthographic.bottom=-extent;this.orthographic.updateProjectionMatrix();this.render();}
   setModel(root,upAxis='z'){
     if(this.root){this.scene.remove(this.root);disposeTree(this.root);}
@@ -83,6 +92,7 @@ export class Viewer {
     let box=new THREE.Box3().setFromObject(this.root);if(box.isEmpty())throw new MeasureError('unsupported');
     const center=box.getCenter(new THREE.Vector3());this.root.position.set(-center.x,-box.min.y,-center.z);this.root.updateMatrixWorld(true);
     box=new THREE.Box3().setFromObject(this.root);this.span=Math.max(...box.getSize(new THREE.Vector3()).toArray(),.01);this.height=box.max.y;this.center=box.getCenter(new THREE.Vector3());
+    this.snapIndex=undefined;this.clearSnap();if(this.snapEnabled)this.snapIndex=buildSnapIndex(this.root);
     this.scene.add(this.root);this.setRoof(this.roof);this.setTexture(this.textured);this.fit();
   }
   fit(){if(!this.root)return;this.perspective.near=this.span/10000;this.perspective.far=this.span*100;this.perspective.updateProjectionMatrix();this.orthographic.near=this.span/10000;this.orthographic.far=this.span*100;
@@ -92,9 +102,22 @@ export class Viewer {
     this.camera.position.copy(this.center).add(offset);
     this.camera.up.set(0,this.top?0:1,this.top?-1:0);this.controls.target.copy(this.center);this.camera.zoom=1;this.controls.update();this.resize();}
   setTop(enabled){this.top=enabled;this.camera=enabled?this.orthographic:this.perspective;this.setControls();this.fit();}
-  setRoof(enabled){this.roof=enabled;this.clip.constant=(this.height||1)*.55;this.renderer.clippingPlanes=enabled?[this.clip]:[];this.render();}
+  setRoof(enabled){this.clearSnap();this.roof=enabled;this.clip.constant=(this.height||1)*.55;this.renderer.clippingPlanes=enabled?[this.clip]:[];this.render();}
   setTexture(enabled){this.textured=enabled;this.root?.traverse(child=>{if(child.isMesh)for(const m of Array.isArray(child.material)?child.material:[child.material]){if('originalMap'in m.userData)m.map=enabled?m.userData.originalMap:null;if(m.color)m.color.copy(enabled&&m.userData.originalColor?m.userData.originalColor:new THREE.Color(0xb9c1d5));m.needsUpdate=true;}});this.render();}
-  setMode(mode){this.mode=mode;this.renderer.domElement.style.cursor=mode==='orbit'?'grab':'crosshair';}
+  setMode(mode){this.clearSnap();this.mode=mode;this.renderer.domElement.style.cursor=mode==='orbit'?'grab':'crosshair';}
+  setSnapping(enabled){this.snapEnabled=!!enabled;this.clearSnap();if(enabled&&this.root&&!this.snapIndex)this.snapIndex=buildSnapIndex(this.root);this.onSnapChange?.();}
+  clearSnap(){if(this.snapFrame){cancelAnimationFrame(this.snapFrame);this.snapFrame=undefined;}this.snapCandidate=null;if(this.snapMarker)this.snapMarker.hidden=true;this.onSnapChange?.();}
+  snapAt(clientX,clientY){
+    if(!this.snapEnabled||this.mode==='orbit'||!this.root)return null;
+    const rect=this.renderer.domElement.getBoundingClientRect(),clipPlane=this.roof?this.clip:undefined;
+    return findSnap(this.snapIndex,this.camera,{x:clientX-rect.left,y:clientY-rect.top},rect,{clipPlane,isVisible:point=>visibleSnapPoint(this.root,this.camera,point,{clipPlane,tolerance:Math.max(this.span*1e-5,1e-7)})});
+  }
+  pointerPreview(event){
+    if(!this.snapEnabled||this.mode==='orbit')return;
+    this.snapPointer=[event.clientX,event.clientY];
+    if(!this.snapFrame)this.snapFrame=requestAnimationFrame(()=>{this.snapFrame=undefined;this.showSnap(this.snapAt(...this.snapPointer));});
+  }
+  showSnap(candidate,picked=false){this.snapCandidate=candidate;this.snapMarker.hidden=!candidate;this.snapMarker.classList.toggle('vertex',candidate?.kind==='vertex');this.onSnapChange?.(candidate?{kind:candidate.kind,picked}:undefined);this.render();}
   focusPoints(points){if(!points.length)return;const target=new THREE.Vector3();points.forEach(p=>target.add(new THREE.Vector3(...p)));target.divideScalar(points.length);const delta=target.clone().sub(this.controls.target);this.camera.position.add(delta);this.controls.target.copy(target);this.controls.update();this.render();}
   drawMeasurements(measurements,pending,scale,format,notes=[],onNote){
     disposeTree(this.annotation);this.annotation.clear();this.labels.forEach(l=>l.element.remove());this.labels=[];
@@ -109,8 +132,8 @@ export class Viewer {
     for(const note of notes)add([note.point],false,0x21a383,note.title,note);
     add(pending,false,0x00a99b);this.render();
   }
-  render(){if(!this.camera)return;this.renderer.render(this.scene,this.camera);const width=this.container.clientWidth,height=this.container.clientHeight;for(const label of this.labels){const p=label.position.clone().project(this.camera);label.element.hidden=Math.abs(p.z)>1||Math.abs(p.x)>1||Math.abs(p.y)>1;label.element.style.left=`${(p.x+1)*width/2}px`;label.element.style.top=`${(1-p.y)*height/2}px`;}}
-  destroy(){this.observer.disconnect();this.controls.dispose();if(this.root)disposeTree(this.root);disposeTree(this.annotation);this.renderer.dispose();}
+  render(){if(!this.camera)return;this.renderer.render(this.scene,this.camera);const width=this.container.clientWidth,height=this.container.clientHeight;if(this.snapCandidate){const p=this.snapCandidate.point.clone().project(this.camera);this.snapMarker.style.left=`${(p.x+1)*width/2}px`;this.snapMarker.style.top=`${(1-p.y)*height/2}px`;}for(const label of this.labels){const p=label.position.clone().project(this.camera);label.element.hidden=Math.abs(p.z)>1||Math.abs(p.x)>1||Math.abs(p.y)>1;label.element.style.left=`${(p.x+1)*width/2}px`;label.element.style.top=`${(1-p.y)*height/2}px`;}}
+  destroy(){this.clearSnap();this.snapMarker.remove();this.observer.disconnect();this.controls.dispose();if(this.root)disposeTree(this.root);disposeTree(this.annotation);this.renderer.dispose();}
 }
 
 export function demoBundle(){

@@ -14,7 +14,7 @@ RUN pnpm test && pnpm build
 FROM node:24-alpine
 WORKDIR /app
 COPY --from=build /app/tools/scan-workspace/dist ./dist
-COPY tools/scan-workspace/server.mjs ./server.mjs
+COPY tools/scan-workspace/server.mjs tools/scan-workspace/reconstruction-proxy.mjs ./
 RUN mkdir /data && chown node:node /data
 USER node
 ENV HOST=0.0.0.0 PORT=8080 DATA_DIR=/data

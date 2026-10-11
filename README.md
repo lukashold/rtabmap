@@ -15,6 +15,7 @@ Portuguese, Arabic, Hindi, Bengali, Russian, Japanese, Korean, Indonesian and Tu
 - [Independent App Store release requirements](docs/APP-STORE-RELEASE.md)
 - [Name and logo](tools/scan-workspace/BRAND.md)
 - [Usability review against MetaRoom and device acceptance checklist](docs/usability-review.md)
+- [Polycam capability roadmap](docs/POLYCAM-ROADMAP.md) · [Independent implementation and source provenance](docs/INDEPENDENT-IMPLEMENTATION.md)
 - [Contribute: development, translations and device testing](CONTRIBUTING.md) — [Deutsch](docs/contributing/de.md) · [Français](docs/contributing/fr.md) · [Español](docs/contributing/es.md) · [Italiano](docs/contributing/it.md) · [简体中文](docs/contributing/zh-Hans.md)
 - [Community issues](https://github.com/lukashold/rtabmap/issues) · [Feature scope](docs/KANTURA-FEATURES.md) · [Validation status](tools/scan-workspace/VALIDATION.md)
 

@@ -12,12 +12,20 @@ for language in MeasurementGuide.languages {
     precondition(workflow.stages.count == 4)
     precondition(workflow.stages.allSatisfy { !$0.title.isEmpty && !$0.detail.isEmpty })
     precondition(!workflow.prepareBody.isEmpty && !workflow.measureHint.isEmpty && !workflow.tutorial.isEmpty)
-    precondition(guide.roomPlan!.count == 56)
-    for key in ["videoTitle", "videoDetail", "videoUnavailable", "videoUnavailableDetail"] {
+    precondition(guide.roomPlan!.count == 61)
+    for key in ["videoTitle", "videoDetail", "videoUnavailable", "videoUnavailableDetail",
+                "dimensionWidth", "dimensionHeight", "dimensionArea", "areaUnavailable", "confidenceHelp"] {
         precondition(!(guide.roomPlan![key] ?? "").isEmpty)
     }
     precondition(guide.roomPlan!.values.allSatisfy { !$0.isEmpty })
     precondition(Set(guide.roomPlan!.keys) == Set(guides["de"]!.roomPlan!.keys))
+    precondition(guide.objectCapture!.count == 37)
+    precondition(Set(guide.objectCapture!.keys) == Set(guides["en"]!.objectCapture!.keys))
+    precondition(guide.objectCapture!.values.allSatisfy { !$0.isEmpty })
+    precondition(guide.objectCapture!["photosCount"]!.contains("{count}") && guide.objectCapture!["photosCount"]!.contains("{max}"))
+    precondition(guide.splat!.count == 9)
+    precondition(Set(guide.splat!.keys) == Set(guides["en"]!.splat!.keys))
+    precondition(guide.splat!.values.allSatisfy { !$0.isEmpty })
 }
 precondition(MeasurementGuide.languageCode("fr-CA") == "fr")
 precondition(MeasurementGuide.languageCode("zh_TW") == "zh-Hans")
@@ -53,16 +61,39 @@ precondition(floor.polygonArea == 4)
 let vertical = RoomPlanDocument.Surface(id: "wall-1", kind: "wall", dimensions: [3,2,0], transform: matrix,
     confidence: "high", polygonCorners: nil)
 precondition(vertical.polygonArea == nil)
+// Width and height retain the surface's local axes even when its world
+// transform is rotated. Z is not a measured thickness for these surfaces.
+for kind in ["wall", "door", "window", "opening"] {
+    let surface = RoomPlanDocument.Surface(id: kind, kind: kind, dimensions: [0.91,2.13,0.04], transform: matrix,
+        confidence: "high", polygonCorners: nil)
+    precondition(surface.displayMeasurements == [.init(kind: .width, value: 0.91), .init(kind: .height, value: 2.13)])
+    precondition(surface.displayMeasurements.allSatisfy { $0.unit == "m" })
+}
+// A concave floor's bounding rectangle is 6 m² but its detected area is 4 m².
+precondition(floor.displayMeasurements == [.init(kind: .area, value: 4)])
+precondition(floor.displayMeasurements[0].unit == "m²")
+let floorWithoutOutline = RoomPlanDocument.Surface(id: "no-outline", kind: "floor", dimensions: [3,2,0], transform: matrix,
+    confidence: "high", polygonCorners: nil)
+precondition(floorWithoutOutline.displayMeasurements.isEmpty)
+let degenerateFloor = RoomPlanDocument.Surface(id: "line", kind: "floor", dimensions: [3,2,0], transform: matrix,
+    confidence: "high", polygonCorners: [[0,0,0],[1,1,0],[2,2,0]])
+precondition(degenerateFloor.displayMeasurements.isEmpty)
+let malformedSurface = RoomPlanDocument.Surface(id: "missing-dimension", kind: "wall", dimensions: [2], transform: matrix,
+    confidence: "high", polygonCorners: nil)
+precondition(malformedSurface.displayMeasurements.isEmpty)
 var document = RoomPlanDocument(name: "Kitchen", createdAt: "2026-10-11T10:00:00Z", roomId: "room-1", surfaces: [floor, vertical])
 document.building = RoomPlanDocument.Building(name: "House", floor: "First floor", room: "Kitchen")
 let roomData = try document.encoded()
 let raw = try JSONSerialization.jsonObject(with: roomData) as! [String: Any]
 precondition(raw["format"] as? String == "kantura-room-plan" && raw["units"] as? String == "m")
+let rawSurface = (raw["surfaces"] as! [[String: Any]])[0]
+precondition(rawSurface["displayMeasurements"] == nil) // Presentation does not change interchange v1.
 let roundtrip = try JSONDecoder().decode(RoomPlanDocument.self, from: roomData)
 precondition(roundtrip.building?.floor == "First floor")
 precondition(roundtrip.surfaces[0].transform[12] == 3 && roundtrip.surfaces[0].transform[14] == 5)
 try roundtrip.validate()
 let invalid = RoomPlanDocument.Surface(id: "bad", kind: "wall", dimensions: [3,.nan,0], transform: matrix, confidence: "high", polygonCorners: nil)
+precondition(invalid.displayMeasurements.isEmpty)
 let invalidDocument = RoomPlanDocument(name: "Bad", createdAt: "2026-10-11T10:00:00Z", roomId: "bad", surfaces: [invalid])
 precondition((try? invalidDocument.encoded()) == nil)
 var invalidBuilding = document
@@ -108,3 +139,82 @@ precondition(failed.authorize() && failed.start() && failed.finish())
 failed.fail()
 precondition(!failed.processed() && !failed.export())
 print("RoomPlan: polygon area, schema roundtrip, building metadata, library completeness, and capture lifecycle checks passed")
+
+var photoFlow = PhotoCaptureLifecycle()
+precondition(!photoFlow.process() && !photoFlow.captured() && !photoFlow.completed())
+precondition(photoFlow.start() && !photoFlow.start())
+precondition(!photoFlow.finish(imageCount: 19) && photoFlow.phase == .capturing)
+precondition(photoFlow.finish(imageCount: 20) && photoFlow.captured() && photoFlow.process())
+photoFlow.processingStopped()
+precondition(photoFlow.phase == .photos && photoFlow.process() && photoFlow.completed())
+photoFlow.cancel()
+precondition(!photoFlow.completed() && !photoFlow.captured() && !photoFlow.start())
+photoFlow.fail()
+precondition(photoFlow.phase == .cancelled)
+var cancelledCapture = PhotoCaptureLifecycle()
+precondition(cancelledCapture.start() && cancelledCapture.finish(imageCount: 30))
+cancelledCapture.cancel()
+precondition(!cancelledCapture.captured())
+
+let photoRoot = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+let datasetDirectory = photoRoot.appendingPathComponent(UUID().uuidString)
+let imageDirectory = datasetDirectory.appendingPathComponent("Images")
+try FileManager.default.createDirectory(at: imageDirectory, withIntermediateDirectories: true)
+defer { try? FileManager.default.removeItem(at: photoRoot) }
+// Byte fixtures exercise manifest/library integrity, not image reconstruction.
+for index in 0..<20 { try Data([1]).write(to: imageDirectory.appendingPathComponent("IMG_\(index).HEIC")) }
+let photoRecord = try SavedPhotoDataset.finish(directory: datasetDirectory, name: "Vase")
+precondition(photoRecord.manifest.images.count == 20 && !photoRecord.hasModel)
+precondition(SavedPhotoDataset.load(from: photoRoot).count == 1)
+let photoRoundtrip = try JSONDecoder().decode(PhotoDataset.self, from: photoRecord.manifest.encoded())
+precondition(photoRoundtrip.scaleStatus == "unverified" && photoRoundtrip.images == photoRecord.manifest.images)
+let modifiedImage = imageDirectory.appendingPathComponent("IMG_0.HEIC")
+try Data([1,2]).write(to: modifiedImage)
+precondition(SavedPhotoDataset.load(from: photoRoot).isEmpty)
+try Data([1]).write(to: modifiedImage)
+let checkpoint = datasetDirectory.appendingPathComponent("Checkpoint")
+try FileManager.default.createDirectory(at: checkpoint, withIntermediateDirectories: true)
+try Data([1]).write(to: checkpoint.appendingPathComponent("model-in-progress.usdz"))
+precondition(!photoRecord.hasModel && SavedPhotoDataset.load(from: photoRoot).count == 1)
+for unsafeName in ["Images/../escape.jpg", "../escape.jpg", "Images/..\\escape.jpg", "Images/.hidden.jpg", "Images/data.exe"] {
+    let invalid = PhotoDataset(id: UUID().uuidString, name: "Bad", createdAt: "2026-10-11T12:00:00Z",
+        images: [.init(file: unsafeName, bytes: 1)])
+    precondition((try? invalid.encoded()) == nil)
+}
+let duplicatePhotos = PhotoDataset(id: UUID().uuidString, name: "Duplicate", createdAt: "2026-10-11T12:00:00Z",
+    images: [.init(file: "Images/a.jpg", bytes: 1), .init(file: "Images/a.jpg", bytes: 1)])
+precondition((try? duplicatePhotos.encoded()) == nil)
+print("Photo capture: cancellation/late callbacks, retry, minimum images, private dataset schema and incomplete-library checks passed")
+
+let splatRoot = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+try FileManager.default.createDirectory(at: splatRoot, withIntermediateDirectories: true)
+defer { try? FileManager.default.removeItem(at: splatRoot) }
+let rawSplat = splatRoot.appendingPathComponent("test.splat")
+try Data(repeating: 0, count: 32).write(to: rawSplat)
+let splatDocument = try SplatDocument.read(from: rawSplat, maximumBytes: 32)
+precondition(splatDocument.data.count == 32)
+do { _ = try SplatDocument.read(from: rawSplat, maximumBytes: 31); preconditionFailure("Expected bounded read") }
+catch SplatDocument.Failure.tooLarge { }
+try Data(repeating: 0, count: 31).write(to: rawSplat)
+do { _ = try SplatDocument.read(from: rawSplat); preconditionFailure("Expected incomplete splat rejection") }
+catch SplatDocument.Failure.invalidFile { }
+let wrongType = splatRoot.appendingPathComponent("test.html")
+try Data("ply\n".utf8).write(to: wrongType)
+do { _ = try SplatDocument.read(from: wrongType); preconditionFailure("Expected unsupported extension") }
+catch SplatDocument.Failure.unsupportedType { }
+let plyFile = splatRoot.appendingPathComponent("test.ply")
+try Data("ply\r\nformat ascii 1.0\r\n".utf8).write(to: plyFile)
+let acceptedPLY = try SplatDocument.read(from: plyFile)
+precondition(acceptedPLY.name == "test.ply")
+try Data("<html>invalid</html>".utf8).write(to: plyFile)
+do { _ = try SplatDocument.read(from: plyFile); preconditionFailure("Expected invalid PLY signature") }
+catch SplatDocument.Failure.invalidFile { }
+// Quotes, script-looking text and bidi characters must round-trip as data;
+// filenames are JSON strings, never an interpolated executable expression.
+let hostileName = "\";window.attack();//\u{202E}.splat"
+let hostile = SplatDocument(name: hostileName, data: Data([0,1,255]))
+let payload = try hostile.javascriptPayload(language: "ar")
+let decodedPayload = try JSONSerialization.jsonObject(with: Data(payload.utf8)) as! [String: String]
+precondition(decodedPayload["name"] == hostileName && decodedPayload["language"] == "ar")
+precondition(Data(base64Encoded: decodedPayload["base64"]!) == hostile.data)
+print("Offline Splat import: bounded reads, file-type/signature checks, truncated data, and safe bridge payload checks passed")

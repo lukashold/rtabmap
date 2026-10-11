@@ -24,7 +24,7 @@ test('fifteen complete tutorials and UI dictionaries share supported languages',
     assert.deepEqual(Object.keys(g).sort(),Object.keys(guide.de).sort());
     assert.deepEqual(Object.keys(g.workflow).sort(),Object.keys(guide.de.workflow).sort());
     assert.equal(g.workflow.stages.length,4);assert.ok(g.workflow.stages.every(s=>s.title&&s.detail));
-    assert.equal(Object.keys(g.roomPlan).length,56);
+    assert.equal(Object.keys(g.roomPlan).length,61);
     assert.deepEqual(Object.keys(g.roomPlan).sort(),Object.keys(guide.de.roomPlan).sort());
     assert.ok(Object.values(g.roomPlan).every(v=>typeof v==='string'&&v.length));
   }
@@ -51,7 +51,7 @@ test('static server exposes public configuration, rejects writes and traversal',
   try{
     assert.equal(await(await fetch(url)).text(),'<h1>test</h1>');
     assert.equal(await(await fetch(url+'/health')).text(),'ok');
-    assert.deepEqual(Object.keys(await(await fetch(url+'/config.json')).json()),['googleClientId','microsoftClientId','serverEnabled']);
+    assert.deepEqual(Object.keys(await(await fetch(url+'/config.json')).json()),['googleClientId','microsoftClientId','serverEnabled','reconstructionEnabled']);
     assert.equal((await fetch(url,{method:'POST',body:'scan data'})).status,405);
     assert.equal((await fetch(url+'/%2e%2e%2fpackage.json')).status,404);
     assert.equal((await fetch(url+'/%zz')).status,404);
