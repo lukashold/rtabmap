@@ -1,5 +1,7 @@
 # Kantura — Scan. See. Measure.
 
+<img src="tools/scan-workspace/public/kantura.svg" width="96" alt="Kantura logo">
+
 An independent RTAB-Map fork focused on measuring rooms and outdoor objects.
 Kantura adds a guided iPhone dashboard, tutorials in German, French, Spanish,
 Italian and Simplified Chinese, and a browser workspace for dimensions and areas.

@@ -1,7 +1,22 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CloudDrive, SCOPES } from '../src/cloud.js';
+import { CloudDrive, SCOPES, prepareAuth, signIn, resetAuth } from '../src/cloud.js';
+import { ServerDrive } from '../src/server-drive.js';
 const json=(data,status=200,headers={})=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json',...headers}});
+test('browser fetch is not invoked with a drive object as its receiver',async()=>{
+  const original=globalThis.fetch;
+  globalThis.fetch=async function(url){assert.ok(this===undefined||this===globalThis);return json(url.startsWith('./')?{projects:[]}:{files:[]});};
+  try{assert.deepEqual(await new ServerDrive('token').list(),[]);assert.deepEqual(await new CloudDrive('google','token').list(),[]);}finally{globalThis.fetch=original;}
+});
+test('Google popup closure rejects the pending login and a later login can succeed',async()=>{
+  const original=globalThis.window;let response='close';
+  globalThis.window={google:{accounts:{oauth2:{initTokenClient:options=>({requestAccessToken(){if(response==='close')options.error_callback({type:'popup_closed'});else options.callback({access_token:'fresh-token',expires_in:3600});}})}}}};
+  try{
+    await resetAuth();await prepareAuth({googleClientId:'public-client-id'});
+    await assert.rejects(signIn('google'),e=>e.code==='networkError');
+    response='success';assert.equal(await signIn('google'),'fresh-token');
+  }finally{await resetAuth();if(original===undefined)delete globalThis.window;else globalThis.window=original;}
+});
 test('OneDrive uses app-folder scope and no bearer token on upload session URLs',async()=>{
   assert.equal(SCOPES.microsoft,'Files.ReadWrite.AppFolder');const calls=[];
   const drive=new CloudDrive('microsoft','TOKEN',async(url,options={})=>{calls.push([url,options]);if(url.includes('special/approot'))return json({id:'folder'});if(url.includes('createUploadSession'))return json({uploadUrl:'https://upload.example.test/session'});return json({id:'saved'},201);});

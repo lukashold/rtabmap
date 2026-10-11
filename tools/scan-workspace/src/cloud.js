@@ -6,7 +6,7 @@ export class CloudError extends Error { constructor(status=0){super('networkErro
 async function checked(response, extra=[]) { if(!response.ok&&!extra.includes(response.status))throw new CloudError(response.status);return response; }
 function safeUrl(url,host) { const parsed=new URL(url);if(parsed.protocol!=='https:'||parsed.username||parsed.password||(host&&parsed.hostname!==host))throw new CloudError();return url; }
 export class CloudDrive {
-  constructor(provider,token,fetcher=fetch){this.provider=provider;this.token=token;this.fetch=fetcher;}
+  constructor(provider,token,fetcher=(...args)=>fetch(...args)){this.provider=provider;this.token=token;this.fetch=fetcher;}
   async api(url,options={}) {
     safeUrl(url,this.provider==='google'?'www.googleapis.com':'graph.microsoft.com');
     return checked(await this.fetch(url,{...options,headers:{...options.headers,Authorization:`Bearer ${this.token}`}}));
@@ -82,7 +82,7 @@ export async function prepareAuth(config) {
   }
   if(config.googleClientId&&!googleClient){
     if(!window.google?.accounts?.oauth2)await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='https://accounts.google.com/gsi/client';script.onload=resolve;script.onerror=reject;document.head.append(script);});
-    googleClient=window.google.accounts.oauth2.initTokenClient({client_id:config.googleClientId,scope:SCOPES.google,callback:()=>{}});
+    googleClient={clientId:config.googleClientId};
   }
 }
 export async function signIn(provider) {
@@ -90,9 +90,10 @@ export async function signIn(provider) {
     if(googleToken&&Date.now()<googleExpiry)return googleToken;
     if(!googleClient)throw new CloudError();
     return new Promise((resolve,reject)=>{
-      googleClient.callback=response=>{if(response.error){reject(new CloudError());return;}googleToken=response.access_token;googleExpiry=Date.now()+(Number(response.expires_in)-60)*1000;resolve(googleToken);};
-      googleClient.error_callback=()=>reject(new CloudError());
-      googleClient.requestAccessToken({prompt:googleToken?'':'select_account'});
+      const client=window.google.accounts.oauth2.initTokenClient({client_id:googleClient.clientId,scope:SCOPES.google,
+        callback:response=>{if(response.error||!response.access_token){reject(new CloudError());return;}googleToken=response.access_token;googleExpiry=Date.now()+(Number(response.expires_in)-60)*1000;resolve(googleToken);},
+        error_callback:()=>reject(new CloudError())});
+      client.requestAccessToken({prompt:googleToken?'':'select_account'});
     });
   }
   if(!msalApp)throw new CloudError();

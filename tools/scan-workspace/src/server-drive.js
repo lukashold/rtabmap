@@ -1,6 +1,6 @@
 import { CloudError } from './cloud.js';
 export class ServerDrive {
-  constructor(token,fetcher=fetch){this.token=token;this.fetch=fetcher;}
+  constructor(token,fetcher=(...args)=>fetch(...args)){this.token=token;this.fetch=fetcher;}
   async api(path,options={}){
     const response=await this.fetch(`./api/projects${path}`,{...options,headers:{...options.headers,Authorization:`Bearer ${this.token}`}});
     if(!response.ok)throw new CloudError(response.status);
