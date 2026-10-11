@@ -61,6 +61,7 @@ function refresh(){
 }
 function translate(){
   document.documentElement.lang=language;$('language').value=language;
+  document.querySelector('.brand').setAttribute('aria-label',`Kantura · ${t('home')}`);
   document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=t(el.dataset.i18n));
   document.querySelectorAll('button').forEach(el=>{const label=el.querySelector('[data-i18n]');if(label)el.setAttribute('aria-label',t(label.dataset.i18n));});
   document.querySelectorAll('[data-close]').forEach(el=>el.setAttribute('aria-label',t('close')));
@@ -108,7 +109,9 @@ async function openFiles(files){if(!files.length||busy||(!addingRoom&&!allowRepl
 $('home-open').onclick=()=>{addingRoom=false;$('file').click();};
 $('home-demo').onclick=()=>$('demo').click();
 document.querySelectorAll('[data-entry]').forEach(button=>button.onclick=()=>{addingRoom=false;$('file').click();});
-$('home-nav').onclick=()=>{document.body.classList.add('show-home');refresh();};
+function showOverview(){document.body.classList.add('show-home');refresh();}
+$('home-nav').onclick=showOverview;
+document.querySelector('.brand').onclick=event=>{event.preventDefault();showOverview();};
 $('return-workspace').onclick=()=>{document.body.classList.remove('show-home');refresh();viewer?.fit();};
 $('file').addEventListener('cancel',()=>addingRoom=false);
 $('file').onchange=async()=>{await openFiles($('file').files);$('file').value='';};
@@ -149,7 +152,7 @@ document.querySelectorAll('[data-close]').forEach(el=>el.onclick=()=>$(el.datase
 function openVideo(){
   const script=videos.languages[language]||videos.languages.en,video=$('explainer-video');video.pause();
   $('video-title').textContent=script.title;$('video-description').textContent=script.description;$('video-error').hidden=true;
-  video.replaceChildren();const source=document.createElement('source');source.src=`./videos/kantura-${language}.mp4`;source.type='video/mp4';video.append(source);
+  video.replaceChildren();const source=document.createElement('source');source.src=`./videos/kantura-${language}.mp4`;source.type='video/mp4';source.onerror=()=>$('video-error').hidden=false;video.append(source);
   const track=document.createElement('track');track.kind='captions';track.src=`./videos/kantura-${language}.vtt`;track.srclang=language;track.label=$('language').selectedOptions[0].textContent;video.append(track);
   video.load();$('video-download').href=source.src;$('caption-download').href=track.src;$('video-transcript').replaceChildren();
   script.scenes.forEach(scene=>{const li=document.createElement('li'),title=document.createElement('strong'),body=document.createElement('p');title.textContent=scene.title;body.textContent=scene.narration;li.append(title,body);$('video-transcript').append(li);});
