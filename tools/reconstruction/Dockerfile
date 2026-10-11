@@ -13,9 +13,9 @@ RUN test "${TARGETARCH}" = amd64 && apt-get update && apt-get install -y --no-in
     libgoogle-glog-dev libgtest-dev libglew-dev libmetis-dev libsqlite3-dev liblz4-dev \
     libcgal-dev libopencv-dev libgmp-dev libmpfr-dev && rm -rf /var/lib/apt/lists/*
 WORKDIR /opt/kantura
-COPY pins.json requirements.txt build-engines.sh ./
+COPY pins.json requirements.txt engines-build.sh ./
 RUN python3 -m pip install --no-cache-dir -r requirements.txt
-RUN GPU_RUNTIME="${GPU_RUNTIME}" BUILD_JOBS="${BUILD_JOBS}" CUDA_ARCHITECTURES="${CUDA_ARCHITECTURES}" bash ./build-engines.sh
+RUN GPU_RUNTIME="${GPU_RUNTIME}" BUILD_JOBS="${BUILD_JOBS}" CUDA_ARCHITECTURES="${CUDA_ARCHITECTURES}" bash ./engines-build.sh
 COPY contract.py worker.py service.py ./
 COPY README.md API.md THIRD-PARTY.md ./
 RUN useradd --uid 10001 --create-home --shell /usr/sbin/nologin kantura && \

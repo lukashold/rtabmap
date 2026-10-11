@@ -163,8 +163,11 @@ Run the contract/API tests with Python 3.9 or newer:
 python -m unittest discover -s test -v
 ```
 
-The 37 contract/API tests passed locally on Windows with Python 3.9 on
-11 October 2026. These tests use an explicitly named **FakeWorker** to exercise queue transitions,
+All 41 tests passed locally on Windows with Python 3.9 and the pinned
+`requirements.txt` dependencies on 11 October 2026: 37 contract/API/process checks
+and four actual JPEG/PNG/HEIC decode/orientation/resize/error checks. The four
+codec checks explicitly skip if those dependencies are missing. The process tests
+use an explicitly named **FakeWorker** to exercise queue transitions,
 failure, cancellation, artifact admission and persistence. Their small geometry
 fixtures are test data, never a replacement for reconstruction, and cannot be
 enabled by an HTTP request or production environment switch.
