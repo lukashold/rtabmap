@@ -1,3 +1,4 @@
+import { assessTransport } from './transport.js';
 export class MeasureError extends Error { constructor(code) { super(code); this.code = code; } }
 const sub = (a, b) => a.map((v, i) => v - b[i]);
 const dot = (a, b) => a.reduce((s, v, i) => s + v * b[i], 0);
@@ -69,6 +70,22 @@ export function validateProject(p) {
     if(typeof m.label!=='string'||m.label.length>200||!['distance','floor','surface'].includes(m.kind)) throw new MeasureError('invalidProject');
     if(m.kind==='distance' && m.points.length!==2) throw new MeasureError('invalidProject');
     resultFor(m,p.scale);
+  }
+  const ids=new Set();
+  if(p.transport!==undefined){if(typeof p.transport.model!=='string'||p.transport.model.length>200||typeof p.transport.assessedAt!=='string'||!Number.isFinite(Date.parse(p.transport.assessedAt)))throw new MeasureError('invalidProject');assessTransport(p.transport.input);}
+  for(const [key,limit] of [['notes',200],['checks',100]]) {
+    if(p[key]===undefined)continue;
+    if(!Array.isArray(p[key])||p[key].length>limit)throw new MeasureError('invalidProject');
+    for(const item of p[key]) {
+      if(typeof item.id!=='string'||item.id.length>200||ids.has(item.id))throw new MeasureError('invalidProject');ids.add(item.id);
+      if(key==='notes') {
+        if(typeof item.title!=='string'||!item.title.trim()||item.title.length>200||typeof item.description!=='string'||item.description.length>4000||!['door','window','gate','wall','other'].includes(item.kind)||item.photo!==undefined&&!/^kantura-notes\/[a-zA-Z0-9-]{1,80}\.(jpg|png|webp)$/.test(item.photo))throw new MeasureError('invalidProject');
+        validatePoints([item.point],1);
+      }else{
+        if(typeof item.label!=='string'||item.label.length>200||item.points?.length!==2||typeof item.createdAt!=='string'||!Number.isFinite(Date.parse(item.createdAt)))throw new MeasureError('invalidProject');
+        validateScale(item.knownMeters);distance(...item.points,p.scale);
+      }
+    }
   }
   return p;
 }

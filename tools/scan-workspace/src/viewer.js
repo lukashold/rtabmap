@@ -95,16 +95,18 @@ export class Viewer {
   setRoof(enabled){this.roof=enabled;this.clip.constant=(this.height||1)*.55;this.renderer.clippingPlanes=enabled?[this.clip]:[];this.render();}
   setTexture(enabled){this.textured=enabled;this.root?.traverse(child=>{if(child.isMesh)for(const m of Array.isArray(child.material)?child.material:[child.material]){if('originalMap'in m.userData)m.map=enabled?m.userData.originalMap:null;if(m.color)m.color.copy(enabled&&m.userData.originalColor?m.userData.originalColor:new THREE.Color(0xb9c1d5));m.needsUpdate=true;}});this.render();}
   setMode(mode){this.mode=mode;this.renderer.domElement.style.cursor=mode==='orbit'?'grab':'crosshair';}
-  drawMeasurements(measurements,pending,scale,format){
+  focusPoints(points){if(!points.length)return;const target=new THREE.Vector3();points.forEach(p=>target.add(new THREE.Vector3(...p)));target.divideScalar(points.length);const delta=target.clone().sub(this.controls.target);this.camera.position.add(delta);this.controls.target.copy(target);this.controls.update();this.render();}
+  drawMeasurements(measurements,pending,scale,format,notes=[],onNote){
     disposeTree(this.annotation);this.annotation.clear();this.labels.forEach(l=>l.element.remove());this.labels=[];
     const radius=(this.span||5)*.0018;
-    const add=(points,closed,color,text)=>{
+    const add=(points,closed,color,text,note)=>{
       for(const p of points){const sphere=new THREE.Mesh(new THREE.SphereGeometry(radius*2,12,8),new THREE.MeshBasicMaterial({color,depthTest:false}));sphere.position.fromArray(p);sphere.renderOrder=10;this.annotation.add(sphere);}
       const vertices=points.map(p=>new THREE.Vector3(...p));if(closed&&vertices.length>2)vertices.push(vertices[0]);
       if(vertices.length>1){const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(vertices),new THREE.LineBasicMaterial({color,depthTest:false}));line.renderOrder=10;this.annotation.add(line);}
-      if(text&&vertices.length){const position=new THREE.Vector3();points.forEach(p=>position.add(new THREE.Vector3(...p)));position.divideScalar(points.length);const label=document.createElement('div');label.className='model-label';label.textContent=text;this.container.append(label);this.labels.push({position,element:label});}
+      if(text&&vertices.length){const position=new THREE.Vector3();points.forEach(p=>position.add(new THREE.Vector3(...p)));position.divideScalar(points.length);const label=document.createElement(note?'button':'div');label.className='model-label'+(note?' note-label':'');label.textContent=text;if(note)label.onclick=()=>onNote?.(note);this.container.append(label);this.labels.push({position,element:label});}
     };
     for(const m of measurements){const r=resultFor(m,scale);add(m.points,m.kind!=='distance',0x6d28d9,`${m.label} · ${format(r.area??r.length)} ${m.kind==='distance'?'m':'m²'}`);}
+    for(const note of notes)add([note.point],false,0x21a383,note.title,note);
     add(pending,false,0x00a99b);this.render();
   }
   render(){if(!this.camera)return;this.renderer.render(this.scene,this.camera);const width=this.container.clientWidth,height=this.container.clientHeight;for(const label of this.labels){const p=label.position.clone().project(this.camera);label.element.hidden=Math.abs(p.z)>1||Math.abs(p.x)>1||Math.abs(p.y)>1;label.element.style.left=`${(p.x+1)*width/2}px`;label.element.style.top=`${(1-p.y)*height/2}px`;}}

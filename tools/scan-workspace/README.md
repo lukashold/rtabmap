@@ -1,8 +1,8 @@
-# KANTURA measurement workspace
+# KANTURA measurement workspace — 0.2 preview
 
-A browser workspace for measuring room scans and outdoor objects such as gates. Open a textured model, inspect it, mark distances or polygon areas, and save the model together with its measurements. The interface and the seven-step tutorial support German, French, Spanish, Italian and Simplified Chinese.
+A browser workspace for measuring room scans and outdoor objects such as gates. Import a KANTURA RoomPlan capture or a textured model, organize separate rooms by building and floor, add measurements and photo notes, and save a portable project archive. The interface and tutorial support German, French, Spanish, Italian and Simplified Chinese.
 
-KANTURA is an independently developed RTAB-Map fork; the current source branch is [kantura/main](https://github.com/lukashold/rtabmap/tree/kantura/main). This workspace is its optional browser companion. It does not reconstruct RTAB-Map databases, run LiDAR capture in the browser, automatically recognize rooms, or promise survey-grade accuracy. The workflow takes inspiration from [Metaroom's guided capture](https://help.amrax.ai/sample-page/scanning-with-metaroom-app/how-to-scan-a-single-room-with-the-metaroom-app/), with original interface code and content.
+KANTURA is an independently developed RTAB-Map fork; the current source branch is [kantura/main](https://github.com/lukashold/rtabmap/tree/kantura/main). This workspace is its optional browser companion. Automatic indoor surface recognition runs in the native iOS RoomPlan mode; the browser imports its results. It does not capture LiDAR, reconstruct RTAB-Map databases, automatically align separate rooms, or promise survey-grade accuracy. The workflow takes inspiration from [Metaroom's guided capture](https://help.amrax.ai/sample-page/scanning-with-metaroom-app/how-to-scan-a-single-room-with-the-metaroom-app/), with original interface code and content. See the [feature comparison and remaining work](../../docs/KANTURA-FEATURES.md) and [validation status](VALIDATION.md).
 
 ## Start on a computer
 
@@ -32,16 +32,48 @@ Open `http://localhost:8090`. This serves the interface and tutorial pages on yo
 
 The compose port is bound to `127.0.0.1`. For access from another computer, configure the documented reverse proxy and HTTPS on your own domain. Do not publish a write-enabled project library without access protection. The operator supplies public OAuth client IDs if direct cloud buttons are required; Docker does not create Microsoft or Google registrations.
 
-## Measure a scan
+## Capture indoor rooms with RoomPlan
+
+This flow requires the KANTURA development app on a supported LiDAR iPhone/iPad with iOS 17 or later. Installing the official upstream RTAB-Map App Store app does not install these fork additions. Follow the [signing and installation plan](../../docs/APP-STORE-RELEASE.md) on the Mac; the Docker server does not install or sign an iPhone app.
+
+1. Choose **Automatic room plan** in KANTURA, start capture and follow the camera guidance while walking slowly around one indoor room. Show walls, floor, doors and windows from different angles.
+2. Finish capture and inspect the detected elements, their dimensions and recognition confidence. Check physical reference dimensions. Confidence is a recognition signal, not a measurement accuracy certificate.
+3. Enter the building/project, floor and room name, then choose **Save and export**. KANTURA stores a local copy in its `KanturaRooms` library and exports two files: `.kantura-room.json` for this workspace and `.usdz` for a compatible 3D viewer.
+4. **Saved room plans** groups captures by building and floor and allows preview or export again. Capture the next room separately. Each capture has its own coordinate origin; grouping does not join them into one spatial model.
+5. Transfer the JSON through Files, OneDrive, Google Drive or another route. On the computer choose **Open file** and select the `.kantura-room.json` alone. The workspace generates a schematic model with imported element dimensions and valid captured floor contours. Use **Add room** for subsequent individual room files, then switch rooms in the room list. Edit building, floor and room labels as needed.
+6. Save the workspace as a `.kantura-building.zip`. It includes the independent room models, names, floors and annotations. Reopen this archive to resume. Opening another file replaces the workspace after the unsaved-change prompt; **Add room** appends a room instead.
+
+RoomPlan creates schematic geometry without photographic textures. The browser supports the KANTURA JSON schema, not arbitrary Apple `CapturedRoom` JSON or USDZ import. A missing or invalid floor contour is not invented. Windows and doors are separate classified surfaces; their areas are not automatically subtracted from gross wall areas. Retain the native exports as originals. Textured RTAB-Map scans and RoomPlan captures are separate acquisitions and are not automatically registered together.
+
+## Measure a textured scan or outdoor gate
 
 1. On iPhone, capture in normal Mapping with LiDAR enabled. Save the original `.db`.
 2. Assemble an optimized textured mesh and export the OBJ ZIP including its MTL and images. Use the iOS Files export to save to an installed, signed-in OneDrive or Google Drive provider, or transfer the ZIP another way.
 3. Open that ZIP in the workspace. Confirm the unit and up axis; RTAB-Map models normally use metres and Z up. Inspect holes, duplicated surfaces and thin gate parts before measuring.
 4. Select **Distance** and click two points. The result includes straight-line length, horizontal distance and height difference.
 5. Select **Floor area**, click the floor corners in order, then finish. Top view and hiding the roof help. Concave outlines are supported; crossed outlines and duplicate points are rejected. Floor points must be approximately horizontal. Use **Surface area** for a planar wall or gate face.
-6. Compare several distances against tape measurements. Calibration uses a known reference distance to change the global scale. It cannot repair local warping. Export a project ZIP before closing the page.
+6. Compare several distances against tape measurements. **Reference check** stores a selected distance and its known physical length, showing the difference in metres and percent. This check does not change the scale. **Calibration** changes the global scale using a known reference; it cannot repair local warping. Save the project archive before closing the page.
 
-These are manually selected polygons, not automatic wall recognition or a RoomPlan/BIM export. An SVG is a drawing of the selected floor outlines. A textured surface shows visual context; its appearance alone does not establish geometric accuracy.
+These mesh measurements use manually selected points and polygons. Automatic indoor recognition belongs to the separate RoomPlan flow above. An SVG or DXF draws the room's available floor outlines, including valid imported RoomPlan floors. A textured surface shows visual context; its appearance alone does not establish geometric accuracy. Use the ordinary LiDAR/RTAB-Map scan mode for an outdoor gate, then check thin or reflective parts against physical measurements.
+
+## Photo notes, reports and CAD
+
+- Choose **Add note**, click a position on the model, and enter a title, type and description. Attach a JPEG, PNG or WebP photo if useful. Photos are resized to at most 1,600 pixels on the longest side and stored as JPEG inside the project archive. Input photos are limited to 12 MiB and 50 megapixels. A photo note is manually placed; it is not an automatically localized camera frame or an additional geometric measurement.
+- **Report / PDF** downloads a self-contained HTML report for the active room. Open that downloaded file, choose **Print / save as PDF**, and select the browser's PDF destination. The report includes measurements, reference comparisons, the available floor plan and embedded note photos. A recorded transport check is recalculated from its stored inputs and included with assumptions and clearance results. There is no automatic server-side PDF conversion.
+- **DXF** exports the active room's floor outlines as closed polylines with separate dimension lines and labels in metres. These labels are not associative CAD dimensions: editing a contour in CAD does not update them. Check CAD import units. SVG and the report are schematic drawings; printing does not establish a fixed drawing scale.
+- Export each room's report/DXF separately. The building archive preserves the whole collection; it does not produce a merged floor plan or BIM model.
+
+## Refrigerator and staircase transport estimate
+
+Choose **Check transport** and either search the built-in manufacturer catalogue or enter the actual outer dimensions manually. The catalogue contains exactly three model entries, checked against manufacturer pages on 2026-10-11: Bosch **KGN39VLEA**, Samsung **RB34C600ESA/EF**, and LG **GBP62PZNAC**. It is an offline catalogue, not an automatic Internet search. Follow the source link and match the complete model suffix. For unlisted models, use the manufacturer's data sheet and a physical check.
+
+Enter all lengths in **metres**: object width, depth and height; the narrowest clear passage width; minimum clear height; landing width and depth; total stair rise and horizontal run; turn angle in degrees; and clearance **per side**. For example, 600 mm is 0.600 m and a 0.05 m margin reserves 5 cm on each side. Select the optional stair tilt check and run the estimate. The preview slider shows the sampled envelopes.
+
+The calculation tests upright/sideways rectangular envelopes, a centred turn on a rectangular landing, and optionally tilting along the stair slope including its transition. **Possible in the tested envelope** means that simplified sufficient condition fits. **Further checking needed** means the tested paths do not establish a fit; a translated turn or another orientation may still work. **Passage too small** is reserved for the minimum object dimension plus the chosen margins exceeding a mandatory passage width or clear height.
+
+This is not a collision simulation through the scanned staircase. Individual steps, railings, sloped ceilings, people and transport equipment are not represented as obstacles. Measure every bottleneck, allow for handles, hinges, packaging and equipment, and check the manufacturer's allowed transport orientation. In particular, Samsung's listed depth excludes the handle; LG's packaged dimensions differ from its catalogue object dimensions. The estimate is not a guarantee of access or safe handling.
+
+With a room open, the most recently calculated transport inputs belong to that room and are preserved when you save its project archive. The report recalculates the result from those stored inputs. Editing form fields alone does not update the recorded assessment: run the calculation again, then save/export. Route dimensions are entered manually; they are not automatically extracted from the scan.
 
 ## Files and limits
 
@@ -51,12 +83,16 @@ These are manually selected polygons, not automatic wall recognition or a RoomPl
 | Separate OBJ + assets | Select the OBJ, MTL and image files together |
 | PLY | Mesh or point cloud; vertex colours when present |
 | GLB | Self-contained binary glTF supported by the bundled loader; unsupported compression extensions need conversion first |
-| `.rtabmeasure.zip` | Model assets plus the versioned `rtab-measure.json` measurement manifest |
+| `.kantura-room.json` | One KANTURA RoomPlan capture: metre-based surfaces, dimensions, transforms, confidence and optional building/floor labels |
+| `.kantura-building.zip` | Up to 100 independently positioned rooms and their assets, floors, measurements, notes, reference checks and recorded transport inputs |
+| `.rtabmeasure.zip` | Existing single-room project archives remain readable |
 | CSV | Measurement results in explicit metric units |
-| SVG | Manually traced floor contours, lengths and areas |
+| SVG / DXF | Active room floor contours, lengths and areas; DXF uses metre units |
+| HTML report / PDF | Download an offline report, then use the browser's print-to-PDF function |
+| USDZ | Native RoomPlan export for compatible viewers; not an input to this browser workspace |
 | RTAB-Map `.db` | Keep as original; reconstruct/export with RTAB-Map before opening here |
 
-Input is limited to **200 MiB** compressed/selected data, **500 MiB** declared and actual uncompressed ZIP content, and 2,000 ZIP entries. Exactly one model per import is accepted. The viewer limits geometry to 10 million vertices; memory limits of individual computers can be lower. Assets with unsafe paths, ambiguous references or external URLs are rejected. Large scans may need simplification in RTAB-Map before import.
+Input is limited to **200 MiB** compressed/selected data, **500 MiB** declared and actual uncompressed ZIP content, and 2,000 ZIP entries. A raw scan import contains one model; a building archive can contain up to 100 independent room models under the same total archive limits. Add individual scans with **Add room**; nesting a building archive as one room is unsupported. RoomPlan exchange accepts at most 150 surfaces and 100 contour points per surface. The viewer limits geometry to 10 million vertices; memory limits of individual computers can be lower. Assets with unsafe paths, ambiguous references or external URLs are rejected. Large scans may need simplification in RTAB-Map before import.
 
 ## OneDrive integration
 
@@ -82,7 +118,7 @@ Use the same origin throughout setup and testing; `localhost` and `127.0.0.1` ar
 
 ## Data flow and operating status
 
-Opening and measuring a local model happens in the browser. Downloaded project ZIPs contain the model and measurements; closing an unsaved browser session loses those edits. Cloud uploads occur only after the user chooses to upload. Optional self-host storage similarly requires an explicit save.
+Opening and measuring a local model happens in the browser. Downloaded building ZIPs contain room models, measurements and photo notes; closing an unsaved browser session loses those edits. Cloud uploads occur only after the user chooses to upload. Optional self-host storage similarly requires an explicit save. Notes and their attached photos are included when the archive is uploaded or shared; review them before sharing. Manufacturer links open external websites when selected, but catalogue filtering itself does not send the search query online.
 
 OAuth access tokens are kept in browser memory. Public client IDs and the chosen language may be saved in browser storage. Signing in contacts the selected identity provider; scans uploaded to a cloud provider are governed by that provider and account. Disconnecting clears this app's cached credentials; use the provider's account settings to revoke a grant completely. Server library storage and operator responsibilities are described in [README-server.md](README-server.md).
 
@@ -90,6 +126,6 @@ Cloud adapters have automated tests with simulated API responses. Real provider 
 
 ## Development
 
-`pnpm test` covers measurement geometry, scale/calibration, ZIP parsing and project round trips, CSV escaping, server behavior and cloud request boundaries. `pnpm check` checks JavaScript syntax; `pnpm build` produces the static assets. Keep the tutorial source in `app/ios/RTABMapApp/MeasurementGuide.json` consistent with the actual native and desktop flows. See the [German measurement walkthrough](../../app/ios/MEASUREMENT-WORKFLOW.md) and [independent App Store release plan](../../docs/APP-STORE-RELEASE.md).
+`pnpm test` covers measurement geometry, scale/calibration, RoomPlan conversion, multiroom archive round trips, photo-note/reference validation, CSV/SVG/DXF/report export, transport envelopes, server behavior and cloud request boundaries. `pnpm check` checks JavaScript syntax; `pnpm build` produces the static assets. See [VALIDATION.md](VALIDATION.md) for the distinction between automated checks, earlier preview exercises and pending real-device/provider checks. Keep tutorial content in `app/ios/RTABMapApp/MeasurementGuide.json` consistent with the native and desktop flows. See the [German measurement walkthrough](../../app/ios/MEASUREMENT-WORKFLOW.md) and [independent App Store release plan](../../docs/APP-STORE-RELEASE.md).
 
 The repository's [BSD license](../../LICENSE) applies to project code; preserve bundled dependency notices when distributing the web build. Native iOS dependencies need a separate license audit before store distribution; the current dependency script enables components beyond the repository's BSD code.
