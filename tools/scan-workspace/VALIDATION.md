@@ -6,8 +6,8 @@ exercises and checks that still require a real device or external account.
 
 ## New 0.2 behavior and automated coverage
 
-The local integration run passed **75 Node tests**: 39 existing baseline cases,
-10 experience/RoomPlan cases, 14 report/DXF cases and 12 transport cases.
+The local integration run passed **76 Node tests**: 39 existing baseline cases,
+10 experience/RoomPlan cases, 14 report/DXF cases, 12 transport cases and a sequential-upload regression.
 A Windows browser exercise imported a synthetic RoomPlan JSON with 10
 measurements, including a 17.28 m² floor, then switched between two independent
 rooms on ground/first floors while retaining a photo note and a −0.01 m reference
@@ -103,3 +103,5 @@ There is no live synchronization, multi-user account system, server reconstructi
 automatic staircase path planning, automatic net wall area calculation, IFC/BIM
 export or import of native AR measurements from RTAB-Map `.db` databases. RoomPlan
 schematic captures and RTAB-Map textured scans remain separate acquisitions.
+
+A final Alpine/Docker run exposed an upload completion race. The server now releases its upload guard after cleanup and before returning success; a 20-upload sequential regression covers this behavior.

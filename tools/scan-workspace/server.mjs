@@ -69,7 +69,7 @@ export function createAppServer(root = fileURLToPath(new URL('./dist', import.me
     uploadActive = true;
     const id = randomUUID();
     const temporary = join(storageBase, `.upload-${id}`);
-    let handle;
+    let handle, savedProject;
     try {
       await mkdir(temporary, { mode: 0o700 });
       handle = await open(join(temporary, 'scan.zip'), 'wx', 0o600);
@@ -89,12 +89,15 @@ export function createAppServer(root = fileURLToPath(new URL('./dist', import.me
       const project = { id, name, createdAt: new Date().toISOString(), size };
       await writeFile(join(temporary, 'project.json'), JSON.stringify(project), { flag: 'wx', mode: 0o600 });
       await rename(temporary, join(storageBase, id));
-      json(res, 201, { project });
+      savedProject = project;
     } finally {
       if (handle) await handle.close().catch(() => {});
       await rm(temporary, { recursive: true, force: true }).catch(() => {});
       uploadActive = false;
     }
+    // A completed response must mean the next sequential upload can begin.
+    // Await cleanup and release the guard before notifying the client.
+    json(res, 201, { project: savedProject });
   }
 
   const server = createServer(async (req, res) => {

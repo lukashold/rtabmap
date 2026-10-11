@@ -62,7 +62,9 @@ test('immutable snapshots round-trip exactly, list metadata only, and survive a 
     assert.equal(project.name, 'Küche & Tor');
     assert.equal(project.size, archive.length);
     assert.ok(Number.isFinite(Date.parse(project.createdAt)));
-    const second = await (await upload(url, 'Küche & Tor')).json();
+    const secondResponse = await upload(url, 'Küche & Tor');
+    assert.equal(secondResponse.status, 201);
+    const second = await secondResponse.json();
     assert.notEqual(project.id, second.project.id);
     const list = await (await fetch(`${url}/api/projects`, { headers: { authorization } })).json();
     assert.equal(list.projects.length, 2);
@@ -78,6 +80,21 @@ test('immutable snapshots round-trip exactly, list metadata only, and survive a 
     await new Promise(resolve => next.listen(0, '127.0.0.1', resolve));
     try { assert.equal((await (await fetch(`http://127.0.0.1:${next.address().port}/api/projects`, { headers: { authorization } })).json()).projects.length, 2); }
     finally { await new Promise(resolve => next.close(resolve)); }
+  });
+});
+
+test('a completed upload releases the guard before the next sequential snapshot', async () => {
+  await withServer({}, async ({ url }) => {
+    const ids = new Set();
+    for (let index = 0; index < 20; index++) {
+      const response = await upload(url, `Room ${index}`);
+      assert.equal(response.status, 201, `sequential upload ${index}`);
+      const { project } = await response.json();
+      ids.add(project.id);
+    }
+    assert.equal(ids.size, 20);
+    const list = await (await fetch(`${url}/api/projects`, { headers: { authorization } })).json();
+    assert.equal(list.projects.length, 20);
   });
 });
 
