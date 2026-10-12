@@ -10,10 +10,77 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from contract import ContractError
-from quality import image_quality, near_duplicate, camera_hint, assign_camera_groups, sfm_report
+from quality import image_quality, near_duplicate, camera_hint, assign_camera_groups, sfm_report, camera_pose_diagnostics
 
 
 class QualityDiagnostics(unittest.TestCase):
+    def pose_fixture(self, collapsed=False, duplicate_images=False):
+        cameras, records = [], []
+        for index in range(8):
+            position = [float(index % 4), float(index // 4), .2 * (index % 3)]
+            if collapsed and index >= 4:
+                position = [v + .0001 for v in cameras[index-4]['position']]
+            name = f'frame_{index+1:05}.jpg'
+            cameras.append({'img_name':name,'position':position,'rotation':[[1,0,0],[0,1,0],[0,0,1]]})
+            known_duplicate = index >= 4 and duplicate_images
+            records.append({'file':'images/'+name,'quality':{
+                'dHash64':'00000000ffffffff' if index < 4 or known_duplicate else 'ffffffff00000000',
+                'nearDuplicateOf':f'images/frame_{index-3:05}.jpg' if known_duplicate else None}})
+        return cameras, records
+
+    def test_distinct_camera_positions_do_not_claim_accuracy_or_raise_collapsed_pose_warning(self):
+        cameras, records = self.pose_fixture()
+        diagnostic = camera_pose_diagnostics(cameras,records)
+        self.assertEqual(diagnostic['warnings'],[])
+        self.assertEqual(diagnostic['qualityStatus'],'unverified')
+        self.assertFalse(diagnostic['poseDiagnostics']['metricAccuracyValidated'])
+
+    def test_many_collapsed_poses_for_different_images_require_review_without_changing_sources(self):
+        cameras, records = self.pose_fixture(collapsed=True)
+        before = json.dumps([cameras,records],sort_keys=True)
+        diagnostic = camera_pose_diagnostics(cameras,records)
+        self.assertEqual(diagnostic['warnings'],['camera_pose_ambiguity'])
+        self.assertEqual(diagnostic['qualityStatus'],'review-required')
+        self.assertEqual(diagnostic['poseDiagnostics']['ambiguousCameraCount'],8)
+        self.assertEqual(diagnostic['poseDiagnostics']['ambiguousPairCount'],4)
+        self.assertEqual(json.dumps([cameras,records],sort_keys=True),before)
+
+    def test_recognized_duplicate_photos_warn_repeated_views_not_false_pose_ambiguity(self):
+        cameras, records = self.pose_fixture(collapsed=True,duplicate_images=True)
+        diagnostic = camera_pose_diagnostics(cameras,records)
+        self.assertEqual(diagnostic['warnings'],['repeated_camera_views'])
+        self.assertEqual(diagnostic['poseDiagnostics']['recognizedRepeatedCameraCount'],8)
+        self.assertEqual(diagnostic['poseDiagnostics']['ambiguousCameraCount'],0)
+
+    def test_pose_warning_is_invariant_under_arbitrary_scene_similarity_transform(self):
+        cameras, records = self.pose_fixture(collapsed=True)
+        first = camera_pose_diagnostics(cameras,records)
+        for camera in cameras:
+            x,y,z=camera['position']; camera['position']=[400-250*y,-19+250*x,200+250*z]
+            camera['rotation']=[[0,-1,0],[1,0,0],[0,0,1]]
+        transformed = camera_pose_diagnostics(cameras,records)
+        self.assertEqual(first['warnings'],transformed['warnings'])
+        self.assertEqual(first['poseDiagnostics']['ambiguousPairCount'],transformed['poseDiagnostics']['ambiguousPairCount'])
+        self.assertAlmostEqual(transformed['poseDiagnostics']['medianNonzeroSeparation']/first['poseDiagnostics']['medianNonzeroSeparation'],250)
+
+    def test_identical_centers_with_different_directions_report_absent_parallax(self):
+        cameras, records = self.pose_fixture()
+        for index,camera in enumerate(cameras):
+            angle=index*math.pi/8
+            camera['position']=[0,0,0]
+            camera['rotation']=[[math.cos(angle),0,math.sin(angle)],[0,1,0],[-math.sin(angle),0,math.cos(angle)]]
+        diagnostic = camera_pose_diagnostics(cameras,records)
+        self.assertEqual(diagnostic['warnings'],['insufficient_parallax'])
+        self.assertIsNone(diagnostic['poseDiagnostics']['medianNonzeroSeparation'])
+
+    def test_single_revisited_pose_or_missing_hash_does_not_trigger_ambiguity(self):
+        cameras, records = self.pose_fixture()
+        cameras[4]['position']=list(cameras[0]['position'])
+        self.assertEqual(camera_pose_diagnostics(cameras,records)['warnings'],[])
+        cameras, records = self.pose_fixture(collapsed=True)
+        for record in records:record.pop('quality')
+        self.assertEqual(camera_pose_diagnostics(cameras,records)['warnings'],[])
+
     def test_texture_blur_and_duplicate_scores_are_observable_not_accuracy_claims(self):
         from PIL import Image, ImageFilter
         image = Image.new('L', (128, 128))

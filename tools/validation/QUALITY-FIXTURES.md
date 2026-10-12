@@ -40,4 +40,31 @@ Run fixture/evaluator tests with:
 python -m unittest discover -s tools/validation/test -v
 ```
 
-On 12 October 2026, eight local tests passed. A separate read-only review roundtripped the real 32 ground-truth poses through a known similarity transform and synthetic COLMAP binary poses, recovering camera centres within floating-point precision. It confirmed that the old large residual is not caused by a camera convention or alignment calculation error. Docker reconstruction and any measured improvement on the new fixture must be recorded separately after they actually run.
+On 12 October 2026, ten local tests passed after adding the invalid-mesh reporting checks below. A separate read-only review roundtripped the real 32 ground-truth poses through a known similarity transform and synthetic COLMAP binary poses, recovering camera centres within floating-point precision. It confirmed that the old large residual is not caused by a camera convention or alignment calculation error. Docker reconstruction and any measured improvement on the new fixture must be recorded separately after they actually run.
+
+## Keep failed quality cases in the report
+
+Fewer than ten sampled vertices in the unchanged cube region now produces `mesh.valid: false`, `reason: too-few-cube-region-vertices`, the actual vertex counts/outside fraction, null distance statistics and zero coverage for all five tested faces. It does not abort camera evaluation or make the model acceptable. Invalid/unreadable mesh data is separately reported as `mesh.valid: false`, `reason: invalid-mesh-data`. A valid mesh metric means that those metrics could be computed, not that its geometry passed.
+
+`qualityAccepted` is true only if all applicable criteria below pass. `qualityAssessment` retains the actual criteria, each failure and the scope (`synthetic-cameras-only` or `synthetic-camera-and-mesh`). Camera-only acceptance does not establish mesh quality, Splat rendering quality, scale in metres or real iPhone accuracy.
+
+| Explicit synthetic criterion | Default |
+| --- | --- |
+| `minRegisteredFraction` | `1.0` — all reference cameras registered |
+| `maxCameraPositionRMSE` | `0.15` synthetic scene units, where cube side = 2 |
+| `maxCameraRotationP95Degrees` | `5.0` degrees |
+| `maxCoincidentPairs` | `0` |
+| `maxMeshVertexDistanceP95` | `0.15` synthetic scene units |
+| `minVisibleFaceGridCoverage` | `0.5` on **each** of the five visible face grids |
+
+These are explicit engineering acceptance settings for these synthetic fixtures, not experimentally established physical tolerances. The ten-vertex ROI minimum, existing fixed region, face sampling locations and coincidence threshold have not been relaxed. An invalid mesh is rejected regardless of other criterion values. The previous four baseline metrics and the two fixture identities stay unchanged.
+
+By default, a failed quality case still writes its JSON report and exits zero, so CI can collect adverse cases alongside later runs. Use the optional gate only when a workflow explicitly requires acceptance:
+
+```sh
+python tools/validation/reconstruction-quality.py --truth truth.json --cameras cameras.json --mesh mesh.ply --output quality.json
+# Writes the same report, then exits 2 if qualityAccepted is false:
+python tools/validation/reconstruction-quality.py --truth truth.json --cameras cameras.json --mesh mesh.ply --output quality.json --require-quality
+```
+
+`--criteria criteria.json` may override named defaults; supplied values are validated and copied into the report. Freeze these settings before comparisons and use the same settings for both fixtures. Do not tune a criterion after observing a failure merely to turn the result green. The periodic case is intentionally retained even when it fails every meaningful quality check.

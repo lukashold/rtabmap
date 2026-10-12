@@ -67,12 +67,15 @@ class VideoContracts(unittest.TestCase):
                 self.probe(**overrides)
             self.assertEqual(error.exception.code, code)
 
-    def test_ffmpeg44_section_name_is_supported_and_probe_errors_stay_private_bounded(self):
+    def test_probe_uses_stream_metadata_without_enabling_packet_or_frame_output(self):
         def legacy_probe(command, **options):
-            entries = command[command.index('-show_entries')+1]
-            # The real 4.4 ffprobe section table has no stream_side_data alias.
-            if 'stream_side_data=' in entries:
-                return SimpleNamespace(returncode=1, stdout=b'', stderr=b'No match for section stream_side_data')
+            # The pinned 4.4 shared side_data section is ambiguous and enables
+            # frame/packet parsing. Only explicit stream/format output is safe.
+            self.assertIn('-show_streams', command)
+            self.assertIn('-show_format', command)
+            self.assertEqual(command[command.index('-select_streams')+1], 'v:0')
+            for option in ['-show_entries', '-show_frames', '-show_packets', '-count_frames', '-count_packets']:
+                self.assertNotIn(option, command)
             return SimpleNamespace(returncode=0, stdout=json.dumps({'streams':[
                 {'codec_name':'h264','width':640,'height':360,'duration':'12','avg_frame_rate':'30/1',
                  'side_data_list':[{'rotation':90}]}]}).encode(), stderr=b'')
@@ -140,7 +143,20 @@ class RealVideoDecoding(unittest.TestCase):
         else:
             self.run_ffmpeg('-i', original, '-c', 'copy', '-metadata:s:v:0', 'rotate=90', video)
         before = video.read_bytes()
-        info, records = prepare_video(video, self.folder / 'images', max_size=256)
+        actual_run = subprocess.run
+        probes = []
+        def checked_run(command, **options):
+            result = actual_run(command, **options)
+            if command[0] == 'ffprobe':
+                document = json.loads(result.stdout)
+                self.assertEqual(set(document), {'streams', 'format'})
+                self.assertNotIn('packets_and_frames', document)
+                self.assertNotIn('frames', document)
+                probes.append(document)
+            return result
+        with mock.patch('media.subprocess.run', side_effect=checked_run):
+            info, records = prepare_video(video, self.folder / 'images', max_size=256)
+        self.assertEqual(len(probes), 1)
         self.assertEqual(abs(info['video']['rotationDegrees']), 90, info['video'])
         self.assertGreaterEqual(len(records), 8)
         self.assertLessEqual(len(records), 16)

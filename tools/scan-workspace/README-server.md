@@ -1,6 +1,13 @@
 # KANTURA selbst hosten
 
-Der Docker-Server liefert die Weboberfläche und speichert auf Wunsch private Scan-Projekte. Ein Projekt enthält das exportierte 3D-Modell, Texturen und Messungen als `.rtabmeasure.zip`. Gespeicherte Projekte lassen sich in der Bibliothek im Browser wieder öffnen. Die iPhone-App rekonstruiert den Scan; der Server rekonstruiert keine RTAB-Map-`.db`-Dateien.
+Der Docker-Server liefert die Weboberfläche und speichert auf Wunsch private
+Scan-Projekte: `.rtabmeasure.zip` für einzelne Räume oder
+`.kantura-building.zip` für mehrere getrennte Räume und Etagen. Die Archive
+enthalten Modelle, Texturen, Maße und Fotonotizen. Der optionale separate Worker
+verarbeitet Fotos/Video zu Mesh oder Gaussian Splat, Panorama-Fotos zu einer
+sphärischen Ansicht und ein Einzelbild zu ausdrücklich generiertem 3D. Er
+rekonstruiert keine RTAB-Map-`.db`-Dateien und verbindet keine RoomPlan-Räume
+automatisch zu einem Gebäude.
 
 ## Start mit Docker Compose
 
@@ -22,6 +29,80 @@ docker run --rm node:24-alpine node -e "console.log(require('node:crypto').rando
 Den ausgegebenen Wert in `.env` hinter `SERVER_TOKEN=` eintragen. Danach `docker compose up -d` ausführen und denselben Schlüssel im Browser bei der Server-Bibliothek eingeben. Der Schlüssel wird nur im Arbeitsspeicher der Browserseite gehalten; nach einem Neuladen erneut eingeben. Leerer Schlüssel deaktiviert die Bibliothek. Ein aktivierter Server lehnt Schlüssel mit weniger als 32 Zeichen ab.
 
 Die Bibliothek ist ein gemeinsamer privater Projektspeicher für alle Personen mit diesem Schlüssel. Sie hat keine getrennten Benutzerkonten, Rollen oder öffentlichen Freigabelinks. Modellansicht und Tutorials bleiben ohne Schlüssel zugänglich. Ein Export in Google Drive oder OneDrive braucht zusätzlich die jeweiligen öffentlichen OAuth-Client-IDs; siehe die Hauptanleitung.
+
+## Optionale Rekonstruktion: vier Modi
+
+Zuerst `SERVER_TOKEN` wie oben setzen. Docker Compose ab 2.17 und BuildKit werden
+für die zusätzlichen Build-Kontexte benötigt. Im Verzeichnis `tools/scan-workspace`:
+
+```sh
+docker compose -f compose.yaml -f compose.reconstruction.yaml up -d --build
+```
+
+Der zusätzliche Dienst bleibt ohne eigenen öffentlichen Port im Compose-Netz.
+Der Webserver leitet ausschließlich erlaubte `/api/reconstruction`-Routen nach
+Authentifizierung weiter. Seine interne `RECONSTRUCTION_URL` wird vom Override
+gesetzt und darf nur durch den Betreiber konfiguriert werden. Der Browser nutzt
+denselben `SERVER_TOKEN`; dieser gewährt allen Berechtigten Zugriff auf sämtliche
+Aufträge und ihre freigegebenen Dateien, einschließlich Panorama-Originalen.
+
+| Modus | Eingabe | Ergebnis |
+| --- | --- | --- |
+| Mesh | Foto-ZIP mit 8–250 Bildern oder unterstütztes MP4/MOV | Echtes COLMAP/OpenMVS-Texturmodell, Maßstab ungeprüft |
+| Gaussian Splat | Dieselben Foto-/Videoeingaben | OpenSplat-Ansicht ohne metrische Messoberfläche |
+| Panorama | ZIP mit 2–40 überlappenden Drehaufnahmen | 2:1-PNG, Abdeckungsmaske und unverändertes Originalarchiv; keine Tiefe |
+| Generiertes 3D | Ein JPEG/PNG bis 20 MiB, freigestelltes Motiv | Optionales TripoSR-Modell mit geschätzten unsichtbaren Flächen; keine Vermessung |
+
+Die letzten beiden Modi sind in der gemeinsamen Warteschlange implementiert.
+Die Standardinstallation enthält Panorama, aber **kein KI-Modell**. Für die
+bewusste Aktivierung von TripoSR in `.env` setzen:
+
+```text
+RECONSTRUCTION_ENABLE_GENERATION=1
+```
+
+Danach denselben Compose-Befehl mit `--build` erneut ausführen. Dies setzt das
+Build-Argument `ENABLE_GENERATION` (Standard `0`). Der Build lädt etwa 1,68 GB
+geprüfte Modellgewichte und installiert zusätzlich eine getrennte CPU-Torch-
+Laufzeit. Für die Laufzeit mit etwa 12 GiB Arbeitsspeicher planen; der tatsächliche
+Bedarf hängt von Modell und Einstellungen ab. Keine Anfrage lädt Gewichte oder
+Code nach. Die Verarbeitung läuft mit den installierten Engines lokal; Uploads
+vom Browser an den eigenen Server bleiben ausdrücklich erforderlich.
+
+Das initiale Worker-Image ist **linux/amd64 mit CPU**. Auf einem Apple-Chip läuft
+es gegebenenfalls unter Emulation; Linux-Docker nutzt nicht Apples Metal-GPU.
+NVIDIA/OpenSplat und natives MPS sind gesonderte, noch hardwareabhängig zu prüfende
+Wege. Große C++-/Torch-Builds benötigen erheblich mehr Platz und Zeit als der
+reine Webserver. Details: [Worker](../reconstruction/README.md),
+[Panorama](../panorama/README.md), [TripoSR](../generation/README.md).
+
+Aufträge durchlaufen `queued`, `running` und `complete`, `failed` oder `cancelled`.
+Abbruch beendet den Worker-Prozessbaum. Nur geprüfte vollständige Artefakte aus
+einer festen Namensliste werden veröffentlicht; jeder Download ist auf 200 MiB
+begrenzt. Eine fertige Datei belegt weder richtige Kamerapositionen noch genaue
+Maße. API-Vertrag, modusspezifische Grenzen, Neustartverhalten und Fehlercodes:
+[API.md](../reconstruction/API.md).
+
+Das eigene Volume `reconstruction-projects` enthält Originale, Auftragsstände,
+Logs und Ergebnisse. Temporäre Arbeitsdaten werden nach beendetem Worker
+aufgeräumt; Originale und Auftragsdaten werden nicht automatisch gelöscht.
+Sicherung und Aufbewahrung getrennt vom Volume `scan-projects` planen. Es gibt
+keine individuellen Konten oder automatische Löschfrist. Die erweiterten
+Routen liefern keine beliebigen privaten Logs oder Dateipfade aus.
+
+**Nachweisstand 0.6:** Webtests/Docker-Build und eigenständige echte Offline-Läufe
+für Panorama und TripoSR sind bestanden. Der gemeinsame API-Durchlauf benötigt
+noch die Abnahme der aktuellen Video-/FFmpeg-Korrektur. Verbindlich protokollierte
+Folgeläufe stehen in [VALIDATION.md](VALIDATION.md); getrennte Engine-Erfolge
+werden nicht als bereits bestandener gesamter Browser-/API-Ablauf ausgegeben.
+Die periodische synthetische Foto-Fixture ergab fehlerhafte Kamerageometrie und
+ist trotz erzeugter Dateien nicht für Messungen freigegeben.
+
+Die Abhängigkeiten haben verschiedene Lizenzen. Insbesondere AGPL-Engines und
+mitgelieferte HEIC-Codecs machen das Gesamtimage nicht zu einem reinen BSD-Paket.
+Vor eigener Verteilung die jeweiligen [Drittlizenzen](../reconstruction/THIRD-PARTY.md)
+sowie die verlinkten Panorama-/Generierungsbedingungen prüfen. Daraus folgt keine
+Freigabe der nativen App für den App Store.
 
 ## Projekte und Datensicherung
 
@@ -53,7 +134,7 @@ $env:SERVER_TOKEN = '<zufälliger-schlüssel>'
 node server.mjs
 ```
 
-`DATA_DIR` muss außerhalb des öffentlichen `dist`-Verzeichnisses liegen. Ohne `DATA_DIR` und `SERVER_TOKEN` liefert der Server nur die Weboberfläche aus. Der Standard ist `127.0.0.1:4173`; `HOST` und `PORT` können angepasst werden. Die produktive Docker-Stufe braucht weder npm-Abhängigkeiten noch externe Datenbanken.
+`DATA_DIR` muss außerhalb des öffentlichen `dist`-Verzeichnisses liegen. Ohne `DATA_DIR` und `SERVER_TOKEN` liefert der Server nur die Weboberfläche aus. Der Standard ist `127.0.0.1:4173`; `HOST` und `PORT` können angepasst werden. Die produktive Webserver-Stufe braucht weder npm-Abhängigkeiten noch externe Datenbanken; der optionale Rekonstruktionsdienst hat eigene Engine-/Python-Abhängigkeiten.
 
 ## HTTP-Schnittstelle
 
@@ -61,7 +142,7 @@ Alle `/api/projects`-Anfragen benötigen `Authorization: Bearer <SERVER_TOKEN>`.
 
 | Anfrage | Ergebnis |
 | --- | --- |
-| `GET /config.json` | Öffentliche OAuth-Client-IDs und `serverEnabled`; niemals der Server-Schlüssel oder der Datenpfad |
+| `GET /config.json` | Öffentliche OAuth-Client-IDs, `serverEnabled` und `reconstructionEnabled`; niemals Server-Schlüssel, interne Worker-URL oder Datenpfad |
 | `GET /api/projects` | `{ "projects": [{ "id", "name", "createdAt", "size" }] }`, neueste zuerst |
 | `POST /api/projects?name=Mein%20Raum` | Raw ZIP, `Content-Type: application/zip`; Status 201 und `{ "project": { ... } }` |
 | `GET /api/projects/<id>` | ZIP-Download des gespeicherten Projekts |

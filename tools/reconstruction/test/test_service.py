@@ -23,6 +23,14 @@ TOKEN = 'private-test-token-' + 'x' * 32
 
 
 class ServiceTests(unittest.TestCase):
+    def test_completed_job_exposes_only_standardized_quality_warnings_without_fabricated_pass(self):
+        self.start('warnings')
+        job=self.final(self.upload()['id'])
+        self.assertEqual(job['status'],'complete')
+        self.assertEqual(job['qualityWarnings'],['camera_pose_ambiguity','insufficient_parallax'])
+        self.assertEqual(job['qualityStatus'],'review-required')
+        self.assertEqual(job['scaleStatus'],'unverified')
+        self.assertTrue(job['artifacts'])
     def test_new_capture_modes_use_same_private_queue_and_download_validation(self):
         self.start();self.http()
         for mode,payload,media in [('panorama',photo_zip(count=2),'application/zip'),('generated',input_image(),'image/png')]:
@@ -35,6 +43,7 @@ class ServiceTests(unittest.TestCase):
             for item in job['artifacts']:
                 self.assertEqual(self.request('GET',item['url'])[0],200)
                 self.assertEqual(self.request('GET',item['url'],token=None)[0],401)
+            self.settled(job['id'])
             self.assertFalse((self.root/job['id']/'work').exists())
 
     def test_capture_mode_input_rules_and_explicit_foreground_confirmation(self):
@@ -165,6 +174,7 @@ class ServiceTests(unittest.TestCase):
         self.start()
         admitted = self.service.create('mesh', 'Video', io.BytesIO(VIDEO_HEADER), len(VIDEO_HEADER), 'video/mp4', 'uav')
         job = self.final(admitted['id'])
+        self.settled(job['id'])
         self.assertEqual(job['status'], 'complete')  # Explicit FakeWorker, not reconstruction evidence.
         self.assertEqual((self.root / job['id'] / 'input.video').read_bytes(), VIDEO_HEADER)
         self.assertFalse((self.root / job['id'] / 'work').exists())

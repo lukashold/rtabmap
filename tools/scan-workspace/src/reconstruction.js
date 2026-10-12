@@ -1,4 +1,5 @@
 import { zip } from 'fflate';
+import { validCaptureWarnings } from './measurement-policy.js';
 
 export const RECONSTRUCTION_LIMIT = 200 * 1024 * 1024;
 const idPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -10,6 +11,7 @@ const fail = (code, status) => Object.assign(new Error(code), { code, status });
 export function validateJob(job) {
   if (!job || !idPattern.test(job.id) || !Object.hasOwn(required, job.mode) || typeof job.name !== 'string' || job.name.length > 200 || !['queued','running','complete','failed','cancelled'].includes(job.status) || !Array.isArray(job.artifacts) || job.artifacts.length > 5) throw fail('reconstructionInvalid');
   const names = new Set();
+  if(!validCaptureWarnings(job.qualityWarnings))throw fail('reconstructionInvalid');
   for (const artifact of job.artifacts) {
     if (!artifact || !allowed[job.mode].includes(artifact.name) || names.has(artifact.name) || !Number.isSafeInteger(artifact.bytes) || artifact.bytes < 1 || artifact.bytes > RECONSTRUCTION_LIMIT || !/^[0-9a-f]{64}$/.test(artifact.sha256)) throw fail('reconstructionInvalid');
     names.add(artifact.name);

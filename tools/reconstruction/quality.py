@@ -8,7 +8,7 @@ import statistics
 import struct
 from pathlib import Path
 
-from contract import ContractError
+from contract import ContractError, QUALITY_WARNING_CODES
 
 
 def image_quality(image):
@@ -113,6 +113,91 @@ def _read(stream, fmt):
     if len(data) != parser.size:
         raise ContractError('invalid_sfm_model')
     return parser.unpack(data)
+
+
+def camera_pose_diagnostics(cameras, image_records):
+    """Warn about collapsed views without truth poses or a claim of accuracy.
+
+    A common arbitrary similarity transform changes neither distance ratios nor
+    relative view rotations. Only a high fraction of affected cameras triggers
+    a warning; an isolated repeated view does not invalidate a capture.
+    """
+    if len(cameras) > 250:
+        raise ContractError('invalid_sfm_model')
+    records = {Path(record['file']).name: record for record in image_records}
+    parent = {name: name for name in records}
+
+    def representative(name):
+        while parent[name] != name:
+            name = parent[name]
+        return name
+
+    for name, record in records.items():
+        duplicate = record.get('quality', {}).get('nearDuplicateOf')
+        target = Path(duplicate).name if isinstance(duplicate, str) else None
+        if target in parent:
+            first, second = representative(name), representative(target)
+            if first != second:
+                parent[first] = second
+
+    pairs = []
+    for i, first in enumerate(cameras):
+        for j in range(i+1, len(cameras)):
+            second = cameras[j]
+            distance = math.sqrt(sum((a-b)**2 for a,b in zip(first['position'],second['position'])))
+            if not math.isfinite(distance):
+                raise ContractError('invalid_sfm_model')
+            pairs.append((i,j,distance))
+    maximum = max((item[2] for item in pairs), default=0)
+    # Discard numerical zero only relative to the estimated scene's own extent.
+    nonzero = [item[2] for item in pairs if item[2] > maximum*1e-9]
+    median = statistics.median(nonzero) if nonzero else None
+    threshold = .01 * median if median is not None else 0
+    ambiguous, repeated, close = set(), set(), set()
+    ambiguous_pairs, repeated_pairs, examples = 0, 0, []
+    for i,j,distance in pairs:
+        if distance > threshold:
+            continue
+        first, second = cameras[i], cameras[j]
+        # trace(R_first^T R_second); rotations map the same camera axes to world.
+        trace = sum(a*b for row_a,row_b in zip(first['rotation'],second['rotation']) for a,b in zip(row_a,row_b))
+        angle = math.degrees(math.acos(max(-1,min(1,(trace-1)/2))))
+        if angle > 1:
+            continue
+        close.update([i,j])
+        names = [Path(view['img_name']).name for view in [first,second]]
+        if any(name not in records for name in names):
+            continue
+        if representative(names[0]) == representative(names[1]):
+            repeated.update([i,j]); repeated_pairs += 1
+            continue
+        hashes = [records[name].get('quality', {}).get('dHash64') for name in names]
+        if any(not isinstance(value,str) or len(value) != 16 or any(c not in '0123456789abcdefABCDEF' for c in value) for value in hashes):
+            continue
+        difference = bin(int(hashes[0],16)^int(hashes[1],16)).count('1')
+        if difference >= 12:
+            ambiguous.update([i,j]); ambiguous_pairs += 1
+            if len(examples) < 16:
+                examples.append({'images':names, 'separationRelativeToMedian': distance/median if median else 0,
+                                 'rotationDifferenceDegrees':angle, 'dHashHammingDistance':difference})
+    warnings = []
+    minimum_affected = max(4, math.ceil(len(cameras)*.4))
+    if len(ambiguous) >= minimum_affected:
+        warnings.append('camera_pose_ambiguity')
+    if len(repeated) >= minimum_affected:
+        warnings.append('repeated_camera_views')
+    if len(cameras) >= 4 and median is None:
+        warnings.append('insufficient_parallax')
+    return {'warnings': warnings, 'qualityStatus': 'review-required' if warnings else 'unverified',
+            'poseDiagnostics': {'method':'coincident-camera-views-v1', 'registeredCameras':len(cameras),
+                'medianNonzeroSeparation':median, 'nearPoseCameraCount':len(close),
+                'ambiguousCameraCount':len(ambiguous), 'ambiguousPairCount':ambiguous_pairs,
+                'recognizedRepeatedCameraCount':len(repeated), 'recognizedRepeatedPairCount':repeated_pairs,
+                'thresholds':{'separationRelativeToMedianMax':.01, 'rotationDifferenceDegreesMax':1,
+                              'differentImageDHashHammingMin':12, 'affectedCameraFractionMin':.4,
+                              'affectedCameraCountMin':4}, 'examples':examples,
+                'interpretation':'Heuristic capture/registration warning, not a proof of false matches or metric accuracy. Different illumination and repeated visits can also trigger it.',
+                'metricAccuracyValidated':False}}
 
 
 def _q_rotation(q):

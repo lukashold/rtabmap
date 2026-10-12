@@ -125,6 +125,51 @@ class Contracts(unittest.TestCase):
             artifacts(directory, mode)
             self.assertEqual(len(validate_artifacts(directory, mode)), 3)
 
+    def test_mesh_archive_retains_photogrammetry_provenance_and_exact_warnings(self):
+        warnings = ['camera_pose_ambiguity', 'insufficient_parallax']
+        artifacts(self.root, 'mesh', warnings)
+        validate_artifacts(self.root, 'mesh')
+        with zipfile.ZipFile(self.root / 'mesh.zip') as archive:
+            project = json.loads(archive.read('rtab-measure.json'))
+        self.assertEqual(project['source'], 'photogrammetry')
+        self.assertEqual(project['scale'], 1)
+        self.assertIs(project['calibrated'], False)
+        self.assertEqual(project['captureWarnings'], warnings)
+        self.assertEqual(project['measurements'], [])
+
+    def test_mesh_archive_rejects_missing_unsafe_or_misleading_project_metadata(self):
+        artifacts(self.root, 'mesh', ['camera_pose_ambiguity'])
+        with zipfile.ZipFile(self.root / 'mesh.zip') as archive:
+            original = {name: archive.read(name) for name in archive.namelist()}
+        project = json.loads(original['rtab-measure.json'])
+        cases = [None, 'not json', [], {**project, 'version': True},
+                 {**project, 'source': 'lidar'}, {**project, 'calibrated': True},
+                 {**project, 'scale': 2}, {**project, 'scale': True},
+                 {**project, 'measurements': [{'id': 'fabricated'}]},
+                 {**project, 'captureWarnings': []},
+                 {**project, 'captureWarnings': ['invented_accuracy_pass']},
+                 {**project, 'captureWarnings': ['camera_pose_ambiguity']*2},
+                 {**project, 'unexpected': '<svg/onload=alert(1)>'}]
+        for value in cases:
+            with self.subTest(value=value):
+                with zipfile.ZipFile(self.root / 'mesh.zip', 'w') as archive:
+                    archive.writestr('model.obj', original['model.obj'])
+                    if value is not None:
+                        archive.writestr('rtab-measure.json', json.dumps(value))
+                manifest_path = self.root / 'reconstruction.json'
+                manifest = json.loads(manifest_path.read_text('utf-8'))
+                manifest['files']['mesh.zip'] = sha256(self.root / 'mesh.zip')
+                manifest_path.write_text(json.dumps(manifest), 'utf-8')
+                self.error('invalid_artifacts', validate_artifacts, self.root, 'mesh')
+        for name, data in [('nested/rtab-measure.json', json.dumps(project)),
+                           ('rtab-measure.json', ' '*8193), ('anything.svg', '<svg/>')]:
+            with self.subTest(name=name), zipfile.ZipFile(self.root / 'mesh.zip', 'w') as archive:
+                archive.writestr('model.obj', original['model.obj'])
+                archive.writestr(name, data)
+            manifest['files']['mesh.zip'] = sha256(self.root / 'mesh.zip')
+            manifest_path.write_text(json.dumps(manifest), 'utf-8')
+            self.error('invalid_artifacts', validate_artifacts, self.root, 'mesh')
+
     def test_absent_artifacts_fail(self):
         self.error('missing_artifacts', validate_artifacts, self.root, 'mesh')
 

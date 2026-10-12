@@ -10,6 +10,15 @@ import math
 from pathlib import Path
 import numpy as np
 
+DEFAULT_CRITERIA = {
+    'minRegisteredFraction': 1.0,
+    'maxCameraPositionRMSE': .15,
+    'maxCameraRotationP95Degrees': 5.,
+    'maxCoincidentPairs': 0,
+    'maxMeshVertexDistanceP95': .15,
+    'minVisibleFaceGridCoverage': .5,
+}
+
 
 def similarity(source, target):
     a, b = np.asarray(source, dtype=float), np.asarray(target, dtype=float)
@@ -104,7 +113,13 @@ def cube_metrics(points):
     region = (np.abs(points[:,[0,2]]) <= 1.3).all(1) & (points[:,1] >= -.99) & (points[:,1] <= 1.3)
     selected = points[region]
     if len(selected) < 10:
-        raise ValueError('Too few mesh vertices in the fixed cube region')
+        return {'valid':False,'reason':'too-few-cube-region-vertices',
+                'sampledVertices':len(points),'cubeRegionVertices':len(selected),
+                'outsideCubeRegionFraction':float(1-region.mean()) if len(points) else None,
+                'vertexAbsoluteDistanceMedian':None,'vertexAbsoluteDistanceP95':None,
+                'vertexDistanceUnder0_05Fraction':None,
+                'visibleFaceGridCoverageWithin0_15':dict.fromkeys(['left','right','top','back','front'],0.),
+                'method':'Fewer than 10 vertices in the unchanged fixed cube ROI. Mesh quality rejected; camera diagnostics retained.'}
     q = np.abs(selected) - 1
     distance = np.linalg.norm(np.maximum(q,0),axis=1) + np.minimum(q.max(1),0)
     distance = np.abs(distance)
@@ -123,7 +138,7 @@ def cube_metrics(points):
         for sample in samples:
             nearest.append(float(np.linalg.norm(selected-np.asarray(sample),axis=1).min()))
         face_coverage[name] = float((np.asarray(nearest) <= .15).mean())
-    return {'sampledVertices':len(points),'cubeRegionVertices':len(selected),
+    return {'valid':True,'reason':None,'sampledVertices':len(points),'cubeRegionVertices':len(selected),
             'outsideCubeRegionFraction':float(1-region.mean()),
             'vertexAbsoluteDistanceMedian':float(np.median(distance)),
             'vertexAbsoluteDistanceP95':float(np.quantile(distance,.95)),
@@ -170,7 +185,41 @@ def camera_coincidence(truth, cameras, threshold=.01):
             'method': 'Known opposing synthetic viewpoints only; a dimensionless collapse diagnostic, not field accuracy.'}
 
 
-def evaluate(truth, cameras, mesh=None, convention='right-down-forward'):
+def assess_quality(result, criteria=None):
+    limits = dict(DEFAULT_CRITERIA)
+    if criteria is not None:
+        if not isinstance(criteria,dict) or set(criteria)-set(limits):
+            raise ValueError('Unknown synthetic quality criteria')
+        limits.update(criteria)
+    for key,value in limits.items():
+        if isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value) or value < 0:
+            raise ValueError('Invalid synthetic quality criterion: '+key)
+    if any(limits[key] > 1 for key in ['minRegisteredFraction','minVisibleFaceGridCoverage']) or limits['maxCameraRotationP95Degrees'] > 180 or type(limits['maxCoincidentPairs']) is not int:
+        raise ValueError('Synthetic quality criterion outside its allowed range')
+    failures = []
+    if result['registeredCameras']/result['expectedCameras'] < limits['minRegisteredFraction']:
+        failures.append('insufficient-registered-camera-fraction')
+    if result['cameraPositionRMSE'] > limits['maxCameraPositionRMSE']:
+        failures.append('camera-position-rmse-exceeds-limit')
+    if result['cameraRotationP95Degrees'] > limits['maxCameraRotationP95Degrees']:
+        failures.append('camera-rotation-p95-exceeds-limit')
+    if result['cameraCoincidence']['coincidentPairCount'] > limits['maxCoincidentPairs']:
+        failures.append('coincident-opposing-camera-pairs')
+    mesh = result.get('mesh')
+    if mesh is not None:
+        if not mesh.get('valid'):
+            failures.append('mesh-'+mesh.get('reason','invalid'))
+        else:
+            if mesh['vertexAbsoluteDistanceP95'] > limits['maxMeshVertexDistanceP95']:
+                failures.append('mesh-vertex-distance-p95-exceeds-limit')
+            if min(mesh['visibleFaceGridCoverageWithin0_15'].values()) < limits['minVisibleFaceGridCoverage']:
+                failures.append('mesh-visible-face-coverage-below-limit')
+    return {'accepted':not failures,'failures':failures,'criteria':limits,
+            'scope':'synthetic-camera-and-mesh' if mesh is not None else 'synthetic-cameras-only',
+            'meaning':'Acceptance of these explicit synthetic checks only; no real-world accuracy or render-quality validation.'}
+
+
+def evaluate(truth, cameras, mesh=None, convention='right-down-forward', criteria=None):
     reference = {item['preparedFile']:item for item in truth['cameras']}
     pairs = [(item,reference[item['img_name']]) for item in cameras if item.get('img_name') in reference]
     if len({item[0]['img_name'] for item in pairs}) != len(pairs):
@@ -194,7 +243,12 @@ def evaluate(truth, cameras, mesh=None, convention='right-down-forward'):
               'alignment':{'scale':alignment[0],'rotation':alignment[1].tolist(),'translation':alignment[2].tolist()},
               'cameraCoincidence':camera_coincidence(truth,cameras)}
     if mesh:
-        result['mesh'] = cube_metrics(transform(ply_vertices(mesh),alignment))
+        try:
+            result['mesh'] = cube_metrics(transform(ply_vertices(mesh),alignment))
+        except (ValueError,OSError) as error:
+            result['mesh'] = {'valid':False,'reason':'invalid-mesh-data','detail':str(error)}
+    result['qualityAssessment'] = assess_quality(result,criteria)
+    result['qualityAccepted'] = result['qualityAssessment']['accepted']
     return result
 
 
@@ -205,11 +259,15 @@ def main():
     parser.add_argument('--mesh',type=Path)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--convention',choices=['right-down-forward','right-up-back'],default='right-down-forward')
+    parser.add_argument('--criteria',type=Path,help='JSON overrides for explicitly reported synthetic criteria; not physical tolerances')
+    parser.add_argument('--require-quality',action='store_true',help='Write the report, then exit 2 when qualityAccepted is false')
     args = parser.parse_args()
-    result = evaluate(json.loads(args.truth.read_text('utf8')),json.loads(args.cameras.read_text('utf8')),args.mesh,args.convention)
+    criteria = json.loads(args.criteria.read_text('utf8')) if args.criteria else None
+    result = evaluate(json.loads(args.truth.read_text('utf8')),json.loads(args.cameras.read_text('utf8')),args.mesh,args.convention,criteria)
     args.output.write_text(json.dumps(result,indent=2,allow_nan=False),'utf8')
     print(json.dumps({key:value for key,value in result.items() if key != 'alignment'},indent=2))
+    return 2 if args.require_quality and not result['qualityAccepted'] else 0
 
 
 if __name__ == '__main__':
-    main()
+    raise SystemExit(main())

@@ -122,8 +122,29 @@ const rows = {
   ],
 };
 
+const qualityKeys = ['qualityReview', 'camera_pose_ambiguity', 'repeated_camera_views', 'insufficient_parallax'];
+const qualityRows = {
+  de: ['Rekonstruktion prüfen', 'Die Kamerapositionen passen möglicherweise nicht zu den Bildern. Neu aufnehmen; dieses Modell nicht zum Ausmessen verwenden.', 'Viele wiederholte Blickpunkte. Die Aufnahme mit mehr verschiedenen Positionen ergänzen.', 'Zu wenig Bewegung zwischen den Blickpunkten. Für 3D um das Motiv bewegen; Drehen auf der Stelle gehört zum Panoramamodus.'],
+  en: ['Review reconstruction', 'Camera positions may not match the images. Capture again; do not use this model for measurements.', 'Many repeated viewpoints. Add photos from more varied positions.', 'Too little movement between viewpoints. For 3D, move around the subject; rotating in place is for panorama mode.'],
+  fr: ['Vérifier la reconstruction', 'Les positions de la caméra peuvent ne pas correspondre aux images. Refaites la capture ; n’utilisez pas ce modèle pour mesurer.', 'De nombreux points de vue se répètent. Ajoutez des photos prises depuis des positions plus variées.', 'Trop peu de déplacement entre les points de vue. Pour la 3D, déplacez-vous autour du sujet ; tourner sur place correspond au mode panorama.'],
+  es: ['Revisar la reconstrucción', 'Puede que las posiciones de la cámara no coincidan con las imágenes. Repite la captura; no uses este modelo para medir.', 'Hay muchos puntos de vista repetidos. Añade fotos desde posiciones más variadas.', 'Hay muy poco desplazamiento entre los puntos de vista. Para 3D, muévete alrededor del sujeto; girar sin desplazarte corresponde al modo panorama.'],
+  it: ['Controllare la ricostruzione', 'Le posizioni della fotocamera potrebbero non corrispondere alle immagini. Ripeti l’acquisizione; non usare questo modello per misurare.', 'Molti punti di vista si ripetono. Aggiungi foto da posizioni più varie.', 'Lo spostamento tra i punti di vista è insufficiente. Per il 3D, muoviti attorno al soggetto; ruotare sul posto è adatto alla modalità panorama.'],
+  'zh-Hans': ['检查重建结果', '相机位置可能与图像不符。请重新拍摄，不要使用此模型测量。', '许多拍摄位置重复。请从更多不同位置补拍照片。', '拍摄位置之间的移动太少。拍摄三维模型时，请绕主体移动；原地旋转适用于全景模式。'],
+  pt: ['Verificar a reconstrução', 'As posições da câmara podem não corresponder às imagens. Repita a captura; não utilize este modelo para medir.', 'Muitos pontos de vista repetem-se. Acrescente fotografias tiradas de posições mais variadas.', 'Há pouco deslocamento entre os pontos de vista. Para 3D, desloque-se à volta do motivo; rodar no mesmo sítio destina-se ao modo panorama.'],
+  ar: ['مراجعة إعادة البناء', 'قد لا تتطابق مواضع الكاميرا مع الصور. أعد الالتقاط، ولا تستخدم هذا النموذج للقياس.', 'تتكرر مواضع التصوير كثيرًا. أضف صورًا من مواضع أكثر تنوعًا.', 'الحركة بين مواضع التصوير قليلة جدًا. لإنشاء نموذج ثلاثي الأبعاد، تحرّك حول العنصر؛ أما الدوران في المكان فهو لوضع البانوراما.'],
+  hi: ['पुनर्निर्माण की जाँच करें', 'कैमरे की स्थितियाँ चित्रों से मेल नहीं खा सकती हैं। दोबारा कैप्चर करें; इस मॉडल का उपयोग माप लेने के लिए न करें।', 'कई तस्वीरें उन्हीं जगहों से ली गई हैं। अधिक अलग-अलग स्थानों से तस्वीरें जोड़ें।', 'तस्वीरें लेते समय स्थान बहुत कम बदला गया है। 3D के लिए विषय के चारों ओर चलें; एक जगह खड़े होकर घूमना पैनोरमा मोड के लिए है।'],
+  bn: ['পুনর্গঠনের ফল যাচাই করুন', 'ক্যামেরার অবস্থান ছবির সঙ্গে না-ও মিলতে পারে। আবার ছবি তুলুন; এই মডেল দিয়ে মাপ নেবেন না।', 'অনেক ছবি একই অবস্থান থেকে তোলা হয়েছে। আরও ভিন্ন ভিন্ন অবস্থান থেকে ছবি যোগ করুন।', 'ছবি তোলার অবস্থানগুলোর মধ্যে চলাচল খুব কম। 3D-এর জন্য বিষয়টির চারপাশে চলুন; একই জায়গায় দাঁড়িয়ে ঘোরা প্যানোরামা মোডের জন্য।'],
+  ru: ['Проверить реконструкцию', 'Положения камеры могут не соответствовать снимкам. Повторите съёмку; не используйте эту модель для измерений.', 'Много повторяющихся точек съёмки. Добавьте фотографии с более разнообразных позиций.', 'Между точками съёмки слишком мало перемещения. Для 3D двигайтесь вокруг объекта; вращение на месте подходит для режима панорамы.'],
+  ja: ['再構成結果を確認', 'カメラの位置が画像と一致していない可能性があります。撮影し直してください。このモデルを寸法測定に使用しないでください。', '同じ位置からの撮影が多くなっています。さらに異なる位置から撮った写真を追加してください。', '撮影位置の間の移動が少なすぎます。3D用の撮影では被写体の周囲を移動してください。その場で回転する撮影はパノラマモード用です。'],
+  ko: ['재구성 결과 확인', '카메라 위치가 이미지와 맞지 않을 수 있습니다. 다시 촬영하고, 이 모델을 측정에 사용하지 마세요.', '같은 위치에서 촬영한 사진이 많습니다. 더 다양한 위치에서 찍은 사진을 추가하세요.', '촬영 위치 사이의 이동이 너무 적습니다. 3D 촬영 시 피사체 주위를 이동하세요. 제자리 회전은 파노라마 모드에 적합합니다.'],
+  id: ['Periksa hasil rekonstruksi', 'Posisi kamera mungkin tidak sesuai dengan gambar. Ambil ulang; jangan gunakan model ini untuk pengukuran.', 'Banyak posisi pengambilan gambar berulang. Tambahkan foto dari posisi yang lebih bervariasi.', 'Perpindahan antarposisi terlalu sedikit. Untuk 3D, bergeraklah mengelilingi subjek; berputar di tempat digunakan untuk mode panorama.'],
+  tr: ['Yeniden oluşturmayı kontrol et', 'Kamera konumları görüntülerle eşleşmiyor olabilir. Yeniden çekim yapın; bu modeli ölçüm için kullanmayın.', 'Birçok çekim konumu tekrarlanıyor. Daha farklı konumlardan çekilmiş fotoğraflar ekleyin.', 'Çekim konumları arasında çok az hareket var. 3B için nesnenin etrafında hareket edin; yerinde dönmek panorama modu içindir.'],
+};
+
 export const modesStrings = Object.freeze(Object.fromEntries(Object.entries(rows).map(([language, values]) => {
-  if (values.length !== keys.length) throw new Error(`Invalid capture-mode translation: ${language}`);
-  return [language, Object.freeze(Object.fromEntries(keys.map((key, index) => [key, values[index]])))];
+  const extra = qualityRows[language];
+  if (values.length !== keys.length || !extra || extra.length !== qualityKeys.length) throw new Error(`Invalid capture-mode translation: ${language}`);
+  const allKeys = [...keys, ...qualityKeys], allValues = [...values, ...extra];
+  return [language, Object.freeze(Object.fromEntries(allKeys.map((key, index) => [key, allValues[index]])))];
 })));
 export const modesText = language => modesStrings[language] || modesStrings.en;

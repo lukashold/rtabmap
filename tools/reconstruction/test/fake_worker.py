@@ -7,10 +7,10 @@ import zipfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from contract import sha256
+from contract import sha256, photogrammetry_project
 
 
-def artifacts(directory, mode='mesh'):
+def artifacts(directory, mode='mesh', warnings=()):
     if mode in {'panorama','generated'}:
         from capture_fixtures import artifacts as capture_artifacts
         return capture_artifacts(directory, mode)
@@ -18,18 +18,21 @@ def artifacts(directory, mode='mesh'):
     if mode == 'mesh':
         (directory / 'model.ply').write_text('ply\nformat ascii 1.0\nelement vertex 3\nproperty float x\nproperty float y\nproperty float z\nelement face 1\nproperty list uchar int vertex_indices\nend_header\n0 0 0\n1 0 0\n0 1 0\n3 0 1 2\n', 'ascii')
         with zipfile.ZipFile(directory / 'mesh.zip', 'w') as archive:
+            archive.writestr('rtab-measure.json', json.dumps(photogrammetry_project(warnings)))
             archive.writestr('model.obj', '# TEST DOUBLE ONLY\nv 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n')
     else:
         props = ['x', 'y', 'z', 'f_dc_0', 'f_dc_1', 'f_dc_2', 'opacity', 'scale_0', 'scale_1', 'scale_2', 'rot_0', 'rot_1', 'rot_2', 'rot_3']
         (directory / 'splat.ply').write_text('ply\nformat ascii 1.0\nelement vertex 1\n' + ''.join('property float ' + p + '\n' for p in props) + 'end_header\n' + ' '.join('0' for _ in props) + '\n', 'ascii')
         (directory / 'cameras.json').write_text(json.dumps([{'id': 0, 'img_name': 'TEST', 'width': 10, 'height': 10, 'fx': 1, 'fy': 1, 'position': [0, 0, 0], 'rotation': [[1, 0, 0], [0, 1, 0], [0, 0, 1]]}]), 'utf-8')
     manifest = {'format': 'kantura-reconstruction', 'version': 1, 'mode': mode, 'scaleStatus': 'unverified', 'testDouble': True, 'files': {p.name: sha256(p) for p in directory.iterdir() if p.name != 'reconstruction.json'}}
+    if warnings:
+        manifest['registration'] = {'warnings': list(warnings)}
     (directory / 'reconstruction.json').write_text(json.dumps(manifest), 'utf-8')
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--behavior', choices=['valid', 'missing', 'failure', 'sleep', 'oversize'], default='valid')
+    parser.add_argument('--behavior', choices=['valid', 'warnings', 'missing', 'failure', 'sleep', 'oversize'], default='valid')
     parser.add_argument('--job-dir', type=Path, required=True)
     parser.add_argument('--mode', required=True)
     parser.add_argument('--device')
@@ -50,8 +53,14 @@ def main():
     if args.behavior == 'oversize':
         (scratch / 'large.bin').write_bytes(b'x' * 32768)
         time.sleep(60)
-    if args.behavior == 'valid':
-        artifacts(args.job_dir / 'artifacts', args.mode)
+    if args.behavior in {'valid', 'warnings'}:
+        artifacts(args.job_dir / 'artifacts', args.mode, ['camera_pose_ambiguity', 'insufficient_parallax'] if args.behavior == 'warnings' else [])
+        if args.behavior == 'warnings':
+            path=args.job_dir/'artifacts'/'reconstruction.json'
+            value=json.loads(path.read_text('utf-8'))
+            value['registration']={'warnings':['camera_pose_ambiguity','insufficient_parallax','camera_pose_ambiguity',17,'invented_accuracy_pass']}
+            value['qualityStatus']='accurate'  # The service must not repeat this claim.
+            path.write_text(json.dumps(value),'utf-8')
     return 0
 
 

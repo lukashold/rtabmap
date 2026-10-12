@@ -1,3 +1,4 @@
+import { validCaptureWarnings } from './measurement-policy.js';
 import { assessTransport } from './transport.js';
 export class MeasureError extends Error { constructor(code) { super(code); this.code = code; } }
 const sub = (a, b) => a.map((v, i) => v - b[i]);
@@ -66,6 +67,7 @@ export function resultFor(measure,scale) {
 export function validateProject(p) {
   if(p?.version!==1 || typeof p.name!=='string' || p.name.length>200 || !['y','z'].includes(p.upAxis) || !Array.isArray(p.measurements) || p.measurements.length>500) throw new MeasureError('invalidProject');
   if(p.source!==undefined&&!['photogrammetry','generated'].includes(p.source))throw new MeasureError('invalidProject');
+  if(!validCaptureWarnings(p.captureWarnings)||p.calibrated!==undefined&&typeof p.calibrated!=='boolean')throw new MeasureError('invalidProject');
   if(p.source==='generated'&&(p.measurements.length||p.checks?.length||p.calibrated===true||p.transport!==undefined))throw new MeasureError('invalidProject');
   validateScale(p.scale);
   for(const m of p.measurements) {

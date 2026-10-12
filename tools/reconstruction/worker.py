@@ -16,7 +16,8 @@ from pathlib import Path
 
 from contract import ARTIFACTS, OPTIONAL_ARTIFACTS, LIMITS, ContractError, inspect_input, sha256, validate_artifacts
 from media import prepare_video, export_selected_photos
-from quality import image_quality, camera_hint, assign_camera_groups, sfm_report, near_duplicate
+from contract import photogrammetry_project
+from quality import image_quality, camera_hint, assign_camera_groups, sfm_report, near_duplicate, camera_pose_diagnostics
 
 
 def atomic_json(path, value):
@@ -193,6 +194,7 @@ def reconstruct(job_dir, mode, device='cpu', iterations=3000, threads=2, image_m
     if registered < max(6, math.ceil(info['imageCount'] * .6)) or points < 10:
         raise ContractError('insufficient_registration')
     registration, estimated_cameras = sfm_report(best, info['imageCount'])
+    registration.update(camera_pose_diagnostics(estimated_cameras, image_records))
     dense = work / 'undistorted'
     run('undistorting', 'colmap', 'image_undistorter', '--image_path', work / 'images', '--input_path', best, '--output_path', dense, '--output_type', 'COLMAP', '--max_image_size', image_max_side)
     material_normalization = None
@@ -226,6 +228,7 @@ def reconstruct(job_dir, mode, device='cpu', iterations=3000, threads=2, image_m
             raise ContractError('invalid_artifacts')
         material_normalization = normalize_openmvs_materials(files, textured)
         with zipfile.ZipFile(output / 'mesh.zip', 'w', compression=zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr('rtab-measure.json', json.dumps(photogrammetry_project(registration['warnings']), ensure_ascii=False))
             for path in files:
                 archive.write(path, path.relative_to(textured).as_posix())
     else:
@@ -264,7 +267,8 @@ def reconstruct(job_dir, mode, device='cpu', iterations=3000, threads=2, image_m
                 'video': info.get('video'), 'frameSelection': info.get('selection'),
                 'cameraGrouping': grouping, 'registration': registration,
                 'cameraConvention': 'COLMAP camera-to-world; right/down/forward; arbitrary similarity frame',
-                'quality': {'metricAccuracyValidated': False, 'photosDiscarded': 0 if input_type == 'photos' else None,
+                'quality': {'metricAccuracyValidated': False, 'qualityStatus': registration['qualityStatus'],
+                            'warnings': registration['warnings'], 'photosDiscarded': 0 if input_type == 'photos' else None,
                             'lowDetailOrBlurWarnings': sum(r.get('quality', {}).get('lowDetailOrBlurWarning', False) for r in image_records),
                             'nearDuplicateWarnings': sum(bool(r.get('quality', {}).get('nearDuplicateOf')) for r in image_records),
                             'uavAssumption': 'Overlapping aerial photos; GPS/altitude are retained only in original metadata, not used as metric poses.' if profile == 'uav' else None},

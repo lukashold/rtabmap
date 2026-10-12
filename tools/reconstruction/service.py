@@ -19,6 +19,7 @@ from urllib.parse import parse_qs, unquote, urlsplit
 
 from capture_contract import IMAGE_TYPES, GENERATED_BYTES, PANORAMA_LIMITS, inspect_generated_input
 from capture_engines import available as capture_available
+from quality import QUALITY_WARNING_CODES
 from contract import ARTIFACTS, OPTIONAL_ARTIFACTS, EXTENSIONS, VIDEO_TYPES, VIDEO_LIMITS, LIMITS, ContractError, inspect_input, inspect_video_input, sha256, validate_artifacts
 
 PREFIX = '/api/reconstruction'
@@ -344,11 +345,16 @@ class Service:
                 artifacts = validate_artifacts(folder / 'artifacts', job['mode'], self.limits)
                 manifest_name = {'panorama': 'result.json', 'generated': 'generation.json'}.get(job['mode'], 'reconstruction.json')
                 manifest = json.loads((folder / 'artifacts' / manifest_name).read_text('utf-8'))
+                registration = manifest.get('registration', {})
+                raw_warnings = registration.get('warnings', []) if isinstance(registration, dict) else []
+                quality_warnings = sorted({value for value in raw_warnings if isinstance(value, str) and value in QUALITY_WARNING_CODES}) if isinstance(raw_warnings, list) else []
                 for item in artifacts:
                     item['url'] = f"{PREFIX}/jobs/{job['id']}/artifacts/{item['name']}"
                 with self.lock:
                     if job['status'] == 'running':
                         self.change(job, status='complete', stage='complete', artifacts=artifacts, error=None,
+                                    qualityWarnings=quality_warnings,
+                                    qualityStatus='review-required' if quality_warnings else 'unverified',
                                     imageCount=manifest.get('imageCount', job['imageCount']))
         except Exception as error:
             code = error.code if isinstance(error, ContractError) else 'worker_failed'

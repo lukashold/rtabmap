@@ -79,6 +79,7 @@ export class ReconstructionPanel {
       const item = document.createElement('li'), heading = document.createElement('strong'), state = document.createElement('p');
       heading.textContent = job.name; state.textContent = `${t('job' + job.status[0].toUpperCase() + job.status.slice(1))} · ${t({mesh:'photoMesh',splat:'photoSplat',panorama:'panoramaJob',generated:'generatedJob'}[job.mode])}`;
       item.append(heading, state);
+      for(const code of job.qualityWarnings||[]){const warning=document.createElement('p');warning.className='notice';warning.textContent=t(code);item.append(warning);}
       if (job.status === 'failed' && job.error) { const error = document.createElement('p'); error.className = 'privacy'; error.textContent = String(typeof job.error === 'object' ? job.error.message || job.error.code || '' : job.error).slice(0, 500); item.append(error); }
       if (['queued','running'].includes(job.status)) {
         const cancel = document.createElement('button'); cancel.textContent = t('cancel'); cancel.disabled = this.busy; cancel.onclick = () => this.run(async () => { await this.client.cancel(job.id); await this.list(); }); item.append(cancel);

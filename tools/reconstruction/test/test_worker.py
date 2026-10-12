@@ -82,7 +82,7 @@ class WorkerHandoff(unittest.TestCase):
                     argument('-o').with_suffix('.mtl').write_text('newmtl material_0\nKd 1 1 1\nTr 1.000000\nillum 1\n', 'ascii')
                 return SimpleNamespace(returncode=0)
 
-            with mock.patch.object(worker, 'prepare_images', side_effect=fake_prepare), mock.patch.object(worker, 'sfm_report', return_value=({'testDouble': True}, [CAMERA])), mock.patch.object(worker.shutil, 'which', return_value='/test/engine'), mock.patch.object(worker.subprocess, 'run', side_effect=fake_run), contextlib.redirect_stdout(io.StringIO()):
+            with mock.patch.object(worker, 'prepare_images', side_effect=fake_prepare), mock.patch.object(worker, 'sfm_report', return_value=({'testDouble': True}, [CAMERA])), mock.patch.object(worker, 'camera_pose_diagnostics', return_value={'warnings': ['camera_pose_ambiguity'], 'qualityStatus': 'review-required', 'poseDiagnostics': {'testDouble': True}}), mock.patch.object(worker.shutil, 'which', return_value='/test/engine'), mock.patch.object(worker.subprocess, 'run', side_effect=fake_run), contextlib.redirect_stdout(io.StringIO()):
                 worker.reconstruct(job, 'mesh')
             self.assertEqual([command[0] for command in calls][-4:], ['DensifyPointCloud', 'ReconstructMesh', 'RefineMesh', 'TextureMesh'])
             self.assertTrue((job / 'artifacts' / 'mesh.zip').is_file())
@@ -95,6 +95,11 @@ class WorkerHandoff(unittest.TestCase):
             self.assertEqual(patch['baseRevision'], manifest['engines']['openmvs']['revision'])
             self.assertEqual((job / 'input.zip').read_bytes(), b'test-only input; decoder mocked below')
             with zipfile.ZipFile(job / 'artifacts' / 'mesh.zip') as archive:
+                project = json.loads(archive.read('rtab-measure.json'))
+                self.assertEqual(project['source'], 'photogrammetry')
+                self.assertEqual(project['captureWarnings'], ['camera_pose_ambiguity'])
+                self.assertIs(project['calibrated'], False)
+                self.assertEqual(project['measurements'], [])
                 self.assertEqual(archive.read('model.mtl'), b'newmtl material_0\nKd 1 1 1\nd 1.000000\nillum 1\n')
                 self.assertEqual(archive.read('model.obj'), (job / 'work' / 'textured' / 'model.obj').read_bytes())
                 self.assertEqual(archive.read('model.obj').decode('ascii').splitlines()[-5:], ['v 0 0 0', 'v 1 0 0', 'v 0 1 0', 'usemtl material_0', 'f 1 2 3'])

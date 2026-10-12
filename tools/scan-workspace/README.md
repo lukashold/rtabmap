@@ -1,13 +1,24 @@
-# KANTURA measurement workspace — 0.5.0 preview
+# KANTURA measurement workspace — 0.6.0 preview
 
 A browser workspace for measuring room scans and outdoor objects such as gates. Import a KANTURA RoomPlan capture or a textured model, organize separate rooms by building and floor, add measurements and photo notes, and save a portable project archive. The guided interface, tutorial, reports and animated videos support 15 languages: German, English, French, Spanish, Italian, Simplified Chinese, Portuguese, Arabic, Hindi, Bengali, Russian, Japanese, Korean, Indonesian and Turkish.
 
-The 0.5.0 work adds optional geometry snapping, a Gaussian-splat viewer and explicit
-photo-reconstruction jobs. The native app gains Apple Object Capture/photogrammetry
-and a separate local splat preview. These additions are development features until
-their build, rendering and device checks are recorded in [VALIDATION.md](VALIDATION.md).
-See the [Polycam capability roadmap](../../docs/POLYCAM-ROADMAP.md) and the
+Version 0.6.0 adds guided native photo/video/panorama inputs, a local panorama
+viewer, real spherical stitching, bounded video-frame selection and optional
+single-image 3D generation. The browser submits all four processing modes through
+one private queue. The native camera stores original inputs; it does not perform
+TripoSR generation or OpenSplat training on the phone. See the
+[Polycam capability roadmap](../../docs/POLYCAM-ROADMAP.md),
+[capture quality guide](../../docs/CAPTURE-QUALITY.md) and
 [independent implementation rules](../../docs/INDEPENDENT-IMPLEMENTATION.md).
+
+Implementation and acceptance are separate. The recorded 0.6 baseline has
+[150 web tests and a viewer Docker build](https://github.com/lukashold/rtabmap/actions/runs/38207033794),
+an [unsigned full iOS build](https://github.com/lukashold/rtabmap/actions/runs/38207033828)
+and [real offline panorama/TripoSR Docker runs](https://github.com/lukashold/rtabmap/actions/runs/38207033832).
+The combined API pipeline is undergoing a video-decoder compatibility correction;
+those separate engine runs are not a claim that every deployed API path has passed.
+Signed device, actual scan quality and cloud-account checks remain open. Later runs
+and current totals are recorded in [VALIDATION.md](VALIDATION.md).
 
 ## Optional edge and corner assistance
 
@@ -25,7 +36,7 @@ or instanced meshes, morph targets and partial triangle draw ranges remain freel
 measurable without assistance. Clipped/occluded points are filtered, with a bounded
 visibility-check budget. Dense scenes still need real-device performance tests.
 
-## Photo reconstruction and Gaussian splats
+## Reconstruction modes and Gaussian splats
 
 The splat viewer is separate from the measurement model. It reads validated
 `.splat` or supported Gaussian `.ply` files with anisotropic scales, rotation and
@@ -42,17 +53,71 @@ removes points nor changes positions, Gaussian sizes or original file bytes.
 The initial/full-view action retains the complete bounds including Gaussian
 scales, and the focus view's far plane still accommodates that full extent.
 
-Photo jobs require an explicitly configured private reconstruction worker and
-an explicit upload. Their API is proxied on the same origin after authentication;
-the operator's internal worker origin and token are not public configuration.
-No job is complete merely because upload or queueing succeeded. The worker checks
-real output artifacts before publishing them. Its [API contract](../reconstruction/API.md)
-and [worker instructions](../reconstruction/README.md) document input, limits,
-hardware requirements, dependency provenance and validation boundaries.
+Choose the processing mode explicitly. Reconstruction jobs require a configured
+private worker, its access token and an explicit upload. The same-origin proxy
+keeps the internal worker address and token out of public configuration. A static
+viewer alone does not provide these jobs.
 
-Photo-derived geometry requires a known reference to establish usable scale.
-Successful reconstruction, visual fidelity and metric accuracy are separate
-properties. Original room/gate LiDAR measurements remain available independently.
+| Mode | Input | Result and measurement boundary |
+| --- | --- | --- |
+| Photo mesh | 8–250 overlapping JPEG/PNG/HEIC/HEIF photos in a ZIP, or supported MP4/MOV | COLMAP/OpenMVS textured OBJ ZIP and PLY; scale starts unverified |
+| Gaussian splat | The same photo/video input | Actual OpenSplat Gaussian PLY; a separate visual view without measurement tools |
+| Photos → 360° | 2–40 overlapping photos in a ZIP, rotating about the same camera center | OpenCV spherical PNG plus coverage mask and exact original ZIP; no depth or measurements |
+| Single image → AI 3D | One JPEG/PNG, at most 20 MiB | Optional TripoSR generated model; unseen sides are inferred, with measurement and calibration disabled |
+
+The **aerial/UAV profile** labels mesh/splat input. It uses the same pipeline;
+GPS metadata does not establish georeferencing, physical scale or a flight plan.
+Video accepts H.264/HEVC/MPEG-4 in modern MP4/MOV, 4–180 seconds, at most 4096
+pixels per side and 200 MiB. The worker selects frames using timeline coverage,
+image-detail/exposure checks and duplicate rejection; selected JPEGs are also
+exported. It does not invent camera motion. Full limits and output allowlists
+are in the [API contract](../reconstruction/API.md).
+
+No job is complete merely because upload or queueing succeeded. The worker must
+finish and pass artifact, geometry, provenance and checksum validation. Completed
+files can still contain a poor reconstruction. Inspect camera/quality warnings,
+original photos and the model before accepting it. The periodic synthetic test
+scene produced incorrect camera geometry and is **not quality accepted**; more
+training or one reference length does not repair that failure.
+
+Photo geometry needs a known reference before metric measurement is enabled.
+Warnings about inconsistent camera positions or insufficient viewpoint motion
+also block calibration and measurement; recapture the scene. Repeated-view
+warnings alone allow a reference check/calibration but call for more varied views.
+Warnings are retained with the project. These safeguards are heuristics, not a
+certificate that an unflagged model is accurate. See [capture checks](../../docs/CAPTURE-QUALITY.md).
+
+### Local panorama view and actual stitching
+
+Open an existing equirectangular JPEG/PNG with exactly 2:1 aspect ratio in the
+separate panorama view (at most 32 MiB and 8192 × 4096 pixels). Mouse, touch and
+keyboard turn the view about a fixed center. Up to eight images are separate
+viewpoints, not a registered virtual tour. Opening these files is local and does
+not upload them. Unknown regions of stitched PNGs remain transparent.
+
+For a new panorama, upload the overlapping photo ZIP in **Photos → 360°**. Rotate
+in place; walking around an object belongs to photo mesh/splat capture. The real
+stitcher places observations on a full spherical canvas and leaves missing
+sky/floor directions empty. It does not stretch a cropped image or fill missing
+regions with AI. The result preserves the original ZIP and a coverage mask;
+coverage is not depth or an accuracy score. See [stitcher details](../panorama/README.md).
+
+### Optional generated 3D
+
+Use a transparent PNG with visible foreground, or explicitly confirm that an
+opaque JPEG/PNG already shows an isolated object on a plain neutral background.
+This confirmation is not automatic background removal. The server must have
+TripoSR enabled at build time; the default image leaves it unavailable. It adds
+about 1.68 GB of pinned weights plus an isolated CPU Torch runtime; 12 GiB memory
+is a planning allowance, not a measured performance promise. Runtime processing
+uses installed models offline. See [server setup](README-server.md).
+
+A camera photograph is the original input; the resulting geometry is still
+**AI-generated**, including unseen sides. Its arbitrary units cannot be converted
+into reliable object dimensions with one known length. The generated-project
+archive preserves that provenance when saved/reopened. Measurement, calibration,
+metric reporting and fitting decisions are unavailable for this mode. Notes and
+visual inspection remain useful. This mode never substitutes for a failed scan.
 
 ## Learn and contribute
 
@@ -153,6 +218,10 @@ With a room open, the most recently calculated transport inputs belong to that r
 | HTML report / PDF | Download an offline report, then use the browser's print-to-PDF function |
 | USDZ | Native RoomPlan export for compatible viewers; not an input to this browser workspace |
 | RTAB-Map `.db` | Keep as original; reconstruct/export with RTAB-Map before opening here |
+| Gaussian `.ply` / `.splat` | Separate splat view; no mesh measurements |
+| 2:1 JPEG/PNG panorama | Separate spherical view, up to 32 MiB and 8192 × 4096; no depth |
+| Photo ZIP / MP4 / MOV | Explicit worker job input, not direct measurement-model import |
+| Single JPEG/PNG for AI 3D | Explicit optional generated job; resulting project retains generated provenance |
 
 Input is limited to **200 MiB** compressed/selected data, **500 MiB** declared and actual uncompressed ZIP content, and 2,000 ZIP entries. A raw scan import contains one model; a building archive can contain up to 100 independent room models under the same total archive limits. Add individual scans with **Add room**; nesting a building archive as one room is unsupported. RoomPlan exchange accepts at most 150 surfaces and 100 contour points per surface. The viewer limits geometry to 10 million vertices; memory limits of individual computers can be lower. Assets with unsafe paths, ambiguous references or external URLs are rejected. Large scans may need simplification in RTAB-Map before import.
 
@@ -190,4 +259,10 @@ Cloud adapters have automated tests with simulated API responses. Real provider 
 
 `pnpm test` covers measurement geometry, scale/calibration, RoomPlan conversion, multiroom archive round trips, photo-note/reference validation, CSV/SVG/DXF/report export, transport envelopes, server behavior and cloud request boundaries. `pnpm check` checks JavaScript syntax; `pnpm build` produces the static assets. See [VALIDATION.md](VALIDATION.md) for the distinction between automated checks, earlier preview exercises and pending real-device/provider checks. Keep tutorial content in `app/ios/RTABMapApp/MeasurementGuide.json` consistent with the native and desktop flows. See the [German measurement walkthrough](../../app/ios/MEASUREMENT-WORKFLOW.md) and [independent App Store release plan](../../docs/APP-STORE-RELEASE.md).
 
-The repository's [BSD license](../../LICENSE) applies to project code; preserve bundled dependency notices when distributing the web build. Native iOS dependencies need a separate license audit before store distribution; the current dependency script enables components beyond the repository's BSD code.
+The repository's [BSD license](../../LICENSE) applies to project code. Preserve
+bundled web notices and inspect each engine/model's separate license before
+distribution. OpenMVS/OpenSplat and bundled HEIC codec binaries are not uniformly
+BSD-licensed. See [worker licenses](../reconstruction/THIRD-PARTY.md),
+[panorama licenses](../panorama/THIRD-PARTY.md) and
+[generation code/weights](../generation/THIRD-PARTY.md). Native dependencies also
+need a separate App Store audit; the current build is not a cleared release.

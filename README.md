@@ -2,31 +2,55 @@
 
 <img src="tools/scan-workspace/public/kantura.svg" width="96" alt="Kantura logo">
 
-An independent RTAB-Map fork focused on measuring rooms and outdoor objects.
-Kantura adds guided iPhone capture, indoor RoomPlan import, separate rooms grouped
-by building/floor, and a browser workspace for dimensions, areas and photo notes.
-The KANTURA guided dashboard, room workflow, viewer, reports and tutorials support
+An independent RTAB-Map fork focused on rooms, outdoor objects and understandable
+measurements. The **0.6.0 development preview** combines guided iPhone capture,
+RoomPlan, separate rooms grouped by building/floor, and a browser workspace for
+models, dimensions, areas and photo notes.
+
+Implemented capture paths include textured LiDAR, Apple Object Capture, guided
+photo sets, video, panorama photos and a single original image for optional AI
+object generation. The private server exposes four explicit jobs: **photo mesh,
+Gaussian splat, panorama stitching and generated 3D**. Mesh/splat jobs also accept
+bounded video input and an aerial-photo profile. Each path preserves its meaning:
+a photo set is input, a panorama has no depth, and generated unseen geometry is
+not a measured scan. Generated models and splats are not measurement surfaces.
+
+The guided dashboard, room workflow, browser, reports and tutorials support
 15 languages: German, English, French, Spanish, Italian, Simplified Chinese,
 Portuguese, Arabic, Hindi, Bengali, Russian, Japanese, Korean, Indonesian and Turkish.
+Inherited RTAB-Map expert menus retain upstream English text.
 
 - [iPhone installation and capture modes](app/ios/README.md) · [Guided measurement workflow](app/ios/MEASUREMENT-WORKFLOW.md)
-- [Photo reconstruction and Gaussian Splat server](tools/reconstruction/README.md)
-- [Desktop measurement workspace](tools/scan-workspace/README.md)
+- [Desktop workspace and all four processing modes](tools/scan-workspace/README.md)
 - [Self-host with Docker and a private project library](tools/scan-workspace/README-server.md)
+- [Reconstruction worker](tools/reconstruction/README.md) · [Panorama engine](tools/panorama/README.md) · [Optional image-to-3D engine](tools/generation/README.md)
+- [Capture quality and measurement checks](docs/CAPTURE-QUALITY.md) · [Validation status](tools/scan-workspace/VALIDATION.md)
 - [Independent App Store release requirements](docs/APP-STORE-RELEASE.md)
 - [Name and logo](tools/scan-workspace/BRAND.md)
 - [Usability review against MetaRoom and device acceptance checklist](docs/usability-review.md)
 - [Polycam capability roadmap](docs/POLYCAM-ROADMAP.md) · [Independent implementation and source provenance](docs/INDEPENDENT-IMPLEMENTATION.md)
 - [Contribute: development, translations and device testing](CONTRIBUTING.md) — [Deutsch](docs/contributing/de.md) · [Français](docs/contributing/fr.md) · [Español](docs/contributing/es.md) · [Italiano](docs/contributing/it.md) · [简体中文](docs/contributing/zh-Hans.md)
-- [Community issues](https://github.com/lukashold/rtabmap/issues) · [Feature scope](docs/KANTURA-FEATURES.md) · [Validation status](tools/scan-workspace/VALIDATION.md)
+- [Community issues](https://github.com/lukashold/rtabmap/issues)
 
-Development preview: direct cloud OAuth and the iPhone workflow require real-account
-and device validation. Floor outlines can be traced manually or imported from
-valid RoomPlan contours; separate rooms are not automatically aligned. Videos
-show synthetic animated demonstrations. The current dependency bundle is not a
-cleared App Store release. Existing RTAB-Map notices and licenses apply.
+Confirmed 0.6 checks include an [unsigned full iOS build](https://github.com/lukashold/rtabmap/actions/runs/38207033828),
+[150 web tests and the viewer Docker build](https://github.com/lukashold/rtabmap/actions/runs/38207033794),
+and [real offline Docker panorama/TripoSR engine runs](https://github.com/lukashold/rtabmap/actions/runs/38207033832).
+These do not prove phone behavior or measurement accuracy. A periodic synthetic
+photo fixture reconstructed with incorrect camera geometry and is **not quality
+accepted**; the distinct-texture fixture and the combined job API still require
+their documented end-to-end results. See validation for the latest corrective runs.
 
-The upstream contribution remains separate from this branded fork.
+A signed iPhone test, native WKWebView rendering and real-account cloud OAuth remain
+open. Separate rooms are not automatically aligned; drone inputs are not GPS
+georeferenced. Videos show synthetic animated demonstrations. AI generation is an
+optional build (`ENABLE_GENERATION=0` by default), adding about 1.68 GB of weights
+and a separate Torch runtime; budget 12 GiB of runtime memory. The configured
+engines run locally after installation, without runtime model downloads.
+
+RTAB-Map attribution and the repository license remain intact. Dependencies and
+model weights have their own licenses: the complete server/native bundle is not
+uniformly BSD-licensed or a cleared App Store release. The upstream contribution
+remains separate from this branded fork.
 
 ---
 

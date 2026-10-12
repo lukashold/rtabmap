@@ -4,7 +4,7 @@ import { modesStrings, modesText } from '../src/modes-i18n.js';
 
 test('all fifteen capture-mode dictionaries include translated warnings and provenance', () => {
   const languages = ['de', 'en', 'fr', 'es', 'it', 'zh-Hans', 'pt', 'ar', 'hi', 'bn', 'ru', 'ja', 'ko', 'id', 'tr'];
-  const keys = ['panoramaJob', 'generatedJob', 'imageInputHelp', 'foregroundReady', 'generatedWarning', 'panoramaPhotosHelp', 'generatedSource'];
+  const keys = ['panoramaJob', 'generatedJob', 'imageInputHelp', 'foregroundReady', 'generatedWarning', 'panoramaPhotosHelp', 'generatedSource', 'qualityReview', 'camera_pose_ambiguity', 'repeated_camera_views', 'insufficient_parallax'];
   assert.deepEqual(Object.keys(modesStrings).sort(), languages.sort());
   for (const [language, dictionary] of Object.entries(modesStrings)) {
     assert.deepEqual(Object.keys(dictionary), keys);

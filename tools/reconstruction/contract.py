@@ -24,6 +24,7 @@ class Limits:
 
 
 LIMITS = Limits()
+QUALITY_WARNING_CODES = frozenset({'camera_pose_ambiguity', 'repeated_camera_views', 'insufficient_parallax'})
 EXTENSIONS = {'.jpg', '.jpeg', '.png', '.heic', '.heif'}
 VIDEO_TYPES = {'video/mp4', 'video/quicktime'}
 VIDEO_LIMITS = {'durationSeconds': 180, 'maxWidth': 4096, 'maxHeight': 4096,
@@ -261,6 +262,33 @@ def inspect_ply(path, splat=False):
         return {'vertices': vertices, 'faces': faces}
 
 
+def photogrammetry_project(warnings):
+    """Portable viewer provenance; y is a display convention, not gravity."""
+    return {'version': 1, 'name': 'Photo reconstruction', 'source': 'photogrammetry',
+            'scale': 1, 'upAxis': 'y', 'calibrated': False,
+            'measurements': [], 'notes': [], 'checks': [],
+            'captureWarnings': sorted(set(warnings) & QUALITY_WARNING_CODES)}
+
+
+def validate_photogrammetry_project(value, expected_warnings):
+    template = photogrammetry_project(expected_warnings)
+    if not isinstance(value, dict) or set(value) != set(template):
+        raise ContractError('invalid_artifacts')
+    if (type(value['version']) is not int or value['version'] != 1
+            or not isinstance(value['name'], str) or not 1 <= len(value['name']) <= 200
+            or any(ord(c) < 32 for c in value['name'])
+            or value['source'] != 'photogrammetry' or value['upAxis'] != 'y'
+            or type(value['scale']) not in (int, float) or value['scale'] != 1
+            or value['calibrated'] is not False
+            or any(value[key] != [] for key in ('measurements', 'notes', 'checks'))):
+        raise ContractError('invalid_artifacts')
+    codes = value['captureWarnings']
+    if (not isinstance(codes, list) or len(codes) > len(QUALITY_WARNING_CODES)
+            or any(not isinstance(code, str) or code not in QUALITY_WARNING_CODES for code in codes)
+            or len(set(codes)) != len(codes) or sorted(codes) != template['captureWarnings']):
+        raise ContractError('invalid_artifacts')
+
+
 def validate_artifacts(directory, mode, limits=LIMITS):
     if mode in {'panorama', 'generated'}:
         from capture_contract import validate_capture_artifacts
@@ -295,8 +323,15 @@ def validate_artifacts(directory, mode, limits=LIMITS):
             inspect_ply(directory / 'model.ply')
             with zipfile.ZipFile(directory / 'mesh.zip') as archive:
                 entries = zip_entries(archive, limits.output_expanded, limits.artifact, 1000)
-                if not any(i.filename.endswith('.obj') for i in entries) or any(PurePosixPath(i.filename).suffix.lower() not in {'.obj', '.mtl', '.png', '.jpg', '.jpeg'} for i in entries):
+                if not any(i.filename.endswith('.obj') for i in entries) or any(i.filename != 'rtab-measure.json' and PurePosixPath(i.filename).suffix.lower() not in {'.obj', '.mtl', '.png', '.jpg', '.jpeg'} for i in entries):
                     raise ContractError('invalid_artifacts')
+                project = next((item for item in entries if item.filename == 'rtab-measure.json'), None)
+                if project is None or project.file_size > 8192:
+                    raise ContractError('invalid_artifacts')
+                registration = manifest.get('registration', {})
+                raw_warnings = registration.get('warnings', []) if isinstance(registration, dict) else []
+                warnings = [code for code in raw_warnings if isinstance(code, str) and code in QUALITY_WARNING_CODES] if isinstance(raw_warnings, list) else []
+                validate_photogrammetry_project(json.loads(archive.read(project)), warnings)
                 if archive.testzip() is not None:
                     raise ContractError('invalid_artifacts')
         else:

@@ -20,10 +20,10 @@ def probe_video(path):
     command = ['ffprobe', '-v', 'error', '-protocol_whitelist', 'file',
                '-f', 'mov', '-enable_drefs', '0', '-use_absolute_path', '0',
                '-probesize', '10000000', '-analyzeduration', '10000000',
-               '-select_streams', 'v:0', '-show_entries',
-               # FFmpeg 4.4 names this section "side_data". The unique
-               # "stream_side_data" alias exists only in later releases.
-               'stream=codec_name,width,height,avg_frame_rate,duration:stream_tags=rotate:side_data=rotation:format=duration',
+               # Full stream metadata includes its display matrix in both 4.4
+               # and newer releases. The shared side_data selector also enables
+               # packet/frame sections in 4.4; never use it for this preflight.
+               '-select_streams', 'v:0', '-show_streams', '-show_format',
                '-of', 'json', str(path)]
     result = None
 
