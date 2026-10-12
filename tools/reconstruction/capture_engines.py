@@ -25,7 +25,11 @@ def available(mode):
     script = code/('generate.py' if mode == 'generated' else 'stitch.py')
     if not script.is_file() or not python.is_file():
         return False
-    if python.resolve() == Path(sys.executable).resolve():
+    # A venv's bin/python may symlink to the service's base executable, but
+    # invoking that path selects different site-packages via pyvenv.cfg. Compare
+    # invocation paths, not resolved binary identity; keep the isolated runtime's
+    # successful-build import marker mandatory below.
+    if os.path.normcase(os.path.abspath(python)) == os.path.normcase(os.path.abspath(sys.executable)):
         modules = ['cv2','numpy','PIL','pillow_heif'] if mode == 'panorama' else ['torch','torchmcubes','tsr']
         try:
             if not all(importlib.util.find_spec(module) for module in modules):

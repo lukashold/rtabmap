@@ -2,6 +2,8 @@ import json
 import os
 import sys
 import tempfile
+import subprocess
+import venv
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -64,6 +66,65 @@ class CaptureContracts(unittest.TestCase):
             capture_engines.run_capture(job,'generated',64,True)
         self.assertEqual((job/'input.png').read_bytes(),original)
         self.assertEqual(len(validate_artifacts(job/'artifacts','generated')),5)
+
+    def test_isolated_runtime_is_not_confused_with_the_same_resolved_base_binary(self):
+        # Explicit filesystem test double for Linux's venv symlink identity.
+        # Covers both real marker locations used by the Docker installers.
+        for mode in ['panorama', 'generated']:
+            with self.subTest(mode=mode):
+                code = self.root / mode
+                code.mkdir()
+                (code / ('stitch.py' if mode == 'panorama' else 'generate.py')).write_text('# test engine', 'utf-8')
+                environment = self.root / (mode + '-env')
+                python = environment / 'bin' / 'python'
+                python.parent.mkdir(parents=True)
+                python.write_bytes(b'test interpreter path, never executed')
+                marker = (environment if mode == 'panorama' else code) / 'runtime.json'
+                marker.write_text('{"validated":"test-only imports marker"}', 'utf-8')
+                models = self.root / (mode + '-models')
+                models.mkdir()
+                (models / 'model.bin').write_bytes(b'test-only-weight')
+                (code / 'pins.json').write_text(json.dumps({'downloads': [{'name': 'model.bin', 'bytes': 16}]}), 'utf-8')
+                with mock.patch.object(capture_engines, 'engine_paths', return_value=(code, python)), \
+                     mock.patch.object(Path, 'resolve', return_value=Path(sys.executable)), \
+                     mock.patch.object(capture_engines.importlib.util, 'find_spec', return_value=None) as base_import, \
+                     mock.patch.dict(os.environ, {'KANTURA_MODEL_DIR': str(models)}):
+                    self.assertTrue(capture_engines.available(mode))
+                    base_import.assert_not_called()
+                    marker.unlink()
+                    self.assertFalse(capture_engines.available(mode))
+                    marker.write_text('{}', 'utf-8')
+                    if mode == 'generated':
+                        (models / 'model.bin').write_bytes(b'wrong-size')
+                        self.assertFalse(capture_engines.available(mode))
+
+    def test_current_interpreter_still_requires_its_actual_imports(self):
+        code = self.root / 'panorama'
+        code.mkdir()
+        (code / 'stitch.py').write_text('# test engine', 'utf-8')
+        # A marker cannot override missing imports when using this interpreter.
+        (code / 'runtime.json').write_text('{}', 'utf-8')
+        with mock.patch.object(capture_engines, 'engine_paths', return_value=(code, Path(sys.executable))), \
+             mock.patch.object(capture_engines.importlib.util, 'find_spec', return_value=None) as imports:
+            self.assertFalse(capture_engines.available('panorama'))
+            imports.assert_called_once_with('cv2')
+
+    @unittest.skipUnless(os.name == 'posix', 'Real Linux venv symlink regression runs in Docker/CI')
+    def test_real_symlinked_venv_keeps_its_runtime_identity(self):
+        environment = self.root / 'real-env'
+        venv.EnvBuilder(with_pip=False, symlinks=True).create(environment)
+        python = environment / 'bin' / 'python'
+        self.assertEqual(python.resolve(), Path(sys.executable).resolve())
+        result = subprocess.run([str(python), '-c',
+            'import sys,json,pathlib; pathlib.Path(sys.prefix,"runtime.json").write_text(json.dumps({"prefix":sys.prefix})); print(sys.prefix)'],
+            capture_output=True, text=True, check=True, timeout=20)
+        self.assertEqual(Path(result.stdout.strip()), environment)
+        code = self.root / 'panorama'
+        code.mkdir()
+        (code / 'stitch.py').write_text('# test engine', 'utf-8')
+        with mock.patch.object(capture_engines, 'engine_paths', return_value=(code, python)), \
+             mock.patch.object(capture_engines.importlib.util, 'find_spec', return_value=None):
+            self.assertTrue(capture_engines.available('panorama'))
 
     def test_missing_generation_models_never_advertise_availability(self):
         with mock.patch.dict(os.environ,{'KANTURA_MODEL_DIR':str(self.root/'absent')}):
