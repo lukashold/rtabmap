@@ -22,6 +22,34 @@ browser/device flow.
 Signed device, actual scan quality and cloud-account checks remain open. Later runs
 and current totals are recorded in [VALIDATION.md](VALIDATION.md).
 
+## Local coordinate review (web development preview)
+
+Choose **Check coordinates** on the home page, or in a measurable project's tools.
+The advanced dialog calculates locally and has all 15 interface languages.
+
+For room/floor registration, place at least three manual 3D photo notes on shared
+physical corners, named A/B/C in the same order in both captures. They must not all
+lie on a straight line. The active project's notes are prefilled in metres in its
+centred Y-up viewer frame. Export the anchor JSON from the reference capture and
+paste it as the target in the source capture. Labels do not automatically match
+or reorder points. Without overlapping identifiable points, do not invent a fit.
+The rigid fit reports a column-major source-to-target matrix and every residual;
+it never fits scale or a reflection. A supplied tolerance checks those pairs only;
+without one, the candidate remains explicitly unreviewed. Uncalibrated photo or
+suspect/generated model contexts cannot supply metric anchors.
+
+The GPS tab converts an explicitly entered WGS84 point relative to an explicitly
+entered origin: ECEF → ENU → viewer [east, up, -north]. Ellipsoidal height is
+mandatory; MSL/orthometric/unknown EXIF height is rejected. Optional uncertainty
+estimates remain attached to each input; no combined precision is invented.
+This single-point converter does not georeference a photograph or a scan.
+
+Anchor/candidate JSON preserves source/target frames, labels and synthetic-example
+provenance. Candidates always retain `metricAccuracyValidated:false`,
+`appliedToModel:false` and `automaticBuildingMerge:false`. The dialog changes no
+models and saves nothing to a server. Its controlled mathematical/input tests do
+not establish physical surveying accuracy or current visual-browser acceptance.
+
 ## Optional edge and corner assistance
 
 Enable **Snap to edges/corners** when selecting measurement points. Assistance is

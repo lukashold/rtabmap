@@ -11,6 +11,31 @@ Kantura is an independent development fork, not a signed App Store release.
 A passing build, a completed processing job, visually plausible geometry and
 accurate physical measurements are separate claims.
 
+## Follow-up: coordinate review, after `cc37aa5`
+
+The new integrated web coordinate workbench, GPS and landmark helpers pass
+**185 local Node tests**, JavaScript syntax and the complete bundle build.
+This includes 11 independent rigid-registration cases, 9 geodetic cases, frame/
+scale/provenance and an end-to-end GPS-control-point fit. Three or more named
+manual notes can supply metric anchors; unavailable/suspect measurement contexts
+are blocked. Ten workbench contract/translation cases cover 15 languages, bounded
+JSON, explicit tolerances, invalid data and synthetic provenance through export/
+paste. The source-to-target rigid transform does not scale or mirror input.
+
+GPS tests include independent WGS84 ellipsoid axes, published PROJ reference
+coordinates, metre offsets, poles, the antimeridian and explicit height datums.
+They prove conversions, not GPS receiver accuracy. Downloaded coordinate
+candidates do not modify models or merge floors. Automatic scene matching and
+whole-building assembly remain open, as does georeferencing complete scans.
+
+The user manually reloaded the running preview and reported that Kantura loads.
+The browser tool nevertheless rejected selection of that same tab again under its
+URL/protocol security policy. No alternative browser or indirect renderer was
+used to bypass the block. Current visual UI/WebGL acceptance remains open.
+
+The reconstruction/iOS source files did not change in this follow-up; their
+actual previously recorded CI results are distinct from the new web checks.
+
 ## Current revision: completed automated and actual-engine checks
 
 | Check | Recorded result | Scope and limits |

@@ -32,6 +32,11 @@ Inherited RTAB-Map expert menus retain upstream English text.
 - [Contribute: development, translations and device testing](CONTRIBUTING.md) — [Deutsch](docs/contributing/de.md) · [Français](docs/contributing/fr.md) · [Español](docs/contributing/es.md) · [Italiano](docs/contributing/it.md) · [简体中文](docs/contributing/zh-Hans.md)
 - [Community issues](https://github.com/lukashold/rtabmap/issues)
 
+The web preview now also offers a local 15-language coordinate workbench: metric
+landmark registration and explicit WGS84/ENU point conversion, with reviewable
+candidate exports. It does not yet merge floors or georeference whole scans.
+See the [coordinate workflow](tools/scan-workspace/README.md#local-coordinate-review-web-development-preview).
+
 Confirmed 0.6 checks include an [unsigned full iOS build](https://github.com/lukashold/rtabmap/actions/runs/38208881351),
 [152 web tests and the viewer Docker build](https://github.com/lukashold/rtabmap/actions/runs/38209256050),
 and [real offline Docker panorama/TripoSR engine runs](https://github.com/lukashold/rtabmap/actions/runs/38207033832).
