@@ -20,6 +20,17 @@ test('photo selection becomes a bounded ZIP with unique safe paths and preserves
   await assert.rejects(photoArchive([{ name: 'large.zip', size: RECONSTRUCTION_LIMIT + 1 }]), { code: 'tooLarge' });
 });
 
+test('panorama selections use the same two-to-forty limit as the real stitcher', async () => {
+  const files=Array.from({length:41},(_,i)=>new File([new Uint8Array([i])],`${i}.jpg`));
+  const input=await reconstructionInput(files.slice(0,2),'panorama');
+  assert.equal(input.inputType,'photos');
+  assert.equal(Object.keys(unzipSync(new Uint8Array(await input.blob.arrayBuffer()))).length,2);
+  await reconstructionInput(files.slice(0,40),'panorama');
+  await assert.rejects(reconstructionInput(files.slice(0,1),'panorama'),{code:'panoramaPhotosHelp'});
+  await assert.rejects(reconstructionInput(files,'panorama'),{code:'panoramaPhotosHelp'});
+  await assert.rejects(reconstructionInput(files.slice(0,2),'mesh'),{code:'photoInputHelp'});
+});
+
 test('job submission is explicit authenticated raw ZIP with the selected mode and sanitized name', async () => {
   const calls = [], client = new ReconstructionClient('private-memory-token', async (url, options) => { calls.push({ url, options }); return json({ job: makeJob('queued') }, 202); });
   const input = new Blob(['zip']); const job = await client.submit(input, 'mesh', 'Living / room');

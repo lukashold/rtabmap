@@ -13,7 +13,8 @@ export class ReconstructionPanel {
     });
     this.$('reconstruction-token').oninput = () => { ++this.generation; clearTimeout(this.timer); this.client = undefined; this.capabilities = undefined; this.jobs = []; this.refresh(); };
     this.$('reconstruction-refresh').onclick = () => this.run(async () => { const client = this.client, generation = this.generation, capabilities = await client.capabilities(); if (generation !== this.generation) return; this.capabilities = capabilities; await this.list(); });
-    this.$('reconstruction-mode').onchange = () => this.refresh();
+    this.$('reconstruction-mode').onchange = () => { this.$('photo-input').value=''; this.$('foreground-ready').checked=false; this.refresh(); };
+    this.$('photo-input').onchange = () => { this.$('foreground-ready').checked=false; };
     this.$('photo-form').onsubmit = event => { event.preventDefault(); this.run(async () => {
       if (!this.modeAvailable()) throw { code: 'workerUnavailable' };
       const mode = this.$('reconstruction-mode').value;
@@ -58,7 +59,7 @@ export class ReconstructionPanel {
     const selectedMode=this.$('reconstruction-mode').value;
     this.$('foreground-field').hidden=selectedMode!=='generated';
     this.$('capture-mode-help').textContent=t(selectedMode==='generated'?'generatedWarning':selectedMode==='panorama'?'panoramaPhotosHelp':'mediaInputHelp');
-    this.$('media-input-label').textContent=t(selectedMode==='generated'?'imageInputHelp':selectedMode==='panorama'?'panoramaPhotosHelp':'mediaInputHelp');
+    this.$('media-input-label').textContent=t(selectedMode==='generated'?'imageInputHelp':selectedMode==='panorama'?'panoramaPhotosHelp':'mediaInputHelp')+(selectedMode==='panorama'?' (2–40)':'');
     this.$('photo-input').multiple=selectedMode!=='generated';
     this.$('photo-input').accept=selectedMode==='generated'?'.jpg,.jpeg,.png':selectedMode==='panorama'?'.zip,.jpg,.jpeg,.png,.heic,.heif':'.zip,.jpg,.jpeg,.png,.heic,.heif,.mp4,.mov';
     this.$('reconstruction-profile').closest('label').hidden=!['mesh','splat'].includes(selectedMode);

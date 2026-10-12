@@ -1,239 +1,148 @@
-# Development validation — 0.5.0 preview, 2026-10-11
+# Development validation — 0.6.0 preview
 
-## New 0.5 capture, visualization and measurement checks
+Recorded 12 October 2026. Source revision:
+[`73f838608859abc13917d5a590ef514fe55537be`](https://github.com/lukashold/rtabmap/commit/73f838608859abc13917d5a590ef514fe55537be).
+Local follow-up checks also include the not-yet-published panorama 2–40-image
+regression and UI reset after that source commit. The head-specific CI results
+below remain attached to their actual revision.
 
-The Windows run passes **130 Node tests**. These include actual HTTP transport,
-reconstruction authentication and bounded streaming, Gaussian-file detection,
-offline native bridge payloads, race recovery, edge/corner snapping and bounded
-Splat subject framing. The latest Python suite has **51 tests**: 50 pass on
-Windows, one real symbolic-link case is skipped because Windows does not permit
-creating that link here. The preceding Linux suite passed all 49 cases. Cleanup
-keeps the original archive, artifacts and logs and only removes the generated
-work directory after a finished process. The running worker also stops when
-available storage drops below the reserved minimum. The actual engine smoke identified
-and corrected an OpenMVS handoff: TextureMesh now receives the existing dense
-scene plus the separately exported PLY, rather than a nonexistent mesh scene.
-Its process/job tests use explicitly identified fake workers; those unit tests
-do not establish a successful COLMAP/OpenMVS/OpenSplat reconstruction.
+Kantura is an independent development fork, not a signed App Store release.
+A passing build, a completed processing job, visually plausible geometry and
+accurate physical measurements are separate claims.
 
-[CPU run 38172402005](https://github.com/lukashold/rtabmap/actions/runs/38172402005)
-for `fea9a0f` actually compiled the engines, applied the verified OpenMVS OBJ
-export fix and executed the real exporter regression for one/two texture atlases
-(ctest: one test executed and passed). Both multi-photo mesh and Splat routes
-completed, and the downloaded artifacts matched their declared byte counts and
-SHA256 hashes. The original 32 photographs are procedurally rendered synthetic
-data. The Splat smoke uses only ten training iterations; this establishes the
-processing path, not visual quality or field accuracy. A subsequent narrow
-worker fix replaces OpenMVS's erroneous generated `Tr 1.000000` material line
-with opaque `d 1.000000`, without changing OBJ geometry or original photographs.
+## Current revision: completed local checks and running CI
 
-The actual browser rendered the original synthetic Splat demo, downloaded it and
-reopened the resulting `.splat`. Closing the Splat view preserved an existing
-measurement. Two corner selections with snapping enabled produced a measurement
-and displayed the corner status. This proves the interaction, not field accuracy.
-The standalone native IIFE rendered its demo with its actual content security
-policy over localhost, without console errors. This browser exercise does not
-establish WKWebView behavior on an iPhone. The actual trained Splat artifact was
-also imported in the browser without parser/console errors. Distant points and
-large Gaussian extents made its initial full view tiny; the explicit subject
-focus zooms on its main positions while keeping all original data and the full
-view available. The algorithm samples at most 8192 positions and uses per-axis
-5th/95th percentiles for camera framing only.
+| Check | Recorded result | Scope and limits |
+| --- | --- | --- |
+| Windows web suite, local follow-up | **152 Node tests passed** | Includes the new 2–40-image panorama-input regression, archive/model handling, authentic HTTP/proxy boundaries, mode/provenance handling, measurement policy, persisted camera warnings, Splat/panorama contracts and 15-language coverage. This count includes changes after the published commit; it does not establish live-browser rendering or device behavior. |
+| Windows reconstruction suite, latest root run with isolated codecs | **85 cases: 82 passed, 3 skipped** | This supersedes the earlier environment's 78 passes/7 skips. Remaining environment/platform skips are explicit; this is not an all-85-executed result. The separate backend environment also reported three skips; do not sum the runs. |
+| Independent fixture/evaluator suite | **10 tests passed** | Known synthetic cameras, similarity alignment, distinct/nonperiodic fixture checks, camera-collapse diagnostics and invalid-mesh reporting. Does not reconstruct the new fixture. |
+| [Web/Docker CI 38208881346](https://github.com/lukashold/rtabmap/actions/runs/38208881346) | **Passed: 151 Node tests and workflow checks** | Published `73f8386` source; the newer local 152-test follow-up is not included in this run. |
+| [iOS CI 38208881351](https://github.com/lukashold/rtabmap/actions/runs/38208881351) | **Pending at this report revision** | Current full unsigned app build and native checks; even success would not install or test the physical iPhone. |
+| [Shared reconstruction CI 38208881350](https://github.com/lukashold/rtabmap/actions/runs/38208881350) | **Running; Linux contract/evaluator steps passed** | The 85-case reconstruction suite and 10 evaluator checks passed their CI steps. Engine build and subsequent real private-service/FFmpeg/mesh/Splat/video/panorama/generation/distinct-fixture work remain pending. No completed end-to-end result is claimed. |
+| New 0.6 browser UI walkthrough | **Blocked** | Browser control returned a protocol/security error. Historical live checks below are not a new pass of the current four-mode interface or persistent-warning layout. |
 
-At 390 × 844, all fifteen photo-dialog translations were selected without
-horizontal page overflow. Arabic was checked with the Splat preview and RTL
-direction. Signing into the real local Python service correctly reported the
-Windows machine's absent reconstruction engines; no completed job was fabricated.
-[iOS run 38169729389](https://github.com/lukashold/rtabmap/actions/runs/38169729389)
-for `83de2ed` passed the actual Swift app build, native Foundation tests, tutorial
-and Splat bundle checks, and unsigned IPA upload. The later JavaScript subject-focus
-assets receive a separate follow-up build. Native capture, scan accuracy,
-real-account cloud sign-in and reconstruction visual quality remain device/hardware
-acceptance work. The Docker/Xcode workflows provide commit-specific evidence.
+Skipped tests remain visible. Process/queue tests use explicitly named fake
+workers where appropriate; those test job lifecycle and artifact contracts,
+not COLMAP, OpenMVS, OpenSplat or neural inference. The actual engine checks below
+are recorded separately. Local code can implement a behavior while its final CI
+or interactive acceptance remains pending.
 
-Historical checks below apply to their recorded revisions.
+## Confirmed 0.6 checks at the earlier `64f73de` revision
 
-## New 0.4.1 usability checks
+- [iOS run 38207033828](https://github.com/lukashold/rtabmap/actions/runs/38207033828) passed the full unsigned native build. It is evidence for that revision, not a signed installation, camera session or the newer head.
+- [Web run 38207033794](https://github.com/lukashold/rtabmap/actions/runs/38207033794) passed **150 Node tests** and the viewer Docker build. The published head has 151 tests; the current local follow-up has 152.
+- [Capture-engine run 38207033832](https://github.com/lukashold/rtabmap/actions/runs/38207033832) passed actual standalone **offline Docker panorama and TripoSR generation**. Its result artifacts are `11728160275` and `11727738474`. These are real engine runs, not fake-worker artifacts, and do not by themselves validate the shared API/proxy/browser path.
 
-The Windows integration run passes **88 Node tests**, including two task-lock
-regressions that cover concurrent actions and failure recovery, and a real HTTP
-regression for a client-aborted video stream. Changes separate
-the indoor RoomPlan guide from textured LiDAR capture, add contextual imports,
-improve control contrast and touch targets, and clarify download/transport states.
-Native source changes add wrapped Dynamic Type buttons, keyboard-aware RoomPlan
-results, a scrollable language picker, and direct measurements for saved rooms.
-Compilation does not establish native layout or physical capture usability.
+The panorama engine also passed 12 local Python checks using actual OpenCV,
+including independent synthetic camera estimation, projection/seam behavior,
+transparent unobserved regions, archive limits, HEIC/EXIF handling and preserved
+original bytes. An actual eight-image CLI run produced a 2048 × 1024 spherical
+PNG with approximately 61.98% observed solid-angle coverage. The service artifact
+validator accepted that result's 2:1 shape, binary mask, exact alpha/mask agreement,
+coverage calculation and hashes. Coverage is not depth or a measurement score.
+Nine targeted Node checks cover the separate panorama viewer contract; they do
+not replace an interactive WebGL test on the user's device.
 
-The local build was exercised through the Codex in-app browser at 1280 × 720 and
-390 × 844. The German home, house entry, guide chooser and all seven RoomPlan
-guide steps worked. A desktop synthetic two-point distance produced 2.828 m and
-survived a trip to the overview and back. A mobile three-point floor polygon
-produced 2.61 m² and exposed its finish/cancel actions beside the model. These
-arbitrary synthetic selections are interaction checks, not accuracy benchmarks.
+TripoSR performed real inference with pinned code/weights and exported generated
+geometry. It estimates unseen surfaces and uses arbitrary scale. Neither the
+input being a real photograph nor a valid GLB proves the model's shape matches
+the object. The generated-project policy keeps metric measurement and calibration
+disabled. Inference appearance still needs human inspection on representative
+inputs. Model availability and `hardwareValidated` are not interchangeable.
 
-The live pass found and corrected two layout defects: tall desktop sidebars pushed
-the model below the viewport, and mobile settings preceded the model by over
-1100 pixels. Desktop sidebars now scroll separately. Mobile tools and the model
-come before settings. All 15 languages were selected at 390 pixels without
-horizontal page overflow; Arabic direction and a representative screenshot were
-checked. This is not native-speaker review or exhaustive translated-screen testing.
+## Reconstruction quality: preserve the negative result
 
-The two-floor synthetic house archive imported with its detected measurements;
-switching to the first-floor bedroom replaced the room data and reset unsaved
-transport values, catalogue search and results. The German video loaded with
-readyState 4 and duration 86.75 s. A measurement HTML report actually downloaded.
-No browser console errors were observed during this pass. A subsequent reload
-exposed a server crash when an MP4 client disconnected after headers were sent.
-The error handler now leaves completed/destroyed responses alone and does not
-send a second set of headers. The regression reproduces the original crash and
-checks successful video/health requests afterward. Opening/closing the video
-dialog and reloading the actual browser also succeeded after the fix.
-Sign-in to real cloud
-accounts, maximum text sizes, assistive technology and a signed iPhone remain open.
+The periodic synthetic fixture has produced grossly incorrect camera geometry
+although real mesh/Splat files were created. A more recent intermediate camera
+evaluation recorded **3.7853170185965115** position RMSE and **83.59131004796656°**
+median rotation error; **15 of 16** known opposing view pairs collapsed to nearly
+the same estimated camera position. Position errors are in the synthetic scene's
+units (cube side = 2), not demonstrated physical metres or iPhone error figures.
+This result is **rejected for quality and unsuitable as measurement evidence**.
 
-Historical checks below apply to their recorded revisions.
+The older stored baseline is separate and unchanged: position RMSE
+`3.7868876970054273`, position p95 `4.2006735602448275`, median rotation
+`86.06900374959443°` and rotation p95 `179.59316083666428°`.
+[Fixture definitions and criteria](../validation/QUALITY-FIXTURES.md) retain both
+the difficult periodic case and a new distinct-texture case with identical
+geometry/cameras. Known truth is outside the input ZIP and is not supplied to
+the reconstruction engine. The distinct fixture's actual reconstruction and
+quality outcome remain pending in the shared CI run above. An easier successful
+case would not erase the periodic failure or establish real room/gate accuracy.
 
-## New 0.4 language coverage
+The evaluator now preserves camera results when a mesh has fewer than ten
+sampled vertices in the expected cube region. It reports `mesh.valid:false`,
+`too-few-cube-region-vertices`, actual counts, null distance statistics and zero
+face coverage, rather than throwing away the entire evaluation. Invalid mesh
+geometry cannot receive `qualityAccepted:true`. Criteria have not been relaxed
+to turn the known failure green. The default evaluator writes adverse reports
+without failing the CLI so multiple results can be collected; only the explicit
+`--require-quality` gate exits nonzero on rejection. A green collection job must
+therefore not be called a geometric quality pass without reading its reports.
 
-The Windows run passes **85 Node tests**. Fifteen complete UI dictionaries,
-native guides and video scripts share the same supported-language set. Coverage
-checks the nine additional localized measurement/transport reports, regional
-aliases (including legacy `in` to Indonesian), native/browser pack synchronization
-and Arabic RTL document direction. Geometry and numeric inputs retain their axes.
-All fifteen narrated H.264/AAC tutorials were completely decoded with FFmpeg.
-Arabic, Hindi and Bengali text uses HarfBuzz, Unicode bidi ordering and FreeType;
-the complete text sets were checked for missing glyphs and representative video
-frames were inspected. Japanese uses a kana speech reading and Arabic a
-vocalized reading; ordinary written captions remain unchanged.
+The current browser source persists camera-quality warnings through project
+save/import. Ambiguous camera positions or insufficient parallax block metric
+measurement and calibration; a known reference cannot repair wrong geometry.
+Repeated-view warnings alone do not block reference calibration. This behavior
+has automated policy/archive coverage; its current visual presentation still
+needs the blocked live-browser acceptance. No warning means only that these
+heuristics did not flag a problem, not that the model is accurate.
 
-Xcode now includes fifteen localized camera/GPS usage descriptions and declares
-the supported bundle languages. CI verifies those files and all fifteen MP4s in
-the app. Translations/synthetic voices need native-speaker review, the new layouts
-need live browser/device review, and scan accuracy still needs physical trials.
-The underlying RTAB-Map expert menus retain their upstream English strings.
+## Reproduce the relevant checks
 
-## New 0.3 design, language and video checks
+From `tools/scan-workspace`, with Node.js 24 and pnpm 11.25.0:
 
-The Windows integration run passes **82 Node tests**, including six new tests
-for MP4 delivery, byte ranges, HEAD, invalid ranges, WebVTT and complete
-six-language video scripts. English is covered alongside German, French,
-Spanish, Italian and Simplified Chinese in the UI, guide and report checks.
-All six generated H.264/AAC videos were decoded completely with FFmpeg;
-representative rendered frames were visually inspected, including Chinese
-glyphs and captions. The illustrations are synthetic and do not validate scans.
+```sh
+pnpm install --frozen-lockfile
+pnpm test
+pnpm check
+pnpm build
+```
 
-The [native design build](https://github.com/lukashold/rtabmap/actions/runs/38152579818)
-passed Xcode compilation before the additive bundled-video integration.
-The current branch's Actions runs provide validation of that final integration
-and Docker build. No signing or physical-device checks are implied.
-The new desktop layout still needs a manual browser/device pass: browser
-automation was unavailable during this design update. Translations and speech
-still need review by native speakers.
+From the repository root, in an environment with the matching dependencies:
 
-## Recorded 0.2 validation
+```sh
+python -m unittest discover -s tools/reconstruction/test -v
+python -m unittest discover -s tools/validation/test -v
+python -m unittest discover -s tools/panorama -p test_stitch.py -v
+python -m unittest discover -s tools/generation/test -v
+```
 
-KANTURA is an independent development branch, not an App Store release. The
-following separates implemented behavior, automated coverage, earlier preview
-exercises and checks that still require a real device or external account.
+Read skip reasons, not only process exit status. The [reconstruction workflow](../../.github/workflows/reconstruction.yml)
+runs actual container engines and a real job API separately from those unit tests.
+The [API contract](../reconstruction/API.md) and engine READMEs describe limits,
+original-data retention, generated provenance and artifact checks. No substitute
+geometry is manufactured for a failed reconstruction. A job can still have
+structurally valid output and fail independent scene-quality evaluation.
 
-## New 0.2 behavior and automated coverage
+## Historical checks — earlier revisions only
 
-The local integration run passed **76 Node tests**: 39 existing baseline cases,
-10 experience/RoomPlan cases, 14 report/DXF cases, 12 transport cases and a sequential-upload regression.
-A Windows browser exercise imported a synthetic RoomPlan JSON with 10
-measurements, including a 17.28 m² floor, then switched between two independent
-rooms on ground/first floors while retaining a photo note and a −0.01 m reference
-deviation. These synthetic checks are not field-accuracy evidence.
+These retain useful evidence without claiming that the new 0.6 screens or modes
+received the same live acceptance.
 
-The [native CI run](https://github.com/lukashold/rtabmap/actions/runs/38149333091)
-passed the Swift guide/RoomPlan Foundation checks, core build, Xcode app build
-and unsigned IPA packaging. Signing, installation and LiDAR capture still need
-the physical iPhone. The two-room browser project also survived upload and
-reopening through the local server with its attached photo and reference check.
-The viewer and transport form were also exercised at a 390-pixel viewport;
-export buttons wrap and hidden icon labels retain accessible names.
+- **0.5:** 130 Windows Node tests; 51 Python cases, 50 passed and one Windows symlink skip. [CPU run 38172402005](https://github.com/lukashold/rtabmap/actions/runs/38172402005), `fea9a0f`, built real COLMAP/OpenMVS/OpenSplat and processed 32 original synthetic images. Mesh/Splat downloads matched declared bytes and SHA-256. A real C++ exporter regression checked one/two texture atlases after the OpenMVS OBJ fix. Ten Splat iterations proved the path, not useful reconstruction quality. The later quality findings above supersede any inference that output existence meant accurate geometry.
+- **0.5 browser:** synthetic Splat rendering/download/reimport, the actual trained Splat artifact, subject-focus camera framing and edge/corner selections worked. Closing the Splat view preserved a measurement. The native IIFE rendered over localhost under its CSP; this did not exercise iPhone WKWebView. The photo dialog switched all 15 languages at 390 × 844 without horizontal overflow, including Arabic RTL. The local service honestly reported missing Windows engines.
+- **0.5 native:** [run 38169729389](https://github.com/lukashold/rtabmap/actions/runs/38169729389), `83de2ed`, passed Swift/native Foundation checks and unsigned packaging. This is superseded for build coverage by the recorded 0.6 run, never by a physical-device claim.
+- **0.4.1 usability:** 88 Node tests. Live browser at 1280 × 720 and 390 × 844 exercised German entry/RoomPlan guidance, a synthetic 2.828 m distance, a 2.61 m² floor polygon, two-floor archive import, room switching, report download and video playback. All 15 languages were selected without horizontal overflow. Sidebar/mobile ordering and an MP4 client-disconnection server error were fixed and rechecked. These were synthetic interaction checks.
+- **0.4 languages:** 85 Node tests; fifteen dictionaries/guides/video scripts synchronized, Arabic RTL and aliases covered. All fifteen narrated synthetic H.264/AAC videos fully decoded, representative frames/glyphs inspected. Japanese kana and Arabic vocalized speech readings are separate from ordinary captions. This was not native-speaker or assistive-technology acceptance. RTAB-Map expert menus retain English.
+- **0.3:** 82 Node tests and six-language video delivery/caption coverage. [Native design run 38152579818](https://github.com/lukashold/rtabmap/actions/runs/38152579818) passed before subsequent video integration; this remains historical build evidence only.
+- **0.2:** 76 Node tests. A synthetic RoomPlan import showed 10 dimensions and 17.28 m² floor area; separate rooms retained a photo note and −0.01 m reference deviation across switching and server archive roundtrip. [Native run 38149333091](https://github.com/lukashold/rtabmap/actions/runs/38149333091) passed Foundation/core/app build and unsigned packaging. Tests covered genuine-contour floor areas, project roundtrips, notes/references, DXF/report output and conservative transport envelopes. A 20-upload sequential regression covered a later upload-guard race.
+- **Initial preview:** 39 Node tests; synthetic model and archive/server roundtrips retained selected 4.560 m and 16.023 m² results. Docker checked authenticated persistence across restart; earlier Xcode CI produced an unsigned IPA. These values are chosen synthetic measurements, not real scan accuracy.
 
-- Native indoor RoomPlan capture exports `.kantura-room.json` and USDZ, stores a
-  local library and groups separate captures by building and floor. Browser
-  import uses the KANTURA schema. Conversion tests cover metre units, rigid
-  column-major transforms, concave contour triangulation, invalid data and the
-  deliberate absence of a floor area when no valid contour exists.
-- Building archives preserve independently positioned room models, floor/name
-  labels, measurements, photo notes and reference checks. Round-trip tests cover
-  multiple rooms/floors and attached photos; malformed manifests, missing photos,
-  unsafe paths and archive limits are rejected. No automatic spatial alignment
-  or merged building plan is claimed.
-- Manual 3D photo notes and reference comparisons are validated separately from
-  scale calibration. Checks cover invalid coordinates, duplicate identifiers,
-  unsafe image paths and reference deviations after a scale change. Source
-  photos are resized for project storage; real iPhone photo-library selection
-  and camera/provider behavior still need device checks.
-- DXF tests cover metre units, concave floor outlines, scale application and
-  text escaping. Report tests cover five languages, dimension tables, reference
-  differences, optional floor plans, safe embedded photos and HTML escaping.
-  Reports are downloaded HTML; PDF is created through the browser print dialog.
-  These are active-room outputs, not merged building plans or certified drawings.
-- Transport tests cover per-side clearance, sideways upright passage, continuous
-  turn extrema, tilt transitions, uncertain versus orientation-independent blocked
-  cases, finite bounds and deterministic results. Report tests recompute the
-  verdict from saved inputs and validate translated assumptions, catalogue source
-  matching and untrusted imported text. The estimate checks simplified rectangular
-  envelopes, not collision-free movement through a full scanned staircase.
-- The offline catalogue contains Bosch KGN39VLEA, Samsung RB34C600ESA/EF and LG
-  GBP62PZNAC, with manufacturer URLs and a verification date of 2026-10-11.
-  It does not perform live Internet lookup. Dimensions are for the unpacked
-  products; Samsung's stated depth excludes its handle. The actual transported
-  outline and the manufacturer's permitted handling orientation must be checked.
+## Still requires physical or deployment-specific acceptance
 
-Run `pnpm test`, `pnpm check` and `pnpm build` from `tools/scan-workspace` to
-reproduce the checks for your integration checkout. The results above describe
-the tested revision; use the final integration/CI result for the release revision.
+1. Sign the current build with an Apple team, install it on the iPhone 17 Pro and exercise camera permissions, interruptions, recovery, LiDAR, RoomPlan, saved-room exports, guided photo sets, Apple Object Capture/local photogrammetry, video, panorama and the one-image source path. An unsigned IPA is not directly installable. Native preview heuristics do not validate 3D quality. See the [release plan](../../docs/APP-STORE-RELEASE.md).
+2. Capture a real room and outdoor gate twice, use several independent physical references, inspect floor/door/window contours and thin or reflective parts, and publish deviations. Check calibration and scale against those references. Neither synthetic geometry nor RoomPlan category confidence establishes accuracy. Native GPU/WKWebView, CUDA and native Apple MPS remain unvalidated on the intended hardware.
+3. Complete the current browser pass: actual panorama/Splat/generated results, all four jobs, cancellation, persistent warnings, saved/reopened provenance, narrow screens, keyboard, RTL, zoom and error recovery. Exercise VoiceOver/Dynamic Type and have native speakers review all 15 languages. The new automated tests do not fill the blocked UI check.
+4. Register Microsoft/Google clients and verify real consent, upload/download, large-file/interruption behavior and provider revocation. Test native Files with installed, signed-in providers. Cloud unit tests use simulated responses; no real-account success is claimed.
+5. Check the user's deployed Compose revision, HTTPS/token configuration, worker capability status, RAM/disk behavior, originals/artifacts, restart and both storage volumes' backup/restore. The optional generation build needs pinned weights/Torch and a suitable memory allowance. CI on another host does not validate that deployment.
+6. Check room archives, real photo notes, PDF printing, CAD/DXF metre units and saved transport inputs. The transport calculation is a simplified envelope check, not a collision path through a scanned staircase. Separate room/etage organization is not spatial alignment; drone inputs are not GPS-georeferenced.
 
-## Earlier preview baseline
-
-The preceding preview had the following recorded checks. They establish a
-baseline for the original workflow, not device validation of the new 0.2 paths.
-
-- 39 Node tests covered distance/height, concave and vertical polygons, scale,
-  calibration, project ZIP round trips, CSV/SVG, archive/path checks, OBJ/MTL,
-  PLY and GLB loading, cloud request contracts and authenticated storage.
-- A Windows/Edge browser exercise loaded a synthetic room, measured a distance
-  and floor polygon, exported/reopened a project ZIP, and uploaded/reopened it
-  through the local project library. The selected results remained 4.560 m and
-  16.023 m² after round trips.
-- Docker CI built the image, served the viewer, enforced authentication, saved
-  and downloaded a ZIP, then read the same archive after container restart.
-- Xcode 26.5 CI built the previous native app and produced an unsigned IPA;
-  recovery/workflow and five-language guide checks passed. This does not prove
-  that the new RoomPlan flow captures and exports correctly on an iPhone.
-
-## Still requires real-world validation
-
-1. Build and sign the current native revision on an Apple team, install it on
-   the iPhone 17 Pro, and test camera permission, interruption/recovery, ordinary
-   LiDAR scanning, RoomPlan recognition, its saved-room library and both exports.
-   An unsigned IPA is not directly installable. See the [release plan](../../docs/APP-STORE-RELEASE.md).
-2. Capture a real room and outdoor gate, transfer their files and compare several
-   independently measured physical references. Check floor contours, openings,
-   reflective/thin surfaces and coordinate alignment of imported annotations.
-   Synthetic geometry and recognition confidence do not establish field accuracy.
-3. Exercise multiroom save/reopen and each room's photo notes, PDF print layout,
-   DXF import units in the intended CAD application, and transport input persistence
-   with realistic data. Physically inspect the full transport route; the software
-   does not model individual steps, railings, carriers or equipment as obstacles.
-4. Register Google/Microsoft OAuth applications and verify real consent,
-   upload/download, large files and interrupted uploads with the intended accounts.
-   Existing API and popup tests use simulated responses. Test native Files export
-   on an iPhone with the provider apps installed and signed in.
-5. Check the deployed Docker revision, storage volume, access token, HTTPS and
-   backup/restore procedure. Prior CI confirms its baseline; it does not verify a
-   user's host, domain or provider registrations. Have native speakers review the
-   fifteen translations in the actual device/browser layout before public release.
-
-Cloud and self-host projects are explicit archive snapshots, with photos included.
-There is no live synchronization, multi-user account system, server reconstruction,
-automatic staircase path planning, automatic net wall area calculation, IFC/BIM
-export or import of native AR measurements from RTAB-Map `.db` databases. RoomPlan
-schematic captures and RTAB-Map textured scans remain separate acquisitions.
-
-A final Alpine/Docker run exposed an upload completion race. The server now releases its upload guard after cleanup and before returning success; a 20-upload sequential regression covers this behavior.
+Cloud and self-host saves are explicit archive snapshots, including photos.
+Four reconstruction job modes are implemented; their completed common-API
+acceptance remains pending as recorded above. There is no automatic native cloud
+synchronization, personal multi-user account system, registered whole-building
+alignment, automatic staircase path planner, automatic net wall area calculation,
+IFC/BIM export or reconstruction of RTAB-Map `.db` files by this photo worker.
+RoomPlan schematic captures and RTAB-Map textured scans remain separate sessions.

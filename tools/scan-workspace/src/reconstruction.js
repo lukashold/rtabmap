@@ -78,15 +78,16 @@ export async function reconstructionInput(input, mode='mesh') {
     if (!file.size || file.size > RECONSTRUCTION_LIMIT) throw fail('tooLarge');
     return { blob: file, inputType: 'video' };
   }
-  return { blob: await photoArchive(files), inputType: 'photos' };
+  return { blob: await photoArchive(files, mode), inputType: 'photos' };
 }
 
-export async function photoArchive(input) {
+export async function photoArchive(input, mode='mesh') {
   const files = Array.from(input);
-  if (!files.length) throw fail('photoInputHelp');
+  const panorama=mode==='panorama', help=panorama?'panoramaPhotosHelp':'photoInputHelp';
+  if (!files.length) throw fail(help);
   if (files.reduce((sum, file) => sum + file.size, 0) > RECONSTRUCTION_LIMIT) throw fail('tooLarge');
   if (files.length === 1 && /\.zip$/i.test(files[0].name)) return files[0];
-  if (files.length < 8 || files.length > 250 || files.some(file => !/\.(jpe?g|png|heic|heif)$/i.test(file.name))) throw fail('photoInputHelp');
+  if (files.length < (panorama?2:8) || files.length > (panorama?40:250) || files.some(file => !/\.(jpe?g|png|heic|heif)$/i.test(file.name))) throw fail(help);
   const entries = {};
   for (const [index, file] of files.entries()) entries[`Images/photo-${String(index + 1).padStart(4, '0')}${file.name.slice(file.name.lastIndexOf('.')).toLowerCase()}`] = new Uint8Array(await file.arrayBuffer());
   return new Promise((resolve, reject) => zip(entries, { level: 0 }, (error, data) => error ? reject(error) : data.length > RECONSTRUCTION_LIMIT ? reject(fail('tooLarge')) : resolve(new Blob([data], { type: 'application/zip' }))));
