@@ -3,12 +3,13 @@ import { zip } from 'fflate';
 export const RECONSTRUCTION_LIMIT = 200 * 1024 * 1024;
 const idPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const required = { mesh: ['mesh.zip', 'model.ply', 'reconstruction.json'], splat: ['splat.ply', 'cameras.json', 'reconstruction.json'] };
+const allowed = { mesh: [...required.mesh, 'cameras.json', 'photos.zip'], splat: [...required.splat, 'photos.zip'] };
 const fail = (code, status) => Object.assign(new Error(code), { code, status });
 export function validateJob(job) {
-  if (!job || !idPattern.test(job.id) || !Object.hasOwn(required, job.mode) || typeof job.name !== 'string' || job.name.length > 200 || !['queued','running','complete','failed','cancelled'].includes(job.status) || !Array.isArray(job.artifacts) || job.artifacts.length > 3) throw fail('reconstructionInvalid');
+  if (!job || !idPattern.test(job.id) || !Object.hasOwn(required, job.mode) || typeof job.name !== 'string' || job.name.length > 200 || !['queued','running','complete','failed','cancelled'].includes(job.status) || !Array.isArray(job.artifacts) || job.artifacts.length > 5) throw fail('reconstructionInvalid');
   const names = new Set();
   for (const artifact of job.artifacts) {
-    if (!artifact || !required[job.mode].includes(artifact.name) || names.has(artifact.name) || !Number.isSafeInteger(artifact.bytes) || artifact.bytes < 1 || artifact.bytes > RECONSTRUCTION_LIMIT || !/^[0-9a-f]{64}$/.test(artifact.sha256)) throw fail('reconstructionInvalid');
+    if (!artifact || !allowed[job.mode].includes(artifact.name) || names.has(artifact.name) || !Number.isSafeInteger(artifact.bytes) || artifact.bytes < 1 || artifact.bytes > RECONSTRUCTION_LIMIT || !/^[0-9a-f]{64}$/.test(artifact.sha256)) throw fail('reconstructionInvalid');
     names.add(artifact.name);
   }
   if (job.status === 'complete' ? required[job.mode].some(name => !names.has(name)) : job.artifacts.length !== 0) throw fail('reconstructionInvalid');
@@ -31,11 +32,15 @@ export class ReconstructionClient {
     return data;
   }
   async list() { const data = await (await this.request('jobs')).json(); if (!Array.isArray(data.jobs) || data.jobs.length > 1000) throw fail('reconstructionInvalid'); return data.jobs.map(validateJob); }
-  async submit(blob, mode, name) {
+  async submit(blob, mode, name, { inputType = 'photos', profile = 'auto' } = {}) {
     if (!Object.hasOwn(required, mode)) throw fail('reconstructionInvalid');
+    if (!['photos','video'].includes(inputType) || !['auto','uav'].includes(profile)) throw fail('reconstructionInvalid');
     if (!blob.size || blob.size > RECONSTRUCTION_LIMIT) throw fail('tooLarge');
     const cleanName = name.trim().replace(/[\x00-\x1f\x7f/\\]/g, '_').slice(0, 120) || 'Scan';
-    return validateJob((await (await this.request(`jobs?${new URLSearchParams({ mode, name: cleanName })}`, { method: 'POST', headers: { 'Content-Type': 'application/zip' }, body: blob })).json()).job);
+    const query = new URLSearchParams({ mode, name: cleanName });
+    if (profile !== 'auto') query.set('profile', profile);
+    const contentType = inputType === 'video' ? (/\.mov$/i.test(blob.name || '') ? 'video/quicktime' : 'video/mp4') : 'application/zip';
+    return validateJob((await (await this.request(`jobs?${query}`, { method: 'POST', headers: { 'Content-Type': contentType }, body: blob })).json()).job);
   }
   async cancel(id) { if (!idPattern.test(id)) throw fail('reconstructionInvalid'); return validateJob((await (await this.request(`jobs/${id}/cancel`, { method: 'POST' })).json()).job); }
   async artifact(job, name) {
@@ -51,6 +56,16 @@ export class ReconstructionClient {
     if (hash !== item.sha256) throw fail('reconstructionInvalid');
     return blob;
   }
+}
+
+export async function reconstructionInput(input) {
+  const files = Array.from(input);
+  if (files.length === 1 && /\.(mp4|mov)$/i.test(files[0].name)) {
+    const file = files[0];
+    if (!file.size || file.size > RECONSTRUCTION_LIMIT) throw fail('tooLarge');
+    return { blob: file, inputType: 'video' };
+  }
+  return { blob: await photoArchive(files), inputType: 'photos' };
 }
 
 export async function photoArchive(input) {

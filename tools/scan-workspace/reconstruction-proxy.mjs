@@ -3,7 +3,7 @@ import { pipeline } from 'node:stream/promises';
 
 export const RECONSTRUCTION_MAX_BYTES = 200 * 1024 * 1024;
 const uuid = '[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}';
-const artifactNames = ['mesh.zip', 'model.ply', 'splat.ply', 'cameras.json', 'reconstruction.json'];
+const artifactNames = ['mesh.zip', 'model.ply', 'splat.ply', 'cameras.json', 'reconstruction.json', 'photos.zip'];
 const route = new RegExp(`^/api/reconstruction/jobs/(${uuid})(?:/(cancel)|/artifacts/(${artifactNames.map(name => name.replace('.', '\\.')).join('|')}))?$`);
 const fail = (status, code) => Object.assign(new Error(code), { status, code });
 
@@ -33,16 +33,20 @@ export function createReconstructionProxy(origin, token, options = {}) {
     const headers = { authorization: `Bearer ${token}`, accept: 'application/json' };
     if (upload) {
       const keys = [...requestURL.searchParams.keys()];
-      if (keys.some(key => !['mode', 'name'].includes(key)) || new Set(keys).size !== keys.length) throw fail(400, 'invalid_request');
+      if (keys.some(key => !['mode', 'name', 'profile'].includes(key)) || new Set(keys).size !== keys.length) throw fail(400, 'invalid_request');
       const mode = requestURL.searchParams.get('mode');
       const name = requestURL.searchParams.get('name')?.trim();
+      const profile = requestURL.searchParams.get('profile') || 'auto';
+      if (!['auto','uav'].includes(profile)) throw fail(400, 'invalid_request');
       if (!['mesh', 'splat'].includes(mode) || !name || name.length > 120 || /[\x00-\x1f\x7f/\\]/.test(name)) throw fail(400, 'invalid_request');
-      if (!['application/zip', 'application/octet-stream'].includes((req.headers['content-type'] || '').split(';')[0].toLowerCase())) throw fail(415, 'invalid_archive');
+      const contentType = (req.headers['content-type'] || '').split(';')[0].toLowerCase();
+      if (!['application/zip', 'application/octet-stream', 'video/mp4', 'video/quicktime'].includes(contentType)) throw fail(415, 'invalid_archive');
       if (req.headers['content-length'] === undefined) throw fail(411, 'length_required');
       if (!/^\d+$/.test(req.headers['content-length']) || Number(req.headers['content-length']) > maxBytes) throw fail(413, 'too_large');
       upstream.searchParams.set('mode', mode);
       upstream.searchParams.set('name', name);
-      headers['content-type'] = 'application/zip';
+      if (profile !== 'auto') upstream.searchParams.set('profile', profile);
+      headers['content-type'] = contentType === 'application/octet-stream' ? 'application/zip' : contentType;
       headers['content-length'] = req.headers['content-length'];
     } else if ([...requestURL.searchParams].length) throw fail(400, 'invalid_request');
     if (cancel && (req.headers['transfer-encoding'] || Number(req.headers['content-length'] || 0) !== 0)) throw fail(400, 'invalid_request');

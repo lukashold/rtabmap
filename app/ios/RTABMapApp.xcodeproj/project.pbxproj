@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A817AC090000000000000002 /* MediaDataset.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC090000000000000001 /* MediaDataset.swift */; };
+		A817AC090000000000000004 /* SceneCaptureViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC090000000000000003 /* SceneCaptureViewController.swift */; };
 		A817AC080000000000000002 /* SplatDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC080000000000000001 /* SplatDocument.swift */; };
 		A817AC080000000000000004 /* SplatViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC080000000000000003 /* SplatViewController.swift */; };
 		A817AC080000000000000006 /* SplatViewerAssets in Resources */ = {isa = PBXBuildFile; fileRef = A817AC080000000000000005 /* SplatViewerAssets */; };
@@ -142,6 +144,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		A817AC090000000000000001 /* MediaDataset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MediaDataset.swift; path = RTABMapApp/MediaDataset.swift; sourceTree = "<group>"; };
+		A817AC090000000000000003 /* SceneCaptureViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SceneCaptureViewController.swift; path = RTABMapApp/SceneCaptureViewController.swift; sourceTree = "<group>"; };
 		A817AC080000000000000001 /* SplatDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SplatDocument.swift; path = RTABMapApp/SplatDocument.swift; sourceTree = "<group>"; };
 		A817AC080000000000000003 /* SplatViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SplatViewController.swift; path = RTABMapApp/SplatViewController.swift; sourceTree = "<group>"; };
 		A817AC080000000000000005 /* SplatViewerAssets */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SplatViewerAssets; path = RTABMapApp/SplatViewerAssets; sourceTree = "<group>"; };
@@ -530,6 +534,8 @@
 				A817AC020000000000000001 /* MeasurementGuide.swift */,
 				A817AC030000000000000001 /* RoomPlanDocument.swift */,
 				A817AC070000000000000001 /* PhotoDataset.swift */,
+				A817AC090000000000000001 /* MediaDataset.swift */,
+				A817AC090000000000000003 /* SceneCaptureViewController.swift */,
 				A817AC080000000000000001 /* SplatDocument.swift */,
 				A817AC080000000000000003 /* SplatViewController.swift */,
 				A817AC080000000000000005 /* SplatViewerAssets */,
@@ -937,6 +943,8 @@
 				A817AC020000000000000002 /* MeasurementGuide.swift in Sources */,
 				A817AC030000000000000002 /* RoomPlanDocument.swift in Sources */,
 				A817AC070000000000000002 /* PhotoDataset.swift in Sources */,
+				A817AC090000000000000002 /* MediaDataset.swift in Sources */,
+				A817AC090000000000000004 /* SceneCaptureViewController.swift in Sources */,
 				A817AC080000000000000002 /* SplatDocument.swift in Sources */,
 				A817AC080000000000000004 /* SplatViewController.swift in Sources */,
 				A817AC070000000000000004 /* ObjectCaptureViewController.swift in Sources */,
@@ -1149,7 +1157,7 @@
 				CODE_SIGN_ENTITLEMENTS = RTABMapApp/RTABMapApp.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = 3RRB6NV8U9;
 				EXCLUDED_ARCHS = "";
@@ -1175,7 +1183,7 @@
 					"$(PROJECT_DIR)/RTABMapApp/Libraries/share/OpenCV/3rdparty/lib",
 					"$(PROJECT_DIR)/RTABMapApp/Libraries/lib/opencv4/3rdparty",
 				);
-				MARKETING_VERSION = 0.5.0;
+				MARKETING_VERSION = 0.6.0;
 				OTHER_CFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.lukashold.kantura;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1209,7 +1217,7 @@
 				CODE_SIGN_ENTITLEMENTS = RTABMapApp/RTABMapApp.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = 3RRB6NV8U9;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -1235,7 +1243,7 @@
 					"$(PROJECT_DIR)/RTABMapApp/Libraries/share/OpenCV/3rdparty/lib",
 					"$(PROJECT_DIR)/RTABMapApp/Libraries/lib/opencv4/3rdparty",
 				);
-				MARKETING_VERSION = 0.5.0;
+				MARKETING_VERSION = 0.6.0;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.lukashold.kantura;

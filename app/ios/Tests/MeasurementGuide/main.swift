@@ -26,6 +26,10 @@ for language in MeasurementGuide.languages {
     precondition(guide.splat!.count == 9)
     precondition(Set(guide.splat!.keys) == Set(guides["en"]!.splat!.keys))
     precondition(guide.splat!.values.allSatisfy { !$0.isEmpty })
+    precondition(guide.sceneCapture!.count == 24)
+    precondition(Set(guide.sceneCapture!.keys) == Set(guides["en"]!.sceneCapture!.keys))
+    precondition(guide.sceneCapture!.values.allSatisfy { !$0.isEmpty })
+    precondition(guide.sceneCapture!["count"]!.contains("{count}"))
 }
 precondition(MeasurementGuide.languageCode("fr-CA") == "fr")
 precondition(MeasurementGuide.languageCode("zh_TW") == "zh-Hans")
@@ -185,6 +189,84 @@ let duplicatePhotos = PhotoDataset(id: UUID().uuidString, name: "Duplicate", cre
     images: [.init(file: "Images/a.jpg", bytes: 1), .init(file: "Images/a.jpg", bytes: 1)])
 precondition((try? duplicatePhotos.encoded()) == nil)
 print("Photo capture: cancellation/late callbacks, retry, minimum images, private dataset schema and incomplete-library checks passed")
+
+// Generic scene capture persists even one photo, survives a fresh library load,
+// and can add more images without re-encoding or losing the earlier bytes.
+let sceneDirectory = photoRoot.appendingPathComponent(UUID().uuidString)
+try FileManager.default.createDirectory(at: sceneDirectory.appendingPathComponent("Images"), withIntermediateDirectories: true)
+let sceneImage = sceneDirectory.appendingPathComponent("Images/000001-original.jpg")
+let originalPhotoBytes = Data([0xff, 0xd8, 0x45, 0x58, 0x49, 0x46, 0xff, 0xd9])
+try originalPhotoBytes.write(to: sceneImage)
+for mode in ["room", "outdoor", "splat"] {
+    let first = try SavedPhotoDataset.finish(directory: sceneDirectory, name: "Courtyard", source: "apple-camera", captureMode: mode)
+    precondition(first.manifest.images.count == 1 && first.manifest.captureMode == mode)
+    precondition(SavedPhotoDataset.load(from: photoRoot).contains { $0.id == first.id })
+    let retainedPhoto = try Data(contentsOf: sceneImage)
+    precondition(retainedPhoto == originalPhotoBytes)
+}
+let previousManifest = try Data(contentsOf: sceneDirectory.appendingPathComponent("manifest.json"))
+do { _ = try SavedPhotoDataset.finish(directory: sceneDirectory, name: "Wrong mode", source: "apple-camera", captureMode: "object"); preconditionFailure("Expected source/mode rejection") }
+catch PhotoDataset.Failure.invalidManifest { }
+let retainedManifest = try Data(contentsOf: sceneDirectory.appendingPathComponent("manifest.json"))
+precondition(retainedManifest == previousManifest)
+// Apple's object mode still requires its complete 20-image capture.
+do { _ = try SavedPhotoDataset.finish(directory: sceneDirectory, name: "Incomplete object"); preconditionFailure("Expected incomplete object capture") }
+catch PhotoDataset.Failure.incompleteCapture { }
+try originalPhotoBytes.write(to: sceneDirectory.appendingPathComponent("Images/000002-original.jpg"))
+let resumedScene = try SavedPhotoDataset.finish(directory: sceneDirectory, name: "Courtyard", source: "apple-camera", captureMode: "outdoor")
+precondition(resumedScene.manifest.images.map { $0.file } == ["Images/000001-original.jpg", "Images/000002-original.jpg"])
+precondition(resumedScene.manifest.scaleStatus == "unverified")
+
+// A multi-chunk original is copied byte-for-byte. A partial or tampered original
+// never appears as a valid library record. These are container byte fixtures,
+// not claims of camera, video decode or panorama validation on a real device.
+let mediaRoot = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+try FileManager.default.createDirectory(at: mediaRoot, withIntermediateDirectories: true)
+defer { try? FileManager.default.removeItem(at: mediaRoot) }
+let mediaSource = mediaRoot.appendingPathComponent("camera.MOV")
+var movieBytes = Data(repeating: 0x7b, count: 2 * 1024 * 1024 + 37)
+movieBytes[0] = 0x11; movieBytes[movieBytes.count - 1] = 0x99
+try movieBytes.write(to: mediaSource)
+let savedMovie = try SavedMediaDataset.save(from: mediaSource, name: "Gate", source: "apple-camera", mode: "video", root: mediaRoot)
+precondition(savedMovie.manifest.original.file == "Original/source.mov")
+precondition(savedMovie.manifest.original.bytes == movieBytes.count)
+let retainedMovie = try Data(contentsOf: savedMovie.originalURL)
+let unchangedMovieSource = try Data(contentsOf: mediaSource)
+precondition(retainedMovie == movieBytes && unchangedMovieSource == movieBytes)
+precondition(SavedMediaDataset.load(from: mediaRoot).count == 1)
+try Data([1]).write(to: savedMovie.originalURL)
+precondition(SavedMediaDataset.load(from: mediaRoot).isEmpty)
+try movieBytes.write(to: savedMovie.originalURL)
+let badMedia = MediaDataset(id: UUID().uuidString, name: "Unsafe", createdAt: "2026-10-12T00:00:00Z", source: "files",
+    captureMode: "video", original: .init(file: "Original/../other.mov", bytes: 1))
+precondition((try? badMedia.validate()) == nil)
+let overLimit = MediaDataset(id: UUID().uuidString, name: "Too large", createdAt: "2026-10-12T00:00:00Z", source: "files",
+    captureMode: "video", original: .init(file: "Original/source.mp4", bytes: MediaDataset.maximumVideoBytes + 1))
+do { try overLimit.validate(); preconditionFailure("Expected video size limit") } catch MediaDataset.Failure.fileTooLarge { }
+// Sparse file exercises the pre-copy size guard without allocating 32 MiB.
+let oversizedPanorama = mediaRoot.appendingPathComponent("too-large.jpg")
+FileManager.default.createFile(atPath: oversizedPanorama.path, contents: nil)
+let oversizedHandle = try FileHandle(forWritingTo: oversizedPanorama)
+try oversizedHandle.truncate(atOffset: UInt64(MediaDataset.maximumPanoramaBytes + 1)); try oversizedHandle.close()
+do { _ = try SavedMediaDataset.save(from: oversizedPanorama, name: "Too large", source: "files", mode: "panorama", root: mediaRoot); preconditionFailure("Expected panorama size limit") }
+catch MediaDataset.Failure.fileTooLarge { }
+let remainingFolders = try FileManager.default.contentsOfDirectory(at: mediaRoot, includingPropertiesForKeys: nil).filter { UUID(uuidString: $0.lastPathComponent) != nil }
+precondition(remainingFolders.count == 1, "Oversized import must not create a partial library folder")
+print("Scene originals: interrupted/resumable photos, source/mode validation, atomic manifest retention, chunked immutable media copy, and import limits passed")
+var photoWrite = ScenePhotoWriteBarrier()
+precondition(photoWrite.begin(id: 1) && !photoWrite.begin(id: 2))
+photoWrite.processingStarted(id: 1); photoWrite.captureFinished(id: 1)
+precondition(photoWrite.isBusy, "Close must wait for the atomic write after capture finished")
+photoWrite.writeFinished(id: 1); precondition(!photoWrite.isBusy)
+precondition(photoWrite.begin(id: 2)); photoWrite.processingStarted(id: 2); photoWrite.writeFinished(id: 2)
+precondition(photoWrite.isBusy, "A saved image must not enable a second camera request before the terminal callback")
+photoWrite.captureFinished(id: 1); precondition(photoWrite.isBusy, "Stale callbacks cannot release a newer shot")
+photoWrite.captureFinished(id: 2); precondition(!photoWrite.isBusy)
+precondition(photoWrite.begin(id: 3)); photoWrite.captureFinished(id: 3)
+precondition(!photoWrite.isBusy, "Early camera failure before image processing allows retry/close")
+photoWrite.processingStarted(id: 3); photoWrite.writeFinished(id: 3)
+precondition(!photoWrite.isBusy)
+print("Scene camera write barrier: both callback orders, overlapping request rejection, early failure and stale callback checks passed")
 
 let splatRoot = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
 try FileManager.default.createDirectory(at: splatRoot, withIntermediateDirectories: true)

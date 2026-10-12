@@ -1,3 +1,4 @@
 // Camera/GPS usage text follows the iOS app language.
 "NSCameraUsageDescription" = "Kantura utiliza la cámara para escanear habitaciones y objetos.";
 "NSLocationWhenInUseUsageDescription" = "Kantura utiliza tu ubicación cuando activas el GPS en los ajustes de escaneo.";
+"NSMicrophoneUsageDescription" = "El micrófono graba sonido al grabar vídeo. Los vídeos originales permanecen en este dispositivo hasta que los exportes.";

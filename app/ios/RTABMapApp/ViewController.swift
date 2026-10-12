@@ -2267,6 +2267,7 @@ class ViewController: GLKViewController, ARSessionDelegate, RTABMapObserver, UIP
         guide.onRoomPlanLibrary = { [weak self] in self?.showRoomPlanLibrary() }
         guide.onObjectCapture = { [weak self] in self?.showObjectCapture() }
         guide.onSplat = { [weak self] in self?.showSplatViewer() }
+        guide.onSceneCapture = { [weak self] in self?.showSceneCapture() }
         guide.onLanguageChange = { [weak self] in
             guard let self = self else { return }
             self.updateState(state: self.mState)
@@ -2317,6 +2318,19 @@ class ViewController: GLKViewController, ARSessionDelegate, RTABMapObserver, UIP
         let navigation = UINavigationController(rootViewController: viewer)
         navigation.modalPresentationStyle = .fullScreen
         // A file viewer needs no camera, AR session or scanner-state mutation.
+        present(navigation, animated: true)
+    }
+
+    private func showSceneCapture() {
+        guard prepareForRoomPlanPresentation() else { return }
+        let workspace = SceneCaptureViewController()
+        workspace.onClose = { [weak self] in
+            self?.guidedWorkspacePresented = false
+            self?.resetNoTouchTimer(true)
+        }
+        guidedWorkspacePresented = true
+        let navigation = UINavigationController(rootViewController: workspace)
+        navigation.modalPresentationStyle = .fullScreen
         present(navigation, animated: true)
     }
 

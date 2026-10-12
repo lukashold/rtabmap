@@ -1,3 +1,4 @@
 // Camera/GPS usage text follows the iOS app language.
 "NSCameraUsageDescription" = "Kantura odaları ve nesneleri taramak için kamerayı kullanır.";
 "NSLocationWhenInUseUsageDescription" = "Tarama ayarlarında GPS etkinleştirildiğinde Kantura konumunuzu kullanır.";
+"NSMicrophoneUsageDescription" = "Video kaydederken mikrofon ses kaydeder. Özgün videolar dışa aktarılana kadar bu cihazda kalır.";

@@ -1,4 +1,4 @@
-import { ReconstructionClient, photoArchive } from './reconstruction.js';
+import { ReconstructionClient, reconstructionInput } from './reconstruction.js';
 import { download } from './files.js';
 
 export class ReconstructionPanel {
@@ -16,9 +16,10 @@ export class ReconstructionPanel {
     this.$('reconstruction-mode').onchange = () => this.refresh();
     this.$('photo-form').onsubmit = event => { event.preventDefault(); this.run(async () => {
       if (!this.modeAvailable()) throw { code: 'workerUnavailable' };
-      const client = this.client, generation = this.generation, blob = await photoArchive(this.$('photo-input').files);
+      const client = this.client, generation = this.generation, { blob, inputType } = await reconstructionInput(this.$('photo-input').files);
       if (generation !== this.generation) return;
-      await client.submit(blob, this.$('reconstruction-mode').value, this.$('reconstruction-name').value);
+      if (inputType === 'video' && !this.capabilities?.video?.available) throw { code: 'workerUnavailable' };
+      await client.submit(blob, this.$('reconstruction-mode').value, this.$('reconstruction-name').value, { inputType, profile:this.$('reconstruction-profile').value });
       this.$('photo-input').value = ''; await this.list();
     }); };
     this.$('reconstruction-dialog').addEventListener('close', () => clearTimeout(this.timer));
@@ -53,11 +54,16 @@ export class ReconstructionPanel {
     this.$('reconstruction-connect').disabled = !this.enabled || this.busy || this.$('reconstruction-token').value.trim().length < 32;
     this.$('reconstruction-refresh').disabled = !this.client || this.busy;
     this.$('reconstruction-submit').disabled = !this.client || !this.modeAvailable() || this.busy;
-    for (const id of ['reconstruction-token','reconstruction-name','reconstruction-mode','photo-input']) this.$(id).disabled = this.busy;
+    for (const id of ['reconstruction-token','reconstruction-name','reconstruction-mode','reconstruction-profile','photo-input']) this.$(id).disabled = this.busy;
     const capabilities = this.$('reconstruction-capabilities'); capabilities.replaceChildren();
     for (const mode of this.capabilities?.modes || []) {
       const item = document.createElement('p'); item.className = 'privacy';
       item.textContent = `${t(mode.id === 'mesh' ? 'photoMesh' : 'photoSplat')} · ${mode.engine} · ${t(mode.available ? 'workerAvailable' : 'workerUnavailable')}`;
+      capabilities.append(item);
+    }
+    if (this.capabilities?.video) {
+      const item = document.createElement('p'); item.className = 'privacy';
+      item.textContent = `${t('videoInput')} · ${t(this.capabilities.video.available ? 'workerAvailable' : 'workerUnavailable')}`;
       capabilities.append(item);
     }
     const list = this.$('reconstruction-jobs'); list.replaceChildren();

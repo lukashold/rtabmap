@@ -19,7 +19,9 @@ struct PhotoDataset: Codable {
         guard format == "kantura-photo-dataset", version == 1,
               UUID(uuidString: id) != nil, !name.isEmpty, name.count <= 200,
               ISO8601DateFormatter().date(from: createdAt) != nil,
-              source == "apple-object-capture", captureMode == "object", scaleStatus == "unverified",
+              ((source == "apple-object-capture" && captureMode == "object") ||
+               (source == "apple-camera" && ["room", "outdoor", "splat"].contains(captureMode))),
+              scaleStatus == "unverified",
               !images.isEmpty, images.count <= 2000 else { throw Failure.invalidManifest }
         var names = Set<String>()
         for image in images {
@@ -74,7 +76,8 @@ struct SavedPhotoDataset: Identifiable {
         return folder
     }
 
-    static func finish(directory: URL, name: String) throws -> SavedPhotoDataset {
+    static func finish(directory: URL, name: String, source: String = "apple-object-capture",
+                       captureMode: String = "object") throws -> SavedPhotoDataset {
         let imagesURL = directory.appendingPathComponent("Images", isDirectory: true)
         let files = try FileManager.default.contentsOfDirectory(at: imagesURL,
             includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey], options: [.skipsHiddenFiles])
@@ -85,9 +88,14 @@ struct SavedPhotoDataset: Identifiable {
                   let size = values.fileSize, size > 0 else { throw PhotoDataset.Failure.invalidImage }
             return PhotoDataset.Image(file: "Images/" + file.lastPathComponent, bytes: size)
         }
-        guard images.count >= PhotoCaptureLifecycle.minimumImages else { throw PhotoDataset.Failure.incompleteCapture }
-        let manifest = PhotoDataset(id: directory.lastPathComponent, name: String(name.prefix(200)),
+        // Generic camera sessions save after every shot, so an interrupted
+        // session can be resumed. Reconstruction still recommends 20+ images.
+        let minimumImages = source == "apple-camera" ? 1 : PhotoCaptureLifecycle.minimumImages
+        guard images.count >= minimumImages else { throw PhotoDataset.Failure.incompleteCapture }
+        var manifest = PhotoDataset(id: directory.lastPathComponent, name: String(name.prefix(200)),
             createdAt: ISO8601DateFormatter().string(from: Date()), images: images)
+        manifest.source = source
+        manifest.captureMode = captureMode
         let result = SavedPhotoDataset(manifest: manifest, directory: directory)
         try manifest.encoded().write(to: result.manifestURL, options: .atomic)
         return result
@@ -141,4 +149,34 @@ struct PhotoCaptureLifecycle {
     mutating func selectSaved(hasModel: Bool) { if phase == .ready || phase == .photos || phase == .result { phase = hasModel ? .result : .photos } }
     mutating func fail() { if phase != .cancelled { phase = .failed } }
     mutating func cancel() { phase = .cancelled }
+}
+
+/// AVFoundation's terminal callback and our asynchronous atomic write may
+/// complete in either order. Don't allow another shot or dismissal until both
+/// complete. uniqueID prevents a late callback releasing a newer request.
+struct ScenePhotoWriteBarrier {
+    private var identifier: Int64?
+    private var processing = false
+    private var saved = false
+    private var finished = false
+    var isBusy: Bool { identifier != nil }
+    @discardableResult mutating func begin(id: Int64) -> Bool {
+        guard identifier == nil else { return false }
+        identifier = id; processing = false; saved = false; finished = false
+        return true
+    }
+    mutating func processingStarted(id: Int64) {
+        guard identifier == id else { return }; processing = true
+    }
+    mutating func writeFinished(id: Int64) {
+        guard identifier == id else { return }; saved = true; releaseIfReady()
+    }
+    mutating func captureFinished(id: Int64) {
+        guard identifier == id else { return }; finished = true
+        // Apple's last callback guarantees no more processing callbacks for
+        // this request. An early camera failure may have no image to save.
+        if !processing { saved = true }
+        releaseIfReady()
+    }
+    private mutating func releaseIfReady() { if saved && finished { identifier = nil } }
 }

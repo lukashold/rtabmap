@@ -12,6 +12,7 @@ final class MeasurementGuideViewController: UIViewController {
     var onRoomPlanLibrary: (() -> Void)?
     var onObjectCapture: (() -> Void)?
     var onSplat: (() -> Void)?
+    var onSceneCapture: (() -> Void)?
     var workflowState = MeasurementWorkflowState(phase: .ready, canReconstruct: false, hasProjects: false)
     private let guides = MeasurementGuide.all
     private var step: Int?
@@ -148,6 +149,15 @@ final class MeasurementGuideViewController: UIViewController {
                 self.dismiss(animated: true) { closed?(); callback?() }
             }, for: .touchUpInside)
             content.addArrangedSubview(photos)
+            let scene = KanturaActionCard(title: MeasurementGuide.sceneText("title"),
+                detail: MeasurementGuide.sceneText("detail"), icon: "camera.on.rectangle", emphasis: .mint)
+            scene.addAction(UIAction { [weak self] _ in
+                guard let self = self else { return }
+                let callback = self.onSceneCapture
+                let closed = self.onClose
+                self.dismiss(animated: true) { closed?(); callback?() }
+            }, for: .touchUpInside)
+            content.addArrangedSubview(scene)
             let splat = KanturaActionCard(title: MeasurementGuide.splatText("title"),
                 detail: MeasurementGuide.splatText("detail"), icon: "sparkles")
             splat.addAction(UIAction { [weak self] _ in

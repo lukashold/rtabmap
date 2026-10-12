@@ -486,6 +486,32 @@
       "invalid": "Não foi possível mostrar o ficheiro. Escolha um Gaussian PLY não comprimido ou um ficheiro .splat válido.",
       "unavailable": "O visualizador offline está em falta ou os gráficos não estão disponíveis. Use uma compilação completa da app.",
       "viewing": "Arraste para rodar e use dois dedos para ampliar. Os Splats mostram o aspeto e não fornecem geometria fiável para medir."
+    },
+    "sceneCapture": {
+      "title": "Divisões, exteriores e vídeo",
+      "detail": "Capte fotografias originais para modelos de divisões, exteriores ou Gaussian Splats. Guarde vídeos e panoramas existentes.",
+      "room": "Fotografar uma divisão",
+      "outdoor": "Fotografar exteriores",
+      "splat": "Fotografias para um Gaussian Splat",
+      "photoHelp": "Tire pelo menos 20 fotografias nítidas. Desloque-se lentamente de lado e sobreponha imagens vizinhas em cerca de 70–80%. Fotografe de várias alturas, pare a cada disparo e use luz uniforme. Evite espelhos, motivos em movimento e zoom digital. A sobreposição não é verificada automaticamente.",
+      "videoHelp": "Filme deslocando-se lentamente de lado, mostre vários ângulos e evite viragens bruscas. A câmara grava até 3 minutos com som. Importação de Ficheiros: MOV/MP4/M4V até 2 GiB. As fotografias costumam ter mais detalhe que os fotogramas do vídeo. O servidor aceita no máximo 200 MiB por envio. Corte ou reduza vídeos maiores antes de os enviar; o original fica aqui.",
+      "recordVideo": "Gravar vídeo",
+      "importVideo": "Importar vídeo de Ficheiros",
+      "importPanorama": "Importar panorama",
+      "panoramaHelp": "Importe uma imagem equirretangular de 360° existente na proporção 2:1 (JPEG/PNG, até 32 MiB · 8192 × 4096 px). O Kantura não une imagens. Abra a vista panorâmica no navegador.",
+      "privacy": "Os originais ficam privados neste dispositivo, sem cópia automática na nuvem. Só a exportação os partilha. Fotografias e vídeos podem conter metadados de localização; os vídeos também incluem som. O modelo 3D ou splat é criado depois no servidor. Sem referência, a escala não está verificada.",
+      "library": "As minhas captações originais",
+      "count": "{count} fotografias · recomendado: pelo menos 20",
+      "shutter": "Tirar fotografia",
+      "review": "Verifique a última fotografia: nítida, bem iluminada e com sobreposição suficiente?",
+      "resume": "Continuar",
+      "paused": "Câmara em pausa. Toque em Continuar para fotografar mais.",
+      "unavailable": "A câmara está indisponível. Feche outras aplicações que a utilizem e tente novamente.",
+      "permission": "Permita o acesso à câmara; os vídeos também precisam do microfone. Pode alterar os acessos nas Definições do iOS.",
+      "invalid": "Não foi possível guardar o ficheiro ou a captação. Verifique tipo, tamanho, espaço livre e proporção 2:1 do panorama.",
+      "saved": "Original guardado localmente. Exporte o ficheiro original ou o conjunto de fotografias para processamento no servidor.",
+      "exportOriginal": "Exportar ficheiro original",
+      "exportDataset": "Exportar ZIP com metadados"
     }
   },
   "video": {

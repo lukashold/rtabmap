@@ -102,7 +102,7 @@ private final class KanturaPhotoCaptureModel: ObservableObject {
     var isBusy: Bool { authorizationTask != nil || session != nil || lifecycle.phase == .processing }
     init() { reloadLibrary() }
     private func text(_ key: String) -> String { MeasurementGuide.objectText(key) }
-    private func reloadLibrary() { library = (try? SavedPhotoDataset.root()).map { SavedPhotoDataset.load(from: $0) } ?? [] }
+    private func reloadLibrary() { library = (try? SavedPhotoDataset.root()).map { SavedPhotoDataset.load(from: $0).filter { $0.manifest.source == "apple-object-capture" } } ?? [] }
 
     func prepareNewCapture() {
         guard !isBusy, !isExporting else { return }

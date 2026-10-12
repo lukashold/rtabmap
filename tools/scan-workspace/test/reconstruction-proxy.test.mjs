@@ -140,3 +140,15 @@ test('worker configuration rejects credentials, paths and non-HTTP transports', 
   for (const origin of ['file:///etc/passwd', 'http://secret@example.com/', 'http://localhost/worker', 'http://localhost/?token=x', 'http://localhost/#fragment']) assert.throws(() => createReconstructionProxy(origin, token));
   assert.throws(() => createReconstructionProxy('http://localhost/', 'short'));
 });
+
+test('video MIME/profile and selected-photo download pass only through fixed authenticated routes',async()=>{
+  await withProxy((call,res)=>json(res,202,{job:{id,status:'queued'}}),async({url,calls})=>{
+    const response=await fetch(`${url}/api/reconstruction/jobs?mode=mesh&name=Video&profile=uav`,{method:'POST',headers:{authorization,'Content-Type':'video/mp4'},body:Buffer.from('original-video')});
+    assert.equal(response.status,202); await response.arrayBuffer();
+    assert.equal(calls[0].headers['content-type'],'video/mp4');assert.match(calls[0].path,/profile=uav$/);
+    const photos=await fetch(`${url}/api/reconstruction/jobs/${id}/artifacts/photos.zip`,{headers:{authorization}});
+    assert.equal(photos.status,202); assert.equal(photos.headers.get('content-type'),'application/zip'); await photos.arrayBuffer();
+    const refused=await fetch(`${url}/api/reconstruction/jobs?mode=mesh&name=Video&profile=../../secret`,{method:'POST',headers:{authorization,'Content-Type':'video/mp4'},body:'x'});
+    assert.equal(refused.status,400); await refused.arrayBuffer();assert.equal(calls.length,2);
+  });
+});

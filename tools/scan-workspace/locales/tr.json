@@ -486,6 +486,32 @@
       "invalid": "Dosya görüntülenemedi. Sıkıştırılmamış bir Gaussian PLY veya geçerli .splat dosyası seçin.",
       "unavailable": "Çevrimdışı görüntüleyici eksik veya grafik kullanılamıyor. Uygulamanın tam derlemesini kullanın.",
       "viewing": "Döndürmek için sürükleyin, yakınlaştırmak için iki parmağınızı kullanın. Splats görünümü gösterir, güvenilir ölçüm geometrisi sağlamaz."
+    },
+    "sceneCapture": {
+      "title": "Odalar, dış mekân ve video",
+      "detail": "Oda ve dış mekân modelleri veya Gaussian Splat için özgün fotoğraflar çekin. Videoları ve mevcut panoramaları toplayın.",
+      "room": "Oda fotoğrafları çek",
+      "outdoor": "Dış mekân fotoğrafları çek",
+      "splat": "Gaussian Splat için fotoğraflar",
+      "photoHelp": "En az 20 net fotoğraf çekin. Yavaşça yana ilerleyin ve komşu fotoğrafları yaklaşık %70–80 örtüştürün. Farklı yüksekliklerden çekin, her çekimde durun ve eşit aydınlatma kullanın. Aynalardan, hareketli nesnelerden ve dijital yakınlaştırmadan kaçının. Örtüşme otomatik denetlenmez.",
+      "videoHelp": "Yavaşça yana ilerleyerek çekin, farklı açılar gösterin ve ani dönüşlerden kaçının. Kamera sesli olarak en fazla 3 dakika kaydeder. Dosyalar’dan içe aktarma: en fazla 2 GiB MOV/MP4/M4V. Fotoğraflar genellikle video karelerinden daha fazla ayrıntı sunar. Sunucu yükleme başına en fazla 200 MiB kabul eder. Daha büyük videoları yüklemeden önce kısaltın veya küçültün; özgün video burada kalır.",
+      "recordVideo": "Video kaydet",
+      "importVideo": "Dosyalar’dan video aktar",
+      "importPanorama": "Panorama içe aktar",
+      "panoramaHelp": "2:1 oranında mevcut bir eş uzaklıklı silindirik 360° görüntü aktarın (JPEG/PNG, en fazla 32 MiB · 8192 × 4096 px). Kantura görüntüleri birleştirmez. Çevre görünümünü tarayıcıda açın.",
+      "privacy": "Özgün dosyalar otomatik bulut yedeği olmadan bu cihazda özel olarak kalır. Yalnızca dışa aktarıldığında paylaşılır. Fotoğraf ve videolar konum metaverisi içerebilir; videolarda ses de bulunur. 3D model veya Splat daha sonra sunucuda oluşturulur. Referans olmadan ölçek doğrulanmamıştır.",
+      "library": "Özgün çekimlerim",
+      "count": "{count} fotoğraf · önerilen: en az 20",
+      "shutter": "Fotoğraf çek",
+      "review": "Son fotoğrafı kontrol edin: net, iyi aydınlatılmış ve yeterince örtüşüyor mu?",
+      "resume": "Devam et",
+      "paused": "Kamera duraklatıldı. Daha fazla fotoğraf çekmek için Devam et’e dokunun.",
+      "unavailable": "Kamera şu anda kullanılamıyor. Diğer kamera uygulamalarını kapatıp yeniden deneyin.",
+      "permission": "Kameraya erişime izin verin; video için mikrofon da gerekir. Erişimi iOS Ayarları’ndan değiştirebilirsiniz.",
+      "invalid": "Dosya veya çekim kaydedilemedi. Türü, boyutu, boş depolama alanını ve panoramanın 2:1 oranını kontrol edin.",
+      "saved": "Özgün dosya cihazda kaydedildi. Sunucuda işlemek için özgün dosyayı veya fotoğraf veri kümesini dışa aktarın.",
+      "exportOriginal": "Özgün dosyayı dışa aktar",
+      "exportDataset": "Metaverili ZIP dışa aktar"
     }
   },
   "video": {

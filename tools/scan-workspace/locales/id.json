@@ -486,6 +486,32 @@
       "invalid": "File tidak dapat ditampilkan. Pilih Gaussian PLY tanpa kompresi atau file .splat yang valid.",
       "unavailable": "Penampil offline tidak tersedia atau grafis tidak didukung. Gunakan build aplikasi yang lengkap.",
       "viewing": "Seret untuk memutar; cubit untuk memperbesar. Splats menunjukkan tampilan, bukan geometri pengukuran yang andal."
+    },
+    "sceneCapture": {
+      "title": "Ruangan, luar ruang & video",
+      "detail": "Ambil foto asli untuk model ruangan, luar ruang, atau Gaussian Splat. Simpan video dan panorama yang sudah ada.",
+      "room": "Foto ruangan",
+      "outdoor": "Foto luar ruang",
+      "splat": "Foto untuk Gaussian Splat",
+      "photoHelp": "Ambil setidaknya 20 foto tajam. Bergerak perlahan ke samping dengan tumpang tindih sekitar 70–80% antarfoto berdekatan. Foto dari beberapa ketinggian, berhenti saat memotret, dan gunakan cahaya merata. Hindari cermin, objek bergerak, dan zoom digital. Tumpang tindih tidak diperiksa otomatis.",
+      "videoHelp": "Rekam sambil bergerak perlahan ke samping, tunjukkan beberapa sudut, dan hindari putaran mendadak. Kamera merekam hingga 3 menit dengan suara. Impor dari File: MOV/MP4/M4V hingga 2 GiB. Foto biasanya memberikan lebih banyak detail daripada bingkai video. Server menerima maksimal 200 MiB per unggahan. Pangkas atau perkecil video yang lebih besar sebelum mengunggah; berkas asli tetap di sini.",
+      "recordVideo": "Rekam video",
+      "importVideo": "Impor video dari File",
+      "importPanorama": "Impor panorama",
+      "panoramaHelp": "Impor gambar 360° equirectangular yang sudah ada dengan rasio 2:1 (JPEG/PNG, hingga 32 MiB · 8192 × 4096 px). Kantura tidak menggabungkan gambar. Buka tampilan sekeliling di browser.",
+      "privacy": "Berkas asli tetap pribadi di perangkat ini tanpa pencadangan cloud otomatis. Berkas hanya dibagikan saat diekspor. Foto dan video mungkin memuat metadata lokasi; video juga menyertakan suara. Model 3D atau Splat dibuat kemudian di server. Tanpa acuan, skala belum diverifikasi.",
+      "library": "Rekaman asli saya",
+      "count": "{count} foto · disarankan: setidaknya 20",
+      "shutter": "Ambil foto",
+      "review": "Periksa foto terakhir: tajam, cukup terang, dan cukup tumpang tindih?",
+      "resume": "Lanjutkan",
+      "paused": "Kamera dijeda. Ketuk Lanjutkan untuk mengambil foto lagi.",
+      "unavailable": "Kamera sedang tidak tersedia. Tutup aplikasi kamera lain dan coba lagi.",
+      "permission": "Izinkan akses kamera; video juga memerlukan mikrofon. Akses dapat diubah di Pengaturan iOS.",
+      "invalid": "Berkas atau hasil rekaman tidak dapat disimpan. Periksa jenis, ukuran, ruang kosong, dan rasio 2:1 untuk panorama.",
+      "saved": "Berkas asli tersimpan secara lokal. Ekspor berkas asli atau kumpulan foto untuk diproses di server.",
+      "exportOriginal": "Ekspor berkas asli",
+      "exportDataset": "Ekspor ZIP dengan metadata"
     }
   },
   "video": {

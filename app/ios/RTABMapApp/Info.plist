@@ -48,6 +48,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>The camera is used for scanning (ideally with LiDAR).</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>The microphone records sound when you choose to record a video. Original videos stay on this device until you export them.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>The GPS is used when GPS option is enabled in Settings-&gt;Mapping...</string>
 	<key>UIApplicationSceneManifest</key>

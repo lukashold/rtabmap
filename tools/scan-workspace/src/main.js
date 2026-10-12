@@ -16,6 +16,8 @@ import { uxDictionaries } from './ux-i18n.js';
 import { createTaskRunner } from './ui-tasks.js';
 import { decodeSplat, detectSplatFile, splatPlyHeader, syntheticSplatDemo, MAX_SPLAT_BYTES } from './splat-data.js';
 import { ReconstructionPanel } from './reconstruction-ui.js';
+import { qualityDictionaries } from './quality-i18n.js';
+import { panoramaText } from './panorama-i18n.js';
 
 const $=id=>document.getElementById(id);
 $('language').replaceChildren();for(const code of supportedLanguages){const option=document.createElement('option');option.value=code;option.textContent=guide[code].name;$('language').append(option);}
@@ -25,7 +27,7 @@ let building={name:'',rooms:[],activeRoom:null},addingRoom=false,selectedMeasure
 const photoURLs=new Map();
 let snapFeedback,splatViewer,splatData,splatAttempt=0,splatLoading=false,photoPanel;
 let provider='microsoft',config={},authReady=false,drive,cloudBusy=false,toastTimer,authAttempt=0;
-const t=key=>uxDictionaries[language]?.[key]||designDictionaries[language]?.[key]||experienceDictionaries[language]?.[key]||dictionaries[language][key]||key;
+const t=key=>key==='panoramaTitle'?panoramaText(language).title:qualityDictionaries[language]?.[key]||uxDictionaries[language]?.[key]||designDictionaries[language]?.[key]||experienceDictionaries[language]?.[key]||dictionaries[language][key]||key;
 const format=value=>new Intl.NumberFormat(language,{maximumFractionDigits:3}).format(value);
 const icons={folder:'M3 7h7l2 2h9v11H3z M3 7V4h7l2 3',ruler:'M3 16L16 3l5 5L8 21z M8 11l3 3 M12 7l3 3 M5 14l3 3',floor:'M3 4h18v16H3z M3 9h6V4 M15 20v-5h6',surface:'M3 8l13-5 5 13-13 5z',target:'M12 3v4 M12 17v4 M3 12h4 M17 12h4 M17 12a5 5 0 1 1-10 0 5 5 0 0 1 10 0',cloud:'M6 18a5 5 0 0 1-1-10 7 7 0 0 1 13-1 5 5 0 0 1 0 11 M12 20V10 M8 14l4-4 4 4',cube:'M12 2l9 5v10l-9 5-9-5V7z M3 7l9 5 9-5 M12 12v10',image:'M3 3h18v18H3z M3 17l6-6 4 4 3-3 5 5 M15 7h1',layers:'M3 7l9-5 9 5-9 5z M3 12l9 5 9-5 M3 17l9 5 9-5',fit:'M8 3H3v5 M16 3h5v5 M3 16v5h5 M21 16v5h-5',book:'M12 5Q6 1 2 4v16q5-3 10 0 5-3 10 0V4q-5-3-10 1v15',save:'M4 3h13l4 4v14H3V3z M7 3v6h10V3 M7 21v-8h10v8',download:'M12 3v12 M7 10l5 5 5-5 M4 16v5h16v-5'};
 function icon(name){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${icons[name]||icons.cube}"/></svg>`;}
@@ -318,3 +320,13 @@ photoPanel=new ReconstructionPanel({t,getToken:()=>$('server-token').value,setTo
 }});
 for(const id of ['home-photo-jobs','workspace-photo-jobs'])$(id).onclick=()=>photoPanel.open();
 translate();
+
+let panoramaPanel;
+async function openPanoramaPanel(){
+  if(busy)return;
+  if(panoramaPanel){panoramaPanel.element.focus();return;}
+  try{const {openPanorama}=await import('./panorama.js');panoramaPanel=openPanorama({language,onClose:()=>{panoramaPanel=undefined;},onError:showError});await panoramaPanel.ready;}
+  catch(error){panoramaPanel?.dispose();panoramaPanel=undefined;showError(error);}
+}
+$('home-panorama').onclick=openPanoramaPanel;
+$('workspace-panorama').onclick=openPanoramaPanel;

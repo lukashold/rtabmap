@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { unzipSync } from 'fflate';
-import { photoArchive, ReconstructionClient, validateJob, RECONSTRUCTION_LIMIT } from '../src/reconstruction.js';
+import { photoArchive, reconstructionInput, ReconstructionClient, validateJob, RECONSTRUCTION_LIMIT } from '../src/reconstruction.js';
 
 const id = '134c6a1d-dc64-4384-a0ce-31294a3fe618', payload = new TextEncoder().encode('verified artifact bytes');
 const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', payload)), byte => byte.toString(16).padStart(2,'0')).join('');
@@ -68,4 +68,26 @@ test('cancel and listing reject malformed identifiers and result envelopes befor
   await assert.rejects(client.cancel('../private'), { code:'reconstructionInvalid' }); assert.equal(calls.length,0);
   assert.equal((await client.cancel(id)).status,'cancelled'); assert.equal(calls[0].options.method,'POST');
   await assert.rejects(client.list(), { code:'reconstructionInvalid' });
+});
+
+test('a single original video passes unchanged with explicit type/profile; mixed files are refused', async () => {
+  const video = new File(['ftyp-is-probed-on-server'], 'capture.MOV');
+  const input = await reconstructionInput([video]);
+  assert.equal(input.blob,video); assert.equal(input.inputType,'video');
+  await assert.rejects(reconstructionInput([video,new File(['x'],'photo.jpg')]),{code:'photoInputHelp'});
+  const calls=[], client=new ReconstructionClient('key',async(url,options)=>{calls.push({url,options});return json({job:makeJob('queued')});});
+  await client.submit(video,'splat','Drone',{inputType:'video',profile:'uav'});
+  assert.match(calls[0].url,/profile=uav$/);
+  assert.equal(calls[0].options.headers['Content-Type'],'video/quicktime');
+  assert.equal(calls[0].options.body,video);
+  await assert.rejects(client.submit(video,'mesh','x',{inputType:'url'}),{code:'reconstructionInvalid'});
+  await assert.rejects(client.submit(video,'mesh','x',{profile:'shell-command'}),{code:'reconstructionInvalid'});
+});
+
+test('optional selected frames/cameras retain size and checksum validation without accepting private logs',()=>{
+  const job=makeJob();job.artifacts.push({name:'photos.zip',bytes:payload.length,sha256:hash},{name:'cameras.json',bytes:payload.length,sha256:hash});
+  assert.equal(validateJob(job),job);
+  const duplicate=structuredClone(job);duplicate.artifacts[4].name='photos.zip';
+  assert.throws(()=>validateJob(duplicate),{code:'reconstructionInvalid'});
+  job.artifacts[4].name='worker.log'; assert.throws(()=>validateJob(job),{code:'reconstructionInvalid'});
 });
