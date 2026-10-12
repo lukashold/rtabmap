@@ -12,11 +12,13 @@ TripoSR generation or OpenSplat training on the phone. See the
 [independent implementation rules](../../docs/INDEPENDENT-IMPLEMENTATION.md).
 
 Implementation and acceptance are separate. The recorded 0.6 baseline has
-[150 web tests and a viewer Docker build](https://github.com/lukashold/rtabmap/actions/runs/38207033794),
-an [unsigned full iOS build](https://github.com/lukashold/rtabmap/actions/runs/38207033828)
+[152 web tests and a viewer Docker build](https://github.com/lukashold/rtabmap/actions/runs/38209256050),
+an [unsigned full iOS build](https://github.com/lukashold/rtabmap/actions/runs/38208881351)
 and [real offline panorama/TripoSR Docker runs](https://github.com/lukashold/rtabmap/actions/runs/38207033832).
-The combined API pipeline is undergoing a video-decoder compatibility correction;
-those separate engine runs are not a claim that every deployed API path has passed.
+The [combined real-service run](https://github.com/lukashold/rtabmap/actions/runs/38210549928) passed all seven synthetic jobs and 88 Linux server tests; the distinct-texture quality fixture passed, while the periodic fixture remains rejected. Neither result establishes physical iPhone accuracy.
+The combined service run includes the corrected video decoder and isolated Python
+runtime detection. It confirms that CI host, not every deployment or interactive
+browser/device flow.
 Signed device, actual scan quality and cloud-account checks remain open. Later runs
 and current totals are recorded in [VALIDATION.md](VALIDATION.md).
 

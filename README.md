@@ -32,13 +32,14 @@ Inherited RTAB-Map expert menus retain upstream English text.
 - [Contribute: development, translations and device testing](CONTRIBUTING.md) — [Deutsch](docs/contributing/de.md) · [Français](docs/contributing/fr.md) · [Español](docs/contributing/es.md) · [Italiano](docs/contributing/it.md) · [简体中文](docs/contributing/zh-Hans.md)
 - [Community issues](https://github.com/lukashold/rtabmap/issues)
 
-Confirmed 0.6 checks include an [unsigned full iOS build](https://github.com/lukashold/rtabmap/actions/runs/38207033828),
-[150 web tests and the viewer Docker build](https://github.com/lukashold/rtabmap/actions/runs/38207033794),
+Confirmed 0.6 checks include an [unsigned full iOS build](https://github.com/lukashold/rtabmap/actions/runs/38208881351),
+[152 web tests and the viewer Docker build](https://github.com/lukashold/rtabmap/actions/runs/38209256050),
 and [real offline Docker panorama/TripoSR engine runs](https://github.com/lukashold/rtabmap/actions/runs/38207033832).
+The [combined real-service run](https://github.com/lukashold/rtabmap/actions/runs/38210549928) passed all seven synthetic jobs and 88 Linux server tests; the distinct-texture quality fixture passed, while the periodic fixture remains rejected. Neither result establishes physical iPhone accuracy.
 These do not prove phone behavior or measurement accuracy. A periodic synthetic
 photo fixture reconstructed with incorrect camera geometry and is **not quality
-accepted**; the distinct-texture fixture and the combined job API still require
-their documented end-to-end results. See validation for the latest corrective runs.
+accepted**. The distinct-texture fixture passed its synthetic criteria; the
+combined API processing passed separately. See validation for the exact scope.
 
 A signed iPhone test, native WKWebView rendering and real-account cloud OAuth remain
 open. Separate rooms are not automatically aligned; drone inputs are not GPS

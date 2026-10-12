@@ -91,10 +91,11 @@ keine individuellen Konten oder automatische Löschfrist. Die erweiterten
 Routen liefern keine beliebigen privaten Logs oder Dateipfade aus.
 
 **Nachweisstand 0.6:** Webtests/Docker-Build und eigenständige echte Offline-Läufe
-für Panorama und TripoSR sind bestanden. Der gemeinsame API-Durchlauf benötigt
-noch die Abnahme der aktuellen Video-/FFmpeg-Korrektur. Verbindlich protokollierte
-Folgeläufe stehen in [VALIDATION.md](VALIDATION.md); getrennte Engine-Erfolge
-werden nicht als bereits bestandener gesamter Browser-/API-Ablauf ausgegeben.
+für Panorama und TripoSR sind bestanden. Der [gemeinsame API-Lauf](https://github.com/lukashold/rtabmap/actions/runs/38210549928)
+bestand anschließend alle sieben echten synthetischen Aufträge und 88 Linux-Tests.
+Die korrigierte Video-/FFmpeg-Abfrage und getrennte Python-Umgebungen sind enthalten.
+Details stehen in [VALIDATION.md](VALIDATION.md). Das ist kein interaktiver
+Browser-/iPhone- oder Genauigkeitsnachweis.
 Die periodische synthetische Foto-Fixture ergab fehlerhafte Kamerageometrie und
 ist trotz erzeugter Dateien nicht für Messungen freigegeben.
 

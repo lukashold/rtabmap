@@ -32,9 +32,11 @@ Die Videoeingabe ist implementiert: FFmpeg dekodiert begrenzte MP4/MOV-Dateien;
 Auswahlregeln berücksichtigen Zeitabdeckung, Bilddetail, Belichtung und ähnliche
 Bilder. Mindestens acht geeignete Frames müssen übrig bleiben. Auswahlgründe und
 exportierte Bilder bleiben nachvollziehbar. Diese Regeln sind keine Garantie
-für genügend Bewegung oder richtige Kamerapositionen. Die gemeinsame API-Probe
-nach der aktuellen FFmpeg-Kompatibilitätskorrektur bleibt getrennt von Unit-Tests
-und den bereits bestandenen Panorama-/TripoSR-Engine-Läufen.
+für genügend Bewegung oder richtige Kamerapositionen. Die echte synthetische
+Video-zu-Mesh-Probe und die gepinnte FFmpeg-Prüfung bestanden in Lauf 38208881350.
+Der Gesamt-Lauf scheiterte damals an der Python-Umgebungserkennung der anderen
+Aufnahmearten; der Fix bestand anschließend alle sieben gemeinsamen API-Aufträge
+in Lauf 38210549928. Das ist keine Handyvideo-Abnahme.
 
 Das UAV-Profil akzeptiert passende Drohnenfotos/-videos über dieselbe Pipeline.
 GPS-/Höhenmetadaten werden in Originalen erhalten, jedoch nicht automatisch in
@@ -85,9 +87,13 @@ Geometrieergebnis; die Kameraauswertung bleibt dabei erhalten.
 Eine zweite, deterministische Szene verwendet dieselbe Geometrie und dieselben
 Kameras mit eindeutigen, nicht periodischen Texturen. Ihre Ground-Truth-Datei
 liegt außerhalb des Foto-ZIPs und wird nicht in die Rekonstruktionsengine
-gegeben. Ihre tatsächliche Rekonstruktion ist noch zu prüfen. Selbst ein besseres
-Ergebnis würde weder den schwierigen Fall löschen noch eine Verbesserung an
-realen Räumen oder Toren beweisen.
+gegeben. Ihre tatsächliche Rekonstruktion bestand die vorab dokumentierten
+synthetischen Kriterien in Lauf 38208881350: alle 32 Kameras, keine zusammengefallenen
+Gegenansichten und ausreichende Nähe/Abdeckung der sichtbaren Würfelflächen.
+Die lokale Auswertung der heruntergeladenen echten Dateien bestand anschließend
+auch mit `--require-quality`. Die Kameras des Splat-Laufs bestanden ebenfalls;
+das prüft seine Positionen, nicht die Bildqualität. Dieses Ergebnis löscht den
+schwierigen Fall nicht und beweist keine Verbesserung an realen Räumen oder Toren.
 
 Die echten Offline-Docker-Proben für Panorama und TripoSR sind Funktionsnachweise
 der jeweiligen Engines. Ein unsignierter iOS-Build und Webtests ersetzen keine

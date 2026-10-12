@@ -1,25 +1,28 @@
 # Development validation — 0.6.0 preview
 
 Recorded 12 October 2026. Source revision:
-[`73f838608859abc13917d5a590ef514fe55537be`](https://github.com/lukashold/rtabmap/commit/73f838608859abc13917d5a590ef514fe55537be).
-Local follow-up checks also include the not-yet-published panorama 2–40-image
-regression and UI reset after that source commit. The head-specific CI results
-below remain attached to their actual revision.
+[`1d7ab03a6e3adbe944d7b6c538b8a8b6f0614aa1`](https://github.com/lukashold/rtabmap/commit/1d7ab03a6e3adbe944d7b6c538b8a8b6f0614aa1).
+The web files passed at `163ee63`, native files at `73f8386`. The subsequent
+`1d7ab03` change fixes isolated Python runtime identity and adds three regression
+cases; it does not change the web/native application files. CI evidence below is
+attached to those actual revisions.
 
 Kantura is an independent development fork, not a signed App Store release.
 A passing build, a completed processing job, visually plausible geometry and
 accurate physical measurements are separate claims.
 
-## Current revision: completed local checks and running CI
+## Current revision: completed automated and actual-engine checks
 
 | Check | Recorded result | Scope and limits |
 | --- | --- | --- |
-| Windows web suite, local follow-up | **152 Node tests passed** | Includes the new 2–40-image panorama-input regression, archive/model handling, authentic HTTP/proxy boundaries, mode/provenance handling, measurement policy, persisted camera warnings, Splat/panorama contracts and 15-language coverage. This count includes changes after the published commit; it does not establish live-browser rendering or device behavior. |
-| Windows reconstruction suite, latest root run with isolated codecs | **85 cases: 82 passed, 3 skipped** | This supersedes the earlier environment's 78 passes/7 skips. Remaining environment/platform skips are explicit; this is not an all-85-executed result. The separate backend environment also reported three skips; do not sum the runs. |
+| Windows web suite, local follow-up | **152 Node tests passed** | Includes the new 2–40-image panorama-input regression, archive/model handling, authentic HTTP/proxy boundaries, mode/provenance handling, measurement policy, persisted camera warnings, Splat/panorama contracts and 15-language coverage. Also confirmed in CI at `163ee63`; it does not establish live-browser rendering or device behavior. |
+| Windows reconstruction suite before runtime fix, with isolated codecs | **85 cases: 82 passed, 3 skipped** | This supersedes the earlier environment's 78 passes/7 skips. Remaining environment/platform skips are explicit; this is not an all-85-executed result. The separate backend environment also reported three skips; do not sum the runs. |
+| Runtime-fix targeted Windows suite | **8 cases: 7 passed, 1 POSIX skip** | Includes symlinked-runtime identity, import markers and weights; the new real Linux venv regression runs in CI. |
 | Independent fixture/evaluator suite | **10 tests passed** | Known synthetic cameras, similarity alignment, distinct/nonperiodic fixture checks, camera-collapse diagnostics and invalid-mesh reporting. Does not reconstruct the new fixture. |
-| [Web/Docker CI 38208881346](https://github.com/lukashold/rtabmap/actions/runs/38208881346) | **Passed: 151 Node tests and workflow checks** | Published `73f8386` source; the newer local 152-test follow-up is not included in this run. |
-| [iOS CI 38208881351](https://github.com/lukashold/rtabmap/actions/runs/38208881351) | **Pending at this report revision** | Current full unsigned app build and native checks; even success would not install or test the physical iPhone. |
-| [Shared reconstruction CI 38208881350](https://github.com/lukashold/rtabmap/actions/runs/38208881350) | **Running; Linux contract/evaluator steps passed** | The 85-case reconstruction suite and 10 evaluator checks passed their CI steps. Engine build and subsequent real private-service/FFmpeg/mesh/Splat/video/panorama/generation/distinct-fixture work remain pending. No completed end-to-end result is claimed. |
+| [Web/Docker CI 38209256050](https://github.com/lukashold/rtabmap/actions/runs/38209256050) | **Passed: 152 Node tests, build and Docker smoke** | Published `163ee63` web source. |
+| [iOS CI 38208881351](https://github.com/lukashold/rtabmap/actions/runs/38208881351) | **Passed: full unsigned app/IPA and native checks** | Published `73f8386` native files, unchanged in later web/worker fixes. Does not install or test the physical iPhone. |
+| [Shared reconstruction CI 38208881350](https://github.com/lukashold/rtabmap/actions/runs/38208881350) | **Overall failed: five mesh/Splat/video cases completed; panorama/generation unavailable** | Linux 85/10 suites and pinned FFmpeg tests passed. The adapter confused symlinked venvs with base Python; this real integration failure led to `1d7ab03`. Both successful and adverse quality reports are retained. |
+| [Runtime-fix CI 38210549928](https://github.com/lukashold/rtabmap/actions/runs/38210549928) | **Passed: all seven actual jobs** | All 88 Linux server tests, 10 evaluator tests and pinned FFmpeg tests passed. The real service completed periodic/distinct mesh and Splat, video-to-mesh, panorama and generation. Artifact bytes/SHA-256 matched. Synthetic quality is assessed separately below. |
 | New 0.6 browser UI walkthrough | **Blocked** | Browser control returned a protocol/security error. Historical live checks below are not a new pass of the current four-mode interface or persistent-warning layout. |
 
 Skipped tests remain visible. Process/queue tests use explicitly named fake
@@ -31,7 +34,7 @@ or interactive acceptance remains pending.
 ## Confirmed 0.6 checks at the earlier `64f73de` revision
 
 - [iOS run 38207033828](https://github.com/lukashold/rtabmap/actions/runs/38207033828) passed the full unsigned native build. It is evidence for that revision, not a signed installation, camera session or the newer head.
-- [Web run 38207033794](https://github.com/lukashold/rtabmap/actions/runs/38207033794) passed **150 Node tests** and the viewer Docker build. The published head has 151 tests; the current local follow-up has 152.
+- [Web run 38207033794](https://github.com/lukashold/rtabmap/actions/runs/38207033794) passed **150 Node tests** and the viewer Docker build. Later web CI passed 152 tests, as recorded in the current table.
 - [Capture-engine run 38207033832](https://github.com/lukashold/rtabmap/actions/runs/38207033832) passed actual standalone **offline Docker panorama and TripoSR generation**. Its result artifacts are `11728160275` and `11727738474`. These are real engine runs, not fake-worker artifacts, and do not by themselves validate the shared API/proxy/browser path.
 
 The panorama engine also passed 12 local Python checks using actual OpenCV,
@@ -48,8 +51,13 @@ TripoSR performed real inference with pinned code/weights and exported generated
 geometry. It estimates unseen surfaces and uses arbitrary scale. Neither the
 input being a real photograph nor a valid GLB proves the model's shape matches
 the object. The generated-project policy keeps metric measurement and calibration
-disabled. Inference appearance still needs human inspection on representative
-inputs. Model availability and `hardwareValidated` are not interchangeable.
+disabled. The actual generated ZIP was imported and saved/reopened through the current
+Node file modules with its measurement ban preserved; GLB/OBJ/PLY all retained
+`generated` provenance. The actual stitched PNG passed 2048 × 1024 header checks.
+A static projection of the real generated mesh was inspected; it is a plausible
+synthetic box concept, not a physical shape/texture or WebGL acceptance test.
+Inference appearance still needs human inspection on representative real inputs.
+Model availability and `hardwareValidated` are not interchangeable.
 
 ## Reconstruction quality: preserve the negative result
 
@@ -67,9 +75,17 @@ The older stored baseline is separate and unchanged: position RMSE
 [Fixture definitions and criteria](../validation/QUALITY-FIXTURES.md) retain both
 the difficult periodic case and a new distinct-texture case with identical
 geometry/cameras. Known truth is outside the input ZIP and is not supplied to
-the reconstruction engine. The distinct fixture's actual reconstruction and
-quality outcome remain pending in the shared CI run above. An easier successful
-case would not erase the periodic failure or establish real room/gate accuracy.
+the reconstruction engine. The distinct fixture passed its actual synthetic
+checks in run 38208881350: all 32 cameras registered, mesh-camera RMSE
+0.0057664672 scene units, rotation p95 0.152012086 degrees, vertex-distance p95
+0.0073656678 scene units and minimum tested face-grid coverage 0.987654321.
+The Splat camera-only result also passed (RMSE 0.0055739066); this does not assess
+Splat appearance. The runtime-fix repeat at `1d7ab03` also passed: mesh-camera RMSE
+0.0054234013, rotation p95 0.144221416 degrees, vertex-distance p95
+0.0076351451 and all five face grids 1.0; Splat camera-only RMSE 0.0057171394.
+The periodic repeat remained rejected (mesh-camera RMSE 3.7854944529).
+The fixed synthetic criteria were not changed after observing these results. This successful easier case does not erase the periodic failure
+or establish real room/gate accuracy.
 
 The evaluator now preserves camera results when a mesh has fewer than ten
 sampled vertices in the expected cube region. It reports `mesh.valid:false`,
@@ -84,8 +100,12 @@ therefore not be called a geometric quality pass without reading its reports.
 The current browser source persists camera-quality warnings through project
 save/import. Ambiguous camera positions or insufficient parallax block metric
 measurement and calibration; a known reference cannot repair wrong geometry.
-Repeated-view warnings alone do not block reference calibration. This behavior
-has automated policy/archive coverage; its current visual presentation still
+Repeated-view warnings alone do not block reference calibration. The actual
+ambiguous and distinct mesh ZIPs also passed the current Node import/save/reopen
+checks: a supplied reference cannot enable measurements on the ambiguous result,
+while the distinct result still requires explicit calibration. The downloaded
+distinct mesh additionally passed the CLI `--require-quality` gate with unchanged
+criteria. This behavior has automated policy/archive coverage; its current visual presentation still
 needs the blocked live-browser acceptance. No warning means only that these
 heuristics did not flag a problem, not that the model is accurate.
 
@@ -140,8 +160,9 @@ received the same live acceptance.
 6. Check room archives, real photo notes, PDF printing, CAD/DXF metre units and saved transport inputs. The transport calculation is a simplified envelope check, not a collision path through a scanned staircase. Separate room/etage organization is not spatial alignment; drone inputs are not GPS-georeferenced.
 
 Cloud and self-host saves are explicit archive snapshots, including photos.
-Four reconstruction job modes are implemented; their completed common-API
-acceptance remains pending as recorded above. There is no automatic native cloud
+Four reconstruction job modes are implemented; all seven real synthetic job
+attempts completed in the common API run recorded above. Interactive browser
+acceptance and real-device capture remain separate. There is no automatic native cloud
 synchronization, personal multi-user account system, registered whole-building
 alignment, automatic staircase path planner, automatic net wall area calculation,
 IFC/BIM export or reconstruction of RTAB-Map `.db` files by this photo worker.

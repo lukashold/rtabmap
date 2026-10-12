@@ -1,5 +1,7 @@
 # KANTURA: Funktionsvergleich und nächste Ausbaustufen
 
+Historischer Metaroom-Vergleich vom 11. Oktober 2026: Die Formulierungen „in dieser Runde“ und die Ist-Angaben unten gehören zur damaligen Ausbauplanung. Für die aktuelle 0.6-Fassung gelten die [Aufnahmearten-Roadmap](POLYCAM-ROADMAP.md), [Qualitätsprüfung](CAPTURE-QUALITY.md) und [tatsächlichen Prüfergebnisse](../tools/scan-workspace/VALIDATION.md). Insbesondere unterstützt die geführte Oberfläche inzwischen 15 Sprachen; mehrere damals geplante Raum-/Berichtsfunktionen sind implementiert. Dieser Vergleich ist keine aktuelle Abnahme aller Funktionen.
+
 Recherche: **11. Oktober 2026**, anhand der offiziellen Metaroom-Produktseiten, des Help Centers und des Changelogs. Dies ist ein Vergleich dokumentierter Funktionen und unseres Quellcode-Stands, kein eigener Genauigkeitstest von Metaroom. Preise und Paketgrenzen sind nicht Teil des Vergleichs. „In dieser Runde“ bezeichnet den Entwicklungsumfang; die Freigabe einzelner Funktionen hängt weiterhin von Build-, Browser- und Gerätetests ab.
 
 Das Ziel für KANTURA ist konkret: **Räume und Tore aufnehmen, das Aussehen nachvollziehen, Breiten/Höhen/Abstände und Flächen bestimmen und das Ergebnis auf dem eigenen Computer weiterverwenden.** Hinzu kommt die Vorprüfung, ob ein Gerät durch einen angegebenen Durchgang und über ein Treppenpodest bewegt werden könnte. Metaroom dient als Vorbild für einen verständlichen Ablauf. Name, Gestaltung, Texte und technische Umsetzung bleiben eigenständig.
