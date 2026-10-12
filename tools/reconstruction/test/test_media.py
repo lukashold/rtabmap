@@ -107,10 +107,18 @@ class RealVideoDecoding(unittest.TestCase):
         video = self.folder / 'rotated.mov'
         self.run_ffmpeg('-f', 'lavfi', '-i', 'testsrc2=size=320x192:rate=10:duration=8',
                         '-c:v', 'libx264', '-pix_fmt', 'yuv420p', original)
-        self.run_ffmpeg('-i', original, '-c', 'copy', '-metadata:s:v:0', 'rotate=90', video)
+        # FFmpeg 6 added an explicit input display-matrix option and deprecated
+        # translating output "rotate" tags. Test an actual matrix on new builds;
+        # retain the supported metadata interface on the pinned FFmpeg 4.4.
+        help_text = subprocess.run(['ffmpeg', '-hide_banner', '-h', 'full'],
+                                   capture_output=True, text=True, check=True, timeout=10).stdout
+        if '-display_rotation' in help_text:
+            self.run_ffmpeg('-display_rotation:v:0', '90', '-i', original, '-c', 'copy', video)
+        else:
+            self.run_ffmpeg('-i', original, '-c', 'copy', '-metadata:s:v:0', 'rotate=90', video)
         before = video.read_bytes()
         info, records = prepare_video(video, self.folder / 'images', max_size=256)
-        self.assertEqual(abs(info['video']['rotationDegrees']), 90)
+        self.assertEqual(abs(info['video']['rotationDegrees']), 90, info['video'])
         self.assertGreaterEqual(len(records), 8)
         self.assertLessEqual(len(records), 16)
         for record in records:
@@ -140,3 +148,4 @@ class RealVideoDecoding(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
