@@ -90,3 +90,20 @@ its SQLite image-to-camera relation. Coordinate conventions were checked against
 OpenSplat's pinned `colmap.cpp` and `input_data.cpp`, including the export-time
 Y/Z flip. No external learned model, camera pose or metric reference is embedded
 in these diagnostic calculations.
+
+## Optional capture runtimes
+
+The shared job service invokes project-owned sibling adapters. Panorama notices
+and exact OpenCV/NumPy/Pillow pins are in [../panorama/THIRD-PARTY.md](../panorama/THIRD-PARTY.md).
+The optional TripoSR/torchmcubes/model runtime preserves source, weights and
+notices described in [../generation/THIRD-PARTY.md](../generation/THIRD-PARTY.md).
+Its Python environment is isolated from the reconstruction engine's LibTorch.
+These packages are not included merely by enabling a UI option; generation
+requires the explicit optional Docker build.
+
+The actual pillow-heif 0.22.0 binary-wheel `LICENSES_bundled.txt` identifies its
+x265-enabled binary distribution as GPLv2 and lists libheif/libde265 LGPLv3
+components. The BSD wrapper license does not describe the wheel as a whole.
+Preserve the installed wheel's complete notices and corresponding source
+information when distributing images; do not describe this combined image as
+BSD-only or LGPL-only. This remains a dependency inventory, not legal clearance.

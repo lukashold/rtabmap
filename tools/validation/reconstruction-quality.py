@@ -132,6 +132,44 @@ def cube_metrics(points):
             'method':'Camera-aligned vertex distances; fixed ROI; 9×9 samples per visible face. Bottom/floor excluded; no surface-area weighting.'}
 
 
+def camera_coincidence(truth, cameras, threshold=.01):
+    """Flag collapsed known opposing viewpoints, invariant to arbitrary SfM scale.
+
+    This diagnostic is specific to independently known synthetic orbit pairs.
+    Its dimensionless threshold is not a physical measurement tolerance.
+    """
+    reference = {item['preparedFile']: item for item in truth['cameras']}
+    estimated = {item['img_name']: item for item in cameras if item.get('img_name') in reference}
+    declared = truth.get('opposingPairs')
+    if declared is None:
+        # The unchanged legacy fixture has an ordered even full orbit. Match
+        # its exact exported names; never guess pair order from an engine ID.
+        ordered = truth['cameras']
+        legacy = len(ordered) % 2 == 0 and all(item.get('sourceFile') == f'Images/view-{i:03d}.jpg' and item['preparedFile'] == f'frame_{i+1:05d}.jpg' for i, item in enumerate(ordered))
+        declared = [{'first': ordered[i]['preparedFile'], 'second': ordered[i + len(ordered)//2]['preparedFile']} for i in range(len(ordered)//2)] if legacy else []
+    positions = np.asarray([item['position'] for item in estimated.values()], dtype=float)
+    distances = [float(np.linalg.norm(positions[i] - positions[j])) for i in range(len(positions)) for j in range(i)]
+    positive = [distance for distance in distances if distance > 0]
+    extent = float(np.median(positive)) if positive else 0.
+    checked, coincident = 0, []
+    for pair in declared:
+        first, second = pair['first'], pair['second']
+        if first not in estimated or second not in estimated:
+            continue
+        checked += 1
+        distance = float(np.linalg.norm(np.asarray(estimated[first]['position']) - estimated[second]['position']))
+        normalized = distance / extent if extent > 0 else 0.
+        if normalized < threshold:
+            coincident.append({'first': first, 'second': second, 'normalizedPositionDistance': normalized,
+                               'estimatedPositionDistance': distance,
+                               'truthPositionDistance': float(np.linalg.norm(np.asarray(reference[first]['position']) - reference[second]['position']))})
+    return {'opposingPairsKnown': len(declared), 'opposingPairsChecked': checked,
+            'coincidentPairCount': len(coincident), 'coincidentPairs': coincident,
+            'normalizedDistanceThreshold': threshold, 'normalizationDistance': extent,
+            'normalization': 'Median nonzero pairwise distance between registered camera centres before alignment.',
+            'method': 'Known opposing synthetic viewpoints only; a dimensionless collapse diagnostic, not field accuracy.'}
+
+
 def evaluate(truth, cameras, mesh=None, convention='right-down-forward'):
     reference = {item['preparedFile']:item for item in truth['cameras']}
     pairs = [(item,reference[item['img_name']]) for item in cameras if item.get('img_name') in reference]
@@ -153,7 +191,8 @@ def evaluate(truth, cameras, mesh=None, convention='right-down-forward'):
               'cameraPositionP95':float(np.quantile(residual,.95)),
               'cameraRotationMedianDegrees':float(np.median(errors)),
               'cameraRotationP95Degrees':float(np.quantile(errors,.95)),
-              'alignment':{'scale':alignment[0],'rotation':alignment[1].tolist(),'translation':alignment[2].tolist()}}
+              'alignment':{'scale':alignment[0],'rotation':alignment[1].tolist(),'translation':alignment[2].tolist()},
+              'cameraCoincidence':camera_coincidence(truth,cameras)}
     if mesh:
         result['mesh'] = cube_metrics(transform(ply_vertices(mesh),alignment))
     return result

@@ -91,3 +91,19 @@ test('optional selected frames/cameras retain size and checksum validation witho
   assert.throws(()=>validateJob(duplicate),{code:'reconstructionInvalid'});
   job.artifacts[4].name='worker.log'; assert.throws(()=>validateJob(job),{code:'reconstructionInvalid'});
 });
+
+test('panorama and generated jobs require their distinct complete artifact sets',async()=>{
+  const modes={panorama:['panorama.png','coverage.png','originals.zip','result.json'],generated:['generated-model.glb','generated-model.obj','generated-model.ply','model.zip','generation.json']};
+  for(const [mode,names] of Object.entries(modes)){
+    const job={...makeJob(),mode,artifacts:names.map(name=>({name,bytes:payload.length,sha256:hash}))};
+    assert.equal(validateJob(job),job);
+    assert.throws(()=>validateJob({...job,artifacts:job.artifacts.slice(1)}),{code:'reconstructionInvalid'});
+  }
+  const image=new File(['input'],'foreground.png'),calls=[];
+  assert.equal((await reconstructionInput([image],'generated')).inputType,'image');
+  await assert.rejects(reconstructionInput([image,image],'generated'),{code:'imageInputHelp'});
+  const client=new ReconstructionClient('key',async(url,options)=>{calls.push({url,options});return json({job:{...makeJob('queued'),mode:'generated'}});});
+  await client.submit(image,'generated','Concept',{inputType:'image',foregroundIsolated:true});
+  assert.match(calls[0].url,/foregroundIsolated=1$/);assert.equal(calls[0].options.headers['Content-Type'],'image/png');
+  await assert.rejects(client.submit(image,'generated','x',{inputType:'image',profile:'uav'}),{code:'reconstructionInvalid'});
+});

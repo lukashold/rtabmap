@@ -77,6 +77,9 @@ final class SceneCaptureViewController: UIViewController, UIImagePickerControlle
         for (mode, icon) in [("room", "house"), ("outdoor", "sun.max"), ("splat", "sparkles")] {
             action(text(mode), icon: icon) { [weak self] in self?.startPhotos(mode: mode) }
         }
+        action(text("panorama"), detail: text("panoramaCaptureHelp"), icon: "pano") { [weak self] in self?.startPhotos(mode: "panorama") }
+        action(text("generation-input"), detail: text("generationHelp"), icon: "cube.transparent") { [weak self] in self?.startPhotos(mode: "generation-input") }
+        action(text("importGeneration"), icon: "photo") { [weak self] in self?.chooseFile(mode: "generation-input") }
         stack.addArrangedSubview(label(text("videoHelp")))
         action(text("recordVideo"), icon: "video") { [weak self] in self?.recordVideo() }
         action(text("importVideo"), icon: "film") { [weak self] in self?.chooseFile(mode: "video") }
@@ -86,12 +89,12 @@ final class SceneCaptureViewController: UIViewController, UIImagePickerControlle
         if photos.isEmpty && media.isEmpty { stack.addArrangedSubview(label(MeasurementGuide.objectText("libraryEmpty"))) }
         for record in photos {
             action(record.manifest.name, detail: text(record.manifest.captureMode) + " · " +
-                   text("count").replacingOccurrences(of: "{count}", with: String(record.manifest.images.count)), icon: "photo.on.rectangle") { [weak self] in self?.open(record) }
+                   text(record.manifest.captureMode == "panorama" ? "panoramaCount" : record.manifest.captureMode == "generation-input" ? "generationCount" : "count").replacingOccurrences(of: "{count}", with: String(record.manifest.images.count)), icon: "photo.on.rectangle") { [weak self] in self?.open(record) }
         }
         for record in media {
-            action(record.manifest.name, detail: text(record.manifest.captureMode == "video" ? "recordVideo" : "importPanorama") +
+            action(record.manifest.name, detail: text(record.manifest.captureMode == "video" ? "recordVideo" : record.manifest.captureMode == "generation-input" ? "generation-input" : "importPanorama") +
                    " · " + ByteCountFormatter.string(fromByteCount: Int64(record.manifest.original.bytes), countStyle: .file),
-                   icon: record.manifest.captureMode == "video" ? "film" : "pano") { [weak self] in self?.open(record) }
+                   icon: record.manifest.captureMode == "video" ? "film" : "photo") { [weak self] in self?.open(record) }
         }
         stack.addArrangedSubview(status)
     }
@@ -178,12 +181,19 @@ final class SceneCaptureViewController: UIViewController, UIImagePickerControlle
                         else { throw MediaDataset.Failure.invalidFile }
                     } else {
                         guard let image = CGImageSourceCreateWithURL(coordinated as CFURL, nil),
+                              let imageType = CGImageSourceGetType(image),
+                              [UTType.jpeg.identifier, UTType.png.identifier].contains(imageType as String),
                               let properties = CGImageSourceCopyPropertiesAtIndex(image, 0, nil) as? [CFString: Any],
                               let width = properties[kCGImagePropertyPixelWidth] as? NSNumber,
-                              let height = properties[kCGImagePropertyPixelHeight] as? NSNumber,
-                              width.intValue >= 512, width.intValue <= 8192, height.intValue > 0, height.intValue <= 4096,
-                              abs(width.doubleValue / height.doubleValue - 2) < 0.02
+                              let height = properties[kCGImagePropertyPixelHeight] as? NSNumber
                         else { throw MediaDataset.Failure.invalidFile }
+                        if mode == "panorama" {
+                            guard width.intValue >= 512, width.intValue <= 8192, height.intValue > 0, height.intValue <= 4096,
+                                  abs(width.doubleValue / height.doubleValue - 2) < 0.02 else { throw MediaDataset.Failure.invalidFile }
+                        } else {
+                            guard MediaDataset.generationInputFits(bytes: size, width: width.intValue, height: height.intValue)
+                            else { throw MediaDataset.Failure.invalidFile }
+                        }
                     }
                     return try SavedMediaDataset.save(from: coordinated, name: name, source: source, mode: mode)
                 }
@@ -200,10 +210,17 @@ final class SceneCaptureViewController: UIViewController, UIImagePickerControlle
     }
     private func open(_ record: SavedPhotoDataset) {
         guard !busy else { return }
-        let menu = UIAlertController(title: record.manifest.name, message: text("photoHelp"), preferredStyle: .alert)
-        menu.addAction(UIAlertAction(title: text("resume"), style: .default) { [weak self] _ in
-            self?.startPhotos(mode: record.manifest.captureMode, saved: record)
-        })
+        let generatedInput = record.manifest.captureMode == "generation-input"
+        let menu = UIAlertController(title: record.manifest.name, message: text(record.manifest.captureMode == "panorama" ? "panoramaCaptureHelp" : generatedInput ? "generationHelp" : "photoHelp"), preferredStyle: .alert)
+        if !generatedInput {
+            menu.addAction(UIAlertAction(title: text("resume"), style: .default) { [weak self] _ in
+                self?.startPhotos(mode: record.manifest.captureMode, saved: record)
+            })
+        } else if let original = record.manifest.images.first {
+            menu.addAction(UIAlertAction(title: text("exportOriginal"), style: .default) { [weak self] _ in
+                self?.export(record.directory.appendingPathComponent(original.file))
+            })
+        }
         menu.addAction(UIAlertAction(title: MeasurementGuide.objectText("exportPhotos"), style: .default) { [weak self] _ in
             self?.zip([record.imagesURL, record.manifestURL], id: record.id)
         })
@@ -215,7 +232,7 @@ final class SceneCaptureViewController: UIViewController, UIImagePickerControlle
     }
     private func open(_ record: SavedMediaDataset) {
         guard !busy else { return }
-        let menu = UIAlertController(title: record.manifest.name, message: text("saved"), preferredStyle: .alert)
+        let menu = UIAlertController(title: record.manifest.name, message: text(record.manifest.captureMode == "generation-input" ? "generationHelp" : "saved"), preferredStyle: .alert)
         menu.addAction(UIAlertAction(title: text("exportOriginal"), style: .default) { [weak self] _ in self?.export(record.originalURL) })
         menu.addAction(UIAlertAction(title: text("exportDataset"), style: .default) { [weak self] _ in
             self?.zip([record.directory.appendingPathComponent("Original"), record.manifestURL], id: record.manifest.id)
@@ -283,6 +300,8 @@ private final class ScenePhotoCameraViewController: UIViewController, AVCaptureP
     private var closed = false
     private var observers: [NSObjectProtocol] = []
     private func text(_ key: String) -> String { MeasurementGuide.sceneText(key) }
+    private var captureHelp: String { text(mode == "panorama" ? "panoramaCaptureHelp" : mode == "generation-input" ? "generationHelp" : "photoHelp") }
+    private var maximumPhotos: Int { mode == "generation-input" ? 1 : mode == "panorama" ? 36 : 2000 }
 
     init(mode: String, name: String, saved: SavedPhotoDataset?) {
         self.mode = mode; captureName = name; directory = saved?.directory; count = saved?.manifest.images.count ?? 0
@@ -305,7 +324,7 @@ private final class ScenePhotoCameraViewController: UIViewController, AVCaptureP
             label.adjustsFontForContentSizeCategory = true; label.textColor = KanturaDesign.text
         }
         countLabel.accessibilityTraits.insert(.updatesFrequently)
-        message.text = text("photoHelp")
+        message.text = captureHelp + "\n" + text("fixedLens")
         thumbnail.contentMode = .scaleAspectFit; thumbnail.heightAnchor.constraint(equalToConstant: 90).isActive = true
         thumbnail.accessibilityLabel = text("review"); thumbnail.isAccessibilityElement = true
         shutter.setTitle(text("shutter"), for: .normal); KanturaDesign.button(shutter, primary: true)
@@ -358,6 +377,13 @@ private final class ScenePhotoCameraViewController: UIViewController, AVCaptureP
                             guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
                             else { throw MediaDataset.Failure.invalidFile }
                             let input = try AVCaptureDeviceInput(device: device)
+                            // Use one physical rear-wide lens throughout the
+                            // dataset; no virtual-camera switching or digital zoom.
+                            try device.lockForConfiguration()
+                            device.videoZoomFactor = 1
+                            if device.isFocusModeSupported(.continuousAutoFocus) { device.focusMode = .continuousAutoFocus }
+                            if device.isExposureModeSupported(.continuousAutoExposure) { device.exposureMode = .continuousAutoExposure }
+                            device.unlockForConfiguration()
                             self.session.beginConfiguration()
                             self.session.sessionPreset = .photo
                             guard self.session.canAddInput(input), self.session.canAddOutput(self.output) else {
@@ -383,19 +409,20 @@ private final class ScenePhotoCameraViewController: UIViewController, AVCaptureP
         queue.async { if self.session.isRunning { self.session.stopRunning() } }
     }
     private func updateControls() {
-        countLabel.text = text("count").replacingOccurrences(of: "{count}", with: String(count))
-        shutter.isEnabled = cameraReady && !capturing && count < 2000
+        countLabel.text = text(mode == "panorama" ? "panoramaCount" : mode == "generation-input" ? "generationCount" : "count").replacingOccurrences(of: "{count}", with: String(count))
+        shutter.isEnabled = cameraReady && !capturing && count < maximumPhotos
         navigationItem.leftBarButtonItem?.isEnabled = !capturing
     }
     private func capture() {
-        guard cameraReady, !capturing, count < 2000 else { return }
+        guard cameraReady, !capturing, count < maximumPhotos else { return }
         let settings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.jpeg])
         guard shot.begin(id: settings.uniqueID) else { return }
         updateControls(); let orientation = self.orientation
         queue.async {
             guard self.session.isRunning else { DispatchQueue.main.async { self.shot.captureFinished(id: settings.uniqueID); self.pause() }; return }
             if let connection = self.output.connection(with: .video), connection.isVideoOrientationSupported { connection.videoOrientation = orientation }
-            settings.isHighResolutionPhotoEnabled = true; settings.photoQualityPrioritization = .quality
+            settings.isHighResolutionPhotoEnabled = self.mode != "generation-input"
+            settings.photoQualityPrioritization = .quality
             settings.flashMode = .off
             self.output.capturePhoto(with: settings, delegate: self)
         }
@@ -417,19 +444,48 @@ private final class ScenePhotoCameraViewController: UIViewController, AVCaptureP
                 try data.write(to: url, options: .atomic)
                 let saved = try SavedPhotoDataset.finish(directory: folder, name: self.captureName, source: "apple-camera", captureMode: self.mode)
                 var image: UIImage?
-                if let source = CGImageSourceCreateWithData(data as CFData, nil),
-                   let thumb = CGImageSourceCreateThumbnailAtIndex(source, 0, [kCGImageSourceCreateThumbnailFromImageAlways: true,
-                        kCGImageSourceCreateThumbnailWithTransform: true, kCGImageSourceThumbnailMaxPixelSize: 500] as CFDictionary) {
-                    image = UIImage(cgImage: thumb)
+                var quality: PhotoQuality?
+                var generationOversized = self.mode == "generation-input" && data.count > MediaDataset.maximumGenerationInputBytes
+                if let source = CGImageSourceCreateWithData(data as CFData, nil) {
+                    if self.mode == "generation-input",
+                       let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+                       let width = properties[kCGImagePropertyPixelWidth] as? NSNumber,
+                       let height = properties[kCGImagePropertyPixelHeight] as? NSNumber {
+                        generationOversized = !MediaDataset.generationInputFits(bytes: data.count, width: width.intValue, height: height.intValue)
+                    }
+                    if let thumb = CGImageSourceCreateThumbnailAtIndex(source, 0, [kCGImageSourceCreateThumbnailFromImageAlways: true,
+                            kCGImageSourceCreateThumbnailWithTransform: true, kCGImageSourceThumbnailMaxPixelSize: 500] as CFDictionary) {
+                        image = UIImage(cgImage: thumb)
+                        quality = self.assessPreview(thumb)
+                    }
                 }
                 DispatchQueue.main.async {
                     self.count = saved.manifest.images.count; self.shot.writeFinished(id: id)
-                    self.thumbnail.image = image; self.message.text = self.text("review") + "\n" + self.text("photoHelp")
+                    self.thumbnail.image = image
+                    let hint = quality?.hint
+                    let qualityHint = hint.map { self.text($0.rawValue) + "\n" } ?? ""
+                    let sizeHint = generationOversized ? self.text("generationSize") + "\n" : ""
+                    self.message.text = sizeHint + qualityHint + self.text("qualityScope") + "\n" + self.text("review") + "\n" + self.captureHelp
                     self.updateControls()
-                    UIAccessibility.post(notification: .announcement, argument: self.countLabel.text)
+                    UIAccessibility.post(notification: .announcement, argument: sizeHint + qualityHint + (self.countLabel.text ?? ""))
                 }
             } catch { DispatchQueue.main.async { self.shot.writeFinished(id: id); self.message.text = self.text("invalid") + "\n" + error.localizedDescription; self.updateControls() } }
         }
+    }
+    private func assessPreview(_ image: CGImage) -> PhotoQuality? {
+        let scale = min(128.0 / Double(image.width), 128.0 / Double(image.height))
+        let width = max(3, min(128, Int((Double(image.width) * scale).rounded())))
+        let height = max(3, min(128, Int((Double(image.height) * scale).rounded())))
+        var grayscale = [UInt8](repeating: 0, count: width * height)
+        let rendered = grayscale.withUnsafeMutableBytes { buffer -> Bool in
+            guard let context = CGContext(data: buffer.baseAddress, width: width, height: height,
+                bitsPerComponent: 8, bytesPerRow: width, space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue)
+            else { return false }
+            context.interpolationQuality = .medium
+            context.draw(image, in: CGRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(height)))
+            return true
+        }
+        return rendered ? PhotoQuality.analyze(grayscale: grayscale, width: width, height: height) : nil
     }
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishCaptureFor resolvedSettings: AVCaptureResolvedPhotoSettings, error: Error?) {
         DispatchQueue.main.async {

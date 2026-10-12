@@ -11,6 +11,9 @@ from contract import sha256
 
 
 def artifacts(directory, mode='mesh'):
+    if mode in {'panorama','generated'}:
+        from capture_fixtures import artifacts as capture_artifacts
+        return capture_artifacts(directory, mode)
     directory.mkdir(parents=True, exist_ok=True)
     if mode == 'mesh':
         (directory / 'model.ply').write_text('ply\nformat ascii 1.0\nelement vertex 3\nproperty float x\nproperty float y\nproperty float z\nelement face 1\nproperty list uchar int vertex_indices\nend_header\n0 0 0\n1 0 0\n0 1 0\n3 0 1 2\n', 'ascii')
@@ -32,6 +35,7 @@ def main():
     parser.add_argument('--device')
     parser.add_argument('--input-type', default='photos')
     parser.add_argument('--profile', default='auto')
+    parser.add_argument('--foreground-isolated', action='store_true')
     args = parser.parse_args()
     scratch = args.job_dir / 'work' / 'generated'
     scratch.mkdir(parents=True)

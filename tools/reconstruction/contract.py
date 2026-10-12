@@ -32,6 +32,8 @@ OPTIONAL_ARTIFACTS = {'photos.zip': 'application/zip', 'cameras.json': 'applicat
 ARTIFACTS = {
     'mesh': {'mesh.zip': 'application/zip', 'model.ply': 'application/octet-stream', 'reconstruction.json': 'application/json'},
     'splat': {'splat.ply': 'application/octet-stream', 'cameras.json': 'application/json', 'reconstruction.json': 'application/json'},
+    'panorama': {'panorama.png': 'image/png', 'coverage.png': 'image/png', 'originals.zip': 'application/zip', 'result.json': 'application/json'},
+    'generated': {'generated-model.glb': 'model/gltf-binary', 'generated-model.obj': 'text/plain', 'generated-model.ply': 'application/octet-stream', 'model.zip': 'application/zip', 'generation.json': 'application/json'},
 }
 
 
@@ -260,6 +262,9 @@ def inspect_ply(path, splat=False):
 
 
 def validate_artifacts(directory, mode, limits=LIMITS):
+    if mode in {'panorama', 'generated'}:
+        from capture_contract import validate_capture_artifacts
+        return validate_capture_artifacts(directory, mode, limits)
     directory = Path(directory).resolve()
     expected = dict(ARTIFACTS[mode])
     for name, media in OPTIONAL_ARTIFACTS.items():

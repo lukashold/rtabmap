@@ -12,7 +12,8 @@ export class PanoramaViewer {
     this.scene = new Scene(); this.camera = new PerspectiveCamera(75, 1, .1, 20);
     this.geometry = new SphereGeometry(10, 64, 32);
     this.geometry.scale(-1, 1, 1); this.geometry.rotateY(-Math.PI / 2);
-    this.material = new MeshBasicMaterial({ color: 0xffffff });
+    // Alpha from stitched panoramas explicitly marks unobserved directions.
+    this.material = new MeshBasicMaterial({ color: 0xffffff, transparent: true, depthWrite: false });
     this.mesh = new Mesh(this.geometry, this.material); this.scene.add(this.mesh); this.mesh.visible = false;
     this.canvas = this.renderer.domElement;
     this.canvas.tabIndex = 0; this.canvas.setAttribute('role', 'img'); this.canvas.setAttribute('aria-label', label || '360°');

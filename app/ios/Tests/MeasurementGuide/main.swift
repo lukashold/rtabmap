@@ -26,10 +26,12 @@ for language in MeasurementGuide.languages {
     precondition(guide.splat!.count == 9)
     precondition(Set(guide.splat!.keys) == Set(guides["en"]!.splat!.keys))
     precondition(guide.splat!.values.allSatisfy { !$0.isEmpty })
-    precondition(guide.sceneCapture!.count == 24)
+    precondition(guide.sceneCapture!.count == 38)
     precondition(Set(guide.sceneCapture!.keys) == Set(guides["en"]!.sceneCapture!.keys))
     precondition(guide.sceneCapture!.values.allSatisfy { !$0.isEmpty })
-    precondition(guide.sceneCapture!["count"]!.contains("{count}"))
+    for key in ["count", "panoramaCount", "generationCount"] {
+        precondition(guide.sceneCapture![key]!.contains("{count}"))
+    }
 }
 precondition(MeasurementGuide.languageCode("fr-CA") == "fr")
 precondition(MeasurementGuide.languageCode("zh_TW") == "zh-Hans")
@@ -197,7 +199,7 @@ try FileManager.default.createDirectory(at: sceneDirectory.appendingPathComponen
 let sceneImage = sceneDirectory.appendingPathComponent("Images/000001-original.jpg")
 let originalPhotoBytes = Data([0xff, 0xd8, 0x45, 0x58, 0x49, 0x46, 0xff, 0xd9])
 try originalPhotoBytes.write(to: sceneImage)
-for mode in ["room", "outdoor", "splat"] {
+for mode in ["room", "outdoor", "splat", "panorama", "generation-input"] {
     let first = try SavedPhotoDataset.finish(directory: sceneDirectory, name: "Courtyard", source: "apple-camera", captureMode: mode)
     precondition(first.manifest.images.count == 1 && first.manifest.captureMode == mode)
     precondition(SavedPhotoDataset.load(from: photoRoot).contains { $0.id == first.id })
@@ -252,7 +254,47 @@ do { _ = try SavedMediaDataset.save(from: oversizedPanorama, name: "Too large", 
 catch MediaDataset.Failure.fileTooLarge { }
 let remainingFolders = try FileManager.default.contentsOfDirectory(at: mediaRoot, includingPropertiesForKeys: nil).filter { UUID(uuidString: $0.lastPathComponent) != nil }
 precondition(remainingFolders.count == 1, "Oversized import must not create a partial library folder")
+let aiSource = mediaRoot.appendingPathComponent("foreground.PNG")
+try originalPhotoBytes.write(to: aiSource)
+let aiInput = try SavedMediaDataset.save(from: aiSource, name: "Single object", source: "files", mode: "generation-input", root: mediaRoot)
+let aiRetainedBytes = try Data(contentsOf: aiInput.originalURL)
+precondition(aiRetainedBytes == originalPhotoBytes && aiInput.manifest.source == "files")
+precondition(aiInput.manifest.scaleStatus == "unverified", "An original input is not yet a generated model")
+precondition(MediaDataset.generationInputFits(bytes: MediaDataset.maximumGenerationInputBytes, width: 4096, height: 4096))
+precondition(!MediaDataset.generationInputFits(bytes: MediaDataset.maximumGenerationInputBytes + 1, width: 4096, height: 4096))
+precondition(!MediaDataset.generationInputFits(bytes: 1, width: 4097, height: 4096))
+precondition(!MediaDataset.generationInputFits(bytes: 1, width: Int.max, height: Int.max))
+precondition(!MediaDataset.generationInputFits(bytes: 0, width: 64, height: 64))
+let oversizedAI = MediaDataset(id: UUID().uuidString, name: "Too large", createdAt: "2026-10-12T00:00:00Z", source: "files",
+    captureMode: "generation-input", original: .init(file: "Original/source.png", bytes: MediaDataset.maximumGenerationInputBytes + 1))
+do { try oversizedAI.validate(); preconditionFailure("Expected AI input size limit") } catch MediaDataset.Failure.fileTooLarge { }
 print("Scene originals: interrupted/resumable photos, source/mode validation, atomic manifest retention, chunked immutable media copy, and import limits passed")
+
+// Identical bright/dark counts and substantial overall contrast do not make a
+// blurred edge sharp. Box-filter a step image, keeping both originals intact.
+let qualitySide = 64
+let sharpPixels: [UInt8] = (0..<(qualitySide * qualitySide)).map { $0 % qualitySide < qualitySide / 2 ? 64 : 192 }
+let blurredPixels: [UInt8] = (0..<(qualitySide * qualitySide)).map { index in
+    let y = index / qualitySide, x = index % qualitySide
+    let sum = (-4...4).reduce(0) { partial, offset in
+        partial + Int(sharpPixels[y * qualitySide + max(0, min(qualitySide - 1, x + offset))])
+    }
+    return UInt8(sum / 9)
+}
+let sharpQuality = PhotoQuality.analyze(grayscale: sharpPixels, width: qualitySide, height: qualitySide)!
+let blurredQuality = PhotoQuality.analyze(grayscale: blurredPixels, width: qualitySide, height: qualitySide)!
+precondition(sharpQuality.hint == nil && blurredQuality.hint == .weakEdges)
+precondition(blurredQuality.laplacianVariance < sharpQuality.laplacianVariance / 20)
+precondition(blurredQuality.contrastDeviation > 8 && blurredQuality.darkFraction == 0 && blurredQuality.brightFraction == 0)
+for (value, expected) in [(UInt8(128), PhotoQuality.Hint.lowContrast), (UInt8(0), .dark), (UInt8(255), .bright)] {
+    let result = PhotoQuality.analyze(grayscale: Array(repeating: value, count: 64 * 64), width: 64, height: 64)!
+    precondition(result.hint == expected && result.laplacianVariance == 0)
+}
+precondition(PhotoQuality.analyze(grayscale: [], width: Int.max, height: Int.max) == nil)
+precondition(PhotoQuality.analyze(grayscale: [1,2,3], width: 3, height: 3) == nil)
+precondition(PhotoQuality.analyze(grayscale: Array(repeating: 128, count: 129 * 128), width: 129, height: 128) == nil)
+precondition(PhotoQuality.analyze(grayscale: Array(repeating: 128, count: 3 * 3), width: 3, height: 3)?.hint == .lowContrast)
+print("Photo preview quality: sharp/blurred edge separation, neutral/dark/bright uniform frames, safe bounds and AI input limits passed")
 var photoWrite = ScenePhotoWriteBarrier()
 precondition(photoWrite.begin(id: 1) && !photoWrite.begin(id: 2))
 photoWrite.processingStarted(id: 1); photoWrite.captureFinished(id: 1)

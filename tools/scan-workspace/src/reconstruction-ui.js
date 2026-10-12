@@ -16,10 +16,11 @@ export class ReconstructionPanel {
     this.$('reconstruction-mode').onchange = () => this.refresh();
     this.$('photo-form').onsubmit = event => { event.preventDefault(); this.run(async () => {
       if (!this.modeAvailable()) throw { code: 'workerUnavailable' };
-      const client = this.client, generation = this.generation, { blob, inputType } = await reconstructionInput(this.$('photo-input').files);
+      const mode = this.$('reconstruction-mode').value;
+      const client = this.client, generation = this.generation, { blob, inputType } = await reconstructionInput(this.$('photo-input').files, mode);
       if (generation !== this.generation) return;
       if (inputType === 'video' && !this.capabilities?.video?.available) throw { code: 'workerUnavailable' };
-      await client.submit(blob, this.$('reconstruction-mode').value, this.$('reconstruction-name').value, { inputType, profile:this.$('reconstruction-profile').value });
+      await client.submit(blob, mode, this.$('reconstruction-name').value, { inputType, profile:['mesh','splat'].includes(mode)?this.$('reconstruction-profile').value:'auto', foregroundIsolated:mode==='generated'&&this.$('foreground-ready').checked });
       this.$('photo-input').value = ''; await this.list();
     }); };
     this.$('reconstruction-dialog').addEventListener('close', () => clearTimeout(this.timer));
@@ -54,11 +55,18 @@ export class ReconstructionPanel {
     this.$('reconstruction-connect').disabled = !this.enabled || this.busy || this.$('reconstruction-token').value.trim().length < 32;
     this.$('reconstruction-refresh').disabled = !this.client || this.busy;
     this.$('reconstruction-submit').disabled = !this.client || !this.modeAvailable() || this.busy;
-    for (const id of ['reconstruction-token','reconstruction-name','reconstruction-mode','reconstruction-profile','photo-input']) this.$(id).disabled = this.busy;
+    const selectedMode=this.$('reconstruction-mode').value;
+    this.$('foreground-field').hidden=selectedMode!=='generated';
+    this.$('capture-mode-help').textContent=t(selectedMode==='generated'?'generatedWarning':selectedMode==='panorama'?'panoramaPhotosHelp':'mediaInputHelp');
+    this.$('media-input-label').textContent=t(selectedMode==='generated'?'imageInputHelp':selectedMode==='panorama'?'panoramaPhotosHelp':'mediaInputHelp');
+    this.$('photo-input').multiple=selectedMode!=='generated';
+    this.$('photo-input').accept=selectedMode==='generated'?'.jpg,.jpeg,.png':selectedMode==='panorama'?'.zip,.jpg,.jpeg,.png,.heic,.heif':'.zip,.jpg,.jpeg,.png,.heic,.heif,.mp4,.mov';
+    this.$('reconstruction-profile').closest('label').hidden=!['mesh','splat'].includes(selectedMode);
+    for (const id of ['reconstruction-token','reconstruction-name','reconstruction-mode','reconstruction-profile','photo-input','foreground-ready']) this.$(id).disabled = this.busy;
     const capabilities = this.$('reconstruction-capabilities'); capabilities.replaceChildren();
     for (const mode of this.capabilities?.modes || []) {
       const item = document.createElement('p'); item.className = 'privacy';
-      item.textContent = `${t(mode.id === 'mesh' ? 'photoMesh' : 'photoSplat')} · ${mode.engine} · ${t(mode.available ? 'workerAvailable' : 'workerUnavailable')}`;
+      item.textContent = `${t({mesh:'photoMesh',splat:'photoSplat',panorama:'panoramaJob',generated:'generatedJob'}[mode.id])} · ${mode.engine} · ${t(mode.available ? 'workerAvailable' : 'workerUnavailable')}`;
       capabilities.append(item);
     }
     if (this.capabilities?.video) {
@@ -69,7 +77,7 @@ export class ReconstructionPanel {
     const list = this.$('reconstruction-jobs'); list.replaceChildren();
     for (const job of this.jobs) {
       const item = document.createElement('li'), heading = document.createElement('strong'), state = document.createElement('p');
-      heading.textContent = job.name; state.textContent = `${t('job' + job.status[0].toUpperCase() + job.status.slice(1))} · ${t(job.mode === 'mesh' ? 'photoMesh' : 'photoSplat')}`;
+      heading.textContent = job.name; state.textContent = `${t('job' + job.status[0].toUpperCase() + job.status.slice(1))} · ${t({mesh:'photoMesh',splat:'photoSplat',panorama:'panoramaJob',generated:'generatedJob'}[job.mode])}`;
       item.append(heading, state);
       if (job.status === 'failed' && job.error) { const error = document.createElement('p'); error.className = 'privacy'; error.textContent = String(typeof job.error === 'object' ? job.error.message || job.error.code || '' : job.error).slice(0, 500); item.append(error); }
       if (['queued','running'].includes(job.status)) {
@@ -81,7 +89,7 @@ export class ReconstructionPanel {
           const button = document.createElement('button'); button.textContent = `${t('download')}: ${artifact.name}`; button.disabled = this.busy;
           button.onclick = () => this.run(async () => download(await this.client.artifact(job, artifact.name), artifact.name)); actions.append(button);
         }
-        const open = document.createElement('button'), name = job.mode === 'splat' ? 'splat.ply' : 'mesh.zip'; open.className = 'primary'; open.textContent = t('open'); open.disabled = this.busy;
+        const open = document.createElement('button'), name = {mesh:'mesh.zip',splat:'splat.ply',panorama:'panorama.png',generated:'model.zip'}[job.mode]; open.className = 'primary'; open.textContent = t('open'); open.disabled = this.busy;
         open.onclick = () => this.run(async () => { const blob = await this.client.artifact(job, name); dialog.close(); await this.openArtifact(new File([blob], name), job); });
         actions.append(open); item.append(actions);
       }

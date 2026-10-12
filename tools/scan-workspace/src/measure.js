@@ -65,6 +65,8 @@ export function resultFor(measure,scale) {
 }
 export function validateProject(p) {
   if(p?.version!==1 || typeof p.name!=='string' || p.name.length>200 || !['y','z'].includes(p.upAxis) || !Array.isArray(p.measurements) || p.measurements.length>500) throw new MeasureError('invalidProject');
+  if(p.source!==undefined&&!['photogrammetry','generated'].includes(p.source))throw new MeasureError('invalidProject');
+  if(p.source==='generated'&&(p.measurements.length||p.checks?.length||p.calibrated===true||p.transport!==undefined))throw new MeasureError('invalidProject');
   validateScale(p.scale);
   for(const m of p.measurements) {
     if(typeof m.label!=='string'||m.label.length>200||!['distance','floor','surface'].includes(m.kind)) throw new MeasureError('invalidProject');

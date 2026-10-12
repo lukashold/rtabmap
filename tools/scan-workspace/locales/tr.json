@@ -498,7 +498,7 @@
       "recordVideo": "Video kaydet",
       "importVideo": "Dosyalar’dan video aktar",
       "importPanorama": "Panorama içe aktar",
-      "panoramaHelp": "2:1 oranında mevcut bir eş uzaklıklı silindirik 360° görüntü aktarın (JPEG/PNG, en fazla 32 MiB · 8192 × 4096 px). Kantura görüntüleri birleştirmez. Çevre görünümünü tarayıcıda açın.",
+      "panoramaHelp": "Tamamlanmış 360° eşdikdörtgensel görüntüyü 2:1 oranında aktarın (JPEG/PNG, en fazla 32 MiB · 8192 × 4096 piksel). Bu seçenek mevcut bir panoramayı aktarır. Çevresel görünümü tarayıcıda açın.",
       "privacy": "Özgün dosyalar otomatik bulut yedeği olmadan bu cihazda özel olarak kalır. Yalnızca dışa aktarıldığında paylaşılır. Fotoğraf ve videolar konum metaverisi içerebilir; videolarda ses de bulunur. 3D model veya Splat daha sonra sunucuda oluşturulur. Referans olmadan ölçek doğrulanmamıştır.",
       "library": "Özgün çekimlerim",
       "count": "{count} fotoğraf · önerilen: en az 20",
@@ -511,7 +511,21 @@
       "invalid": "Dosya veya çekim kaydedilemedi. Türü, boyutu, boş depolama alanını ve panoramanın 2:1 oranını kontrol edin.",
       "saved": "Özgün dosya cihazda kaydedildi. Sunucuda işlemek için özgün dosyayı veya fotoğraf veri kümesini dışa aktarın.",
       "exportOriginal": "Özgün dosyayı dışa aktar",
-      "exportDataset": "Metaverili ZIP dışa aktar"
+      "exportDataset": "Metaverili ZIP dışa aktar",
+      "qualityDark": "Önizlemede çok karanlık alanlar fazla. Daha eşit ışık kullanıp fotoğrafı kontrol edin.",
+      "qualityBright": "Önizlemede çok parlak alanlar fazla. Yansımalardan kaçınıp kaybolan ayrıntıları kontrol edin.",
+      "qualityTexture": "Önizlemenin parlaklık karşıtlığı düşük. Kadraja daha fazla ayırt edilebilir yüzey ayrıntısı alın.",
+      "qualityEdges": "Önizlemede kenarlar zayıf. Odağı kontrol edin, çekimde sabit durun ve gerekirse bir fotoğraf daha çekin.",
+      "qualityScope": "Bu önizleme ipuçları örtüşmeyi veya ölçüm doğruluğunu denetlemez. Her özgün fotoğraf korunur.",
+      "fixedLens": "Sabit arka geniş açılı kamera · 1× yakınlaştırma. Odak ve pozlama otomatik ayarlanmaya devam eder.",
+      "panorama": "Panorama fotoğraf dizisi çek",
+      "panoramaCaptureHelp": "Örtüşen 20–36 fotoğraf çekin. Kamerayı mümkün olduğunca aynı noktada tutun ve yana ilerlemek yerine lensin çevresinde döndürün. Yavaşça tam bir daireyi kapsayıp yukarı ve aşağı bakışlar ekleyin. Özgün ZIP’i tarayıcıdaki Panorama ile işleyin. Birleştirme sunucuda yapılır; tam 360° görünüm garanti edilmez ve derinlik içermez.",
+      "panoramaCount": "{count} fotoğraf · panorama için önerilen: 20–36",
+      "generation-input": "AI modeli için tek fotoğraf çek",
+      "generationHelp": "Düz bir arka planda bütünü görünen tek bir nesne çekin veya arka planı kaldırılmış saydam PNG aktarın. JPEG/PNG en fazla 20 MiB ve 16 megapiksel. Özgün fotoğrafı dışa aktarın, tarayıcıda AI modeli seçip ön planı doğrulayın. AI görünmeyen yüzeyleri uydurur. Sonuç tarama değildir ve ölçüm için kullanılamaz. Otomatik yükleme yapılmaz.",
+      "importGeneration": "Dosyalar’dan tek fotoğraf aktar",
+      "generationCount": "{count} / 1 fotoğraf · AI girdisi",
+      "generationSize": "Özgün fotoğraf kaydedildi ancak AI için fazla büyük. Bir kopyayı en fazla 20 MiB ve 16 megapiksele küçültün. Özgün dosya değişmez."
     }
   },
   "video": {

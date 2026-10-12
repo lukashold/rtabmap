@@ -1,7 +1,7 @@
 import Foundation
 
-/// A private, unmodified video or existing equirectangular panorama. This is
-/// source material, not a stitched panorama, reconstructed model or metric scan.
+/// A private, unmodified video, existing panorama or single AI input photo.
+/// Source material is not a stitched panorama, generated model or metric scan.
 struct MediaDataset: Codable {
     struct Original: Codable { let file: String; let bytes: Int }
     var format = "kantura-media-dataset"
@@ -15,18 +15,27 @@ struct MediaDataset: Codable {
     let original: Original
     static let maximumVideoBytes = 2 * 1024 * 1024 * 1024
     static let maximumPanoramaBytes = 32 * 1024 * 1024
+    static let maximumGenerationInputBytes = 20 * 1024 * 1024
     enum Failure: Error { case invalidManifest, invalidFile, fileTooLarge, incompleteCopy }
 
+    /// Check before decoding full-resolution pixels. Bounds precede the pixel
+    /// multiplication so malformed metadata cannot overflow it.
+    static func generationInputFits(bytes: Int, width: Int, height: Int) -> Bool {
+        bytes > 0 && bytes <= maximumGenerationInputBytes &&
+            (64...8192).contains(width) && (64...8192).contains(height) &&
+            width * height <= 16 * 1024 * 1024
+    }
+
     static func extensions(for mode: String) -> [String] {
-        mode == "video" ? ["mov", "mp4", "m4v"] : mode == "panorama" ? ["jpg", "jpeg", "png"] : []
+        mode == "video" ? ["mov", "mp4", "m4v"] : ["panorama", "generation-input"].contains(mode) ? ["jpg", "jpeg", "png"] : []
     }
     static func maximumBytes(for mode: String) -> Int {
-        mode == "video" ? maximumVideoBytes : maximumPanoramaBytes
+        mode == "video" ? maximumVideoBytes : mode == "generation-input" ? maximumGenerationInputBytes : maximumPanoramaBytes
     }
     func validate() throws {
         guard format == "kantura-media-dataset", version == 1, UUID(uuidString: id) != nil,
               !name.isEmpty, name.count <= 200, ISO8601DateFormatter().date(from: createdAt) != nil,
-              ["apple-camera", "files"].contains(source), ["video", "panorama"].contains(captureMode),
+              ["apple-camera", "files"].contains(source), ["video", "panorama", "generation-input"].contains(captureMode),
               !(source == "apple-camera" && captureMode == "panorama"), scaleStatus == "unverified"
         else { throw Failure.invalidManifest }
         let ext = (original.file as NSString).pathExtension.lowercased()

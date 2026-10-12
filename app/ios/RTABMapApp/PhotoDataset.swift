@@ -20,7 +20,7 @@ struct PhotoDataset: Codable {
               UUID(uuidString: id) != nil, !name.isEmpty, name.count <= 200,
               ISO8601DateFormatter().date(from: createdAt) != nil,
               ((source == "apple-object-capture" && captureMode == "object") ||
-               (source == "apple-camera" && ["room", "outdoor", "splat"].contains(captureMode))),
+               (source == "apple-camera" && ["room", "outdoor", "splat", "panorama", "generation-input"].contains(captureMode))),
               scaleStatus == "unverified",
               !images.isEmpty, images.count <= 2000 else { throw Failure.invalidManifest }
         var names = Set<String>()

@@ -4,6 +4,8 @@ Synthetic video is generated here; no fixture binaries or camera poses are
 shipped or treated as reconstruction-quality evidence.
 """
 import json
+import contextlib
+import io
 import shutil
 import subprocess
 import sys
@@ -64,6 +66,27 @@ class VideoContracts(unittest.TestCase):
             with self.subTest(overrides=overrides), self.assertRaises(ContractError) as error:
                 self.probe(**overrides)
             self.assertEqual(error.exception.code, code)
+
+    def test_ffmpeg44_section_name_is_supported_and_probe_errors_stay_private_bounded(self):
+        def legacy_probe(command, **options):
+            entries = command[command.index('-show_entries')+1]
+            # The real 4.4 ffprobe section table has no stream_side_data alias.
+            if 'stream_side_data=' in entries:
+                return SimpleNamespace(returncode=1, stdout=b'', stderr=b'No match for section stream_side_data')
+            return SimpleNamespace(returncode=0, stdout=json.dumps({'streams':[
+                {'codec_name':'h264','width':640,'height':360,'duration':'12','avg_frame_rate':'30/1',
+                 'side_data_list':[{'rotation':90}]}]}).encode(), stderr=b'')
+        with mock.patch('media.shutil.which',return_value='/test/ffprobe'), mock.patch('media.subprocess.run',side_effect=legacy_probe):
+            self.assertEqual(probe_video(self.video)['rotationDegrees'],90)
+        diagnostic = io.StringIO()
+        with mock.patch('media.shutil.which',return_value='/test/ffprobe'), mock.patch('media.subprocess.run',return_value=SimpleNamespace(returncode=1,stdout=b'x'*10000,stderr=b'bad\nprobe'*2000)),contextlib.redirect_stderr(diagnostic):
+            with self.assertRaises(ContractError) as error:probe_video(self.video)
+        self.assertEqual(error.exception.code,'unsupported_video')
+        record=json.loads(diagnostic.getvalue())
+        self.assertEqual(record['exitCode'],1)
+        self.assertLessEqual(len(record['stderr']),2048)
+        self.assertLessEqual(len(record['stdout']),2048)
+        self.assertEqual(record['arguments'][-1],'<input.video>')
 
     def test_selection_uses_quality_timeline_bins_and_limits_not_camera_poses(self):
         candidates = []
@@ -148,4 +171,3 @@ class RealVideoDecoding(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-

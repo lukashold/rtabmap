@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A817AC100000000000000002 /* PhotoQuality.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC100000000000000001 /* PhotoQuality.swift */; };
 		A817AC090000000000000002 /* MediaDataset.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC090000000000000001 /* MediaDataset.swift */; };
 		A817AC090000000000000004 /* SceneCaptureViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC090000000000000003 /* SceneCaptureViewController.swift */; };
 		A817AC080000000000000002 /* SplatDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC080000000000000001 /* SplatDocument.swift */; };
@@ -144,6 +145,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		A817AC100000000000000001 /* PhotoQuality.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PhotoQuality.swift; path = RTABMapApp/PhotoQuality.swift; sourceTree = "<group>"; };
 		A817AC090000000000000001 /* MediaDataset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MediaDataset.swift; path = RTABMapApp/MediaDataset.swift; sourceTree = "<group>"; };
 		A817AC090000000000000003 /* SceneCaptureViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SceneCaptureViewController.swift; path = RTABMapApp/SceneCaptureViewController.swift; sourceTree = "<group>"; };
 		A817AC080000000000000001 /* SplatDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SplatDocument.swift; path = RTABMapApp/SplatDocument.swift; sourceTree = "<group>"; };
@@ -535,6 +537,7 @@
 				A817AC030000000000000001 /* RoomPlanDocument.swift */,
 				A817AC070000000000000001 /* PhotoDataset.swift */,
 				A817AC090000000000000001 /* MediaDataset.swift */,
+				A817AC100000000000000001 /* PhotoQuality.swift */,
 				A817AC090000000000000003 /* SceneCaptureViewController.swift */,
 				A817AC080000000000000001 /* SplatDocument.swift */,
 				A817AC080000000000000003 /* SplatViewController.swift */,
@@ -944,6 +947,7 @@
 				A817AC030000000000000002 /* RoomPlanDocument.swift in Sources */,
 				A817AC070000000000000002 /* PhotoDataset.swift in Sources */,
 				A817AC090000000000000002 /* MediaDataset.swift in Sources */,
+				A817AC100000000000000002 /* PhotoQuality.swift in Sources */,
 				A817AC090000000000000004 /* SceneCaptureViewController.swift in Sources */,
 				A817AC080000000000000002 /* SplatDocument.swift in Sources */,
 				A817AC080000000000000004 /* SplatViewController.swift in Sources */,

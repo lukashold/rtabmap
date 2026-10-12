@@ -3,7 +3,7 @@ import { pipeline } from 'node:stream/promises';
 
 export const RECONSTRUCTION_MAX_BYTES = 200 * 1024 * 1024;
 const uuid = '[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}';
-const artifactNames = ['mesh.zip', 'model.ply', 'splat.ply', 'cameras.json', 'reconstruction.json', 'photos.zip'];
+const artifactNames = ['mesh.zip', 'model.ply', 'splat.ply', 'cameras.json', 'reconstruction.json', 'photos.zip', 'panorama.png', 'coverage.png', 'originals.zip', 'result.json', 'generated-model.glb', 'generated-model.obj', 'generated-model.ply', 'model.zip', 'generation.json'];
 const route = new RegExp(`^/api/reconstruction/jobs/(${uuid})(?:/(cancel)|/artifacts/(${artifactNames.map(name => name.replace('.', '\\.')).join('|')}))?$`);
 const fail = (status, code) => Object.assign(new Error(code), { status, code });
 
@@ -33,19 +33,23 @@ export function createReconstructionProxy(origin, token, options = {}) {
     const headers = { authorization: `Bearer ${token}`, accept: 'application/json' };
     if (upload) {
       const keys = [...requestURL.searchParams.keys()];
-      if (keys.some(key => !['mode', 'name', 'profile'].includes(key)) || new Set(keys).size !== keys.length) throw fail(400, 'invalid_request');
+      if (keys.some(key => !['mode', 'name', 'profile', 'foregroundIsolated'].includes(key)) || new Set(keys).size !== keys.length) throw fail(400, 'invalid_request');
       const mode = requestURL.searchParams.get('mode');
       const name = requestURL.searchParams.get('name')?.trim();
       const profile = requestURL.searchParams.get('profile') || 'auto';
       if (!['auto','uav'].includes(profile)) throw fail(400, 'invalid_request');
-      if (!['mesh', 'splat'].includes(mode) || !name || name.length > 120 || /[\x00-\x1f\x7f/\\]/.test(name)) throw fail(400, 'invalid_request');
+      const foreground = requestURL.searchParams.get('foregroundIsolated');
+      if (foreground!==null && (mode!=='generated'||foreground!=='1')) throw fail(400,'invalid_request');
+      if (!['mesh', 'splat', 'panorama', 'generated'].includes(mode) || !name || name.length > 120 || /[\x00-\x1f\x7f/\\]/.test(name) || (!['mesh','splat'].includes(mode)&&profile!=='auto')) throw fail(400, 'invalid_request');
       const contentType = (req.headers['content-type'] || '').split(';')[0].toLowerCase();
-      if (!['application/zip', 'application/octet-stream', 'video/mp4', 'video/quicktime'].includes(contentType)) throw fail(415, 'invalid_archive');
+      const types = mode==='generated'?['image/jpeg','image/png']:mode==='panorama'?['application/zip','application/octet-stream']:['application/zip','application/octet-stream','video/mp4','video/quicktime'];
+      if (!types.includes(contentType)) throw fail(415, 'invalid_archive');
       if (req.headers['content-length'] === undefined) throw fail(411, 'length_required');
-      if (!/^\d+$/.test(req.headers['content-length']) || Number(req.headers['content-length']) > maxBytes) throw fail(413, 'too_large');
+      if (!/^\d+$/.test(req.headers['content-length']) || Number(req.headers['content-length']) > (mode==='generated'?Math.min(maxBytes,20*1024*1024):maxBytes)) throw fail(413, 'too_large');
       upstream.searchParams.set('mode', mode);
       upstream.searchParams.set('name', name);
       if (profile !== 'auto') upstream.searchParams.set('profile', profile);
+      if (foreground) upstream.searchParams.set('foregroundIsolated',foreground);
       headers['content-type'] = contentType === 'application/octet-stream' ? 'application/zip' : contentType;
       headers['content-length'] = req.headers['content-length'];
     } else if ([...requestURL.searchParams].length) throw fail(400, 'invalid_request');
@@ -79,7 +83,7 @@ export function createReconstructionProxy(origin, token, options = {}) {
       const responseLimit = artifact && response.ok ? maxBytes : 1024 * 1024;
       const length = response.headers.get('content-length');
       if (length !== null && (!/^\d+$/.test(length) || Number(length) > responseLimit)) { await response.body?.cancel(); throw fail(502, 'reconstruction_result_too_large'); }
-      const contentType = artifact && response.ok ? artifact.endsWith('.zip') ? 'application/zip' : artifact.endsWith('.json') ? 'application/json; charset=utf-8' : 'application/octet-stream' : 'application/json; charset=utf-8';
+      const contentType = artifact && response.ok ? artifact.endsWith('.zip') ? 'application/zip' : artifact.endsWith('.json') ? 'application/json; charset=utf-8' : artifact.endsWith('.png') ? 'image/png' : 'application/octet-stream' : 'application/json; charset=utf-8';
       res.setHeader('Content-Type', contentType);
       if (length !== null) res.setHeader('Content-Length', length);
       if (artifact && response.ok) res.setHeader('Content-Disposition', `attachment; filename="${artifact}"`);

@@ -152,3 +152,17 @@ test('video MIME/profile and selected-photo download pass only through fixed aut
     assert.equal(refused.status,400); await refused.arrayBuffer();assert.equal(calls.length,2);
   });
 });
+
+test('AI raw image confirmation and panorama PNG transport cannot forward arbitrary input types',async()=>{
+  await withProxy((call,res)=>json(res,200,{ok:true}),async({url,calls})=>{
+    const accepted=await fetch(`${url}/api/reconstruction/jobs?mode=generated&name=Concept&foregroundIsolated=1`,{method:'POST',headers:{authorization,'Content-Type':'image/png'},body:'original'});
+    assert.equal(accepted.status,200);await accepted.arrayBuffer();assert.equal(calls[0].headers['content-type'],'image/png');assert.match(calls[0].path,/foregroundIsolated=1$/);
+    const picture=await fetch(`${url}/api/reconstruction/jobs/${id}/artifacts/panorama.png`,{headers:{authorization}});
+    assert.equal(picture.headers.get('content-type'),'image/png');await picture.arrayBuffer();
+    for(const [mode,type,query] of [['generated','application/zip',''],['panorama','video/mp4',''],['mesh','image/png',''],['generated','image/png','&foregroundIsolated=false']]){
+      const refused=await fetch(`${url}/api/reconstruction/jobs?mode=${mode}&name=Test${query}`,{method:'POST',headers:{authorization,'Content-Type':type},body:'x'});
+      assert.ok([400,415].includes(refused.status));await refused.arrayBuffer();
+    }
+    assert.equal(calls.length,2);
+  });
+});

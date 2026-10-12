@@ -498,7 +498,7 @@
       "recordVideo": "Rekam video",
       "importVideo": "Impor video dari File",
       "importPanorama": "Impor panorama",
-      "panoramaHelp": "Impor gambar 360° equirectangular yang sudah ada dengan rasio 2:1 (JPEG/PNG, hingga 32 MiB · 8192 × 4096 px). Kantura tidak menggabungkan gambar. Buka tampilan sekeliling di browser.",
+      "panoramaHelp": "Impor gambar equirectangular 360° yang sudah jadi dengan rasio 2:1 (JPEG/PNG, hingga 32 MiB · 8192 × 4096 px). Pilihan ini mengimpor panorama yang sudah ada. Buka tampilan sekeliling di browser.",
       "privacy": "Berkas asli tetap pribadi di perangkat ini tanpa pencadangan cloud otomatis. Berkas hanya dibagikan saat diekspor. Foto dan video mungkin memuat metadata lokasi; video juga menyertakan suara. Model 3D atau Splat dibuat kemudian di server. Tanpa acuan, skala belum diverifikasi.",
       "library": "Rekaman asli saya",
       "count": "{count} foto · disarankan: setidaknya 20",
@@ -511,7 +511,21 @@
       "invalid": "Berkas atau hasil rekaman tidak dapat disimpan. Periksa jenis, ukuran, ruang kosong, dan rasio 2:1 untuk panorama.",
       "saved": "Berkas asli tersimpan secara lokal. Ekspor berkas asli atau kumpulan foto untuk diproses di server.",
       "exportOriginal": "Ekspor berkas asli",
-      "exportDataset": "Ekspor ZIP dengan metadata"
+      "exportDataset": "Ekspor ZIP dengan metadata",
+      "qualityDark": "Pratinjau memiliki banyak bagian sangat gelap. Gunakan cahaya lebih merata dan periksa foto.",
+      "qualityBright": "Pratinjau memiliki banyak bagian sangat terang. Hindari pantulan dan periksa detail yang hilang.",
+      "qualityTexture": "Kontras kecerahan pratinjau rendah. Masukkan lebih banyak detail permukaan yang terlihat ke dalam bingkai.",
+      "qualityEdges": "Tepi pada pratinjau kurang tegas. Periksa fokus, diam saat memotret, dan ambil foto tambahan jika perlu.",
+      "qualityScope": "Petunjuk pratinjau ini tidak memeriksa tumpang tindih atau ketepatan pengukuran. Setiap foto asli disimpan.",
+      "fixedLens": "Kamera belakang sudut lebar tetap · zoom 1×. Fokus dan pencahayaan tetap menyesuaikan otomatis.",
+      "panorama": "Ambil rangkaian foto panorama",
+      "panoramaCaptureHelp": "Ambil 20–36 foto yang bertumpang tindih. Usahakan kamera tetap di satu posisi dan putar mengelilingi lensa, bukan bergerak ke samping. Liput satu putaran perlahan, lalu tambahkan pandangan ke atas dan bawah. Proses ZIP asli dengan Panorama di browser. Penggabungan dilakukan di server; tampilan 360° penuh tidak dijamin dan tidak memiliki kedalaman.",
+      "panoramaCount": "{count} foto · panorama: disarankan 20–36",
+      "generation-input": "Ambil satu foto untuk model AI",
+      "generationHelp": "Foto satu objek yang terlihat utuh di depan latar polos, atau impor PNG transparan tanpa latar. JPEG/PNG hingga 20 MiB dan 16 megapiksel. Ekspor foto asli, pilih Model AI di browser, lalu konfirmasikan objek latar depan. AI mengarang permukaan yang tidak terlihat. Hasilnya bukan pemindaian dan tidak boleh dipakai mengukur. Tidak ada unggahan otomatis.",
+      "importGeneration": "Impor satu foto dari File",
+      "generationCount": "{count} / 1 foto · masukan AI",
+      "generationSize": "Foto asli disimpan, tetapi terlalu besar untuk AI. Perkecil salinan hingga maksimal 20 MiB dan 16 megapiksel. Foto asli tetap tidak berubah."
     }
   },
   "video": {

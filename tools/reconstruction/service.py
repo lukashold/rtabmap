@@ -17,11 +17,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlsplit
 
+from capture_contract import IMAGE_TYPES, GENERATED_BYTES, PANORAMA_LIMITS, inspect_generated_input
+from capture_engines import available as capture_available
 from contract import ARTIFACTS, OPTIONAL_ARTIFACTS, EXTENSIONS, VIDEO_TYPES, VIDEO_LIMITS, LIMITS, ContractError, inspect_input, inspect_video_input, sha256, validate_artifacts
 
 PREFIX = '/api/reconstruction'
 UUID = r'[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}'
-STAGES = {'preparing', 'extracting', 'features', 'matching', 'mapping', 'undistorting', 'dense', 'meshing', 'refining', 'texturing', 'training', 'validating'}
+STAGES = {'stitching', 'generating', 'preparing', 'extracting', 'features', 'matching', 'mapping', 'undistorting', 'dense', 'meshing', 'refining', 'texturing', 'training', 'validating'}
 FINAL = {'complete', 'failed', 'cancelled'}
 
 
@@ -153,10 +155,14 @@ class Service:
         video = decoder and all(shutil.which(name) for name in ['ffmpeg', 'ffprobe'])
         return {'version': 1, 'modes': [
             {'id': 'mesh', 'available': bool(mesh or not self.verify_programs), 'engine': 'COLMAP + OpenMVS', 'accelerator': 'cpu'},
-            {'id': 'splat', 'available': bool(splat or not self.verify_programs), 'engine': 'COLMAP + OpenSplat', 'accelerator': self.device}],
+            {'id': 'splat', 'available': bool(splat or not self.verify_programs), 'engine': 'COLMAP + OpenSplat', 'accelerator': self.device},
+            {'id': 'panorama', 'available': bool(capture_available('panorama') or not self.verify_programs), 'engine': 'OpenCV spherical stitching', 'accelerator': 'cpu'},
+            {'id': 'generated', 'available': bool(capture_available('generated') or not self.verify_programs), 'engine': 'TripoSR', 'accelerator': 'cpu'}],
             'input': {'contentType': 'application/zip', 'extensions': sorted(EXTENSIONS), 'minImages': self.limits.min_images, 'maxImages': self.limits.max_images},
             'video': {'available': bool(video or not self.verify_programs), 'contentTypes': sorted(VIDEO_TYPES), **VIDEO_LIMITS},
             'profiles': ['auto', 'uav'],
+            'panorama': {'minImages': 2, 'maxImages': 40, 'hasDepth': False, 'canMeasure': False},
+            'generated': {'contentTypes': sorted(IMAGE_TYPES), 'uploadBytes': GENERATED_BYTES, 'foregroundRequiredForOpaque': True, 'metricMeasurementsAllowed': False},
             'limits': {'uploadBytes': self.limits.upload, 'artifactBytes': self.limits.artifact, 'expandedBytes': self.limits.expanded, 'maxQueuedJobs': self.limits.queue},
             'scaleStatus': 'unverified', 'hardwareValidated': False}
 
@@ -191,15 +197,19 @@ class Service:
         if shutil.disk_usage(self.root).free < self.minimum_free_bytes + self.limits.upload:
             raise ContractError('storage_full')
 
-    def create(self, mode, name, body, length, content_type='application/zip', profile='auto'):
-        if content_type not in {'application/zip'} | VIDEO_TYPES:
+    def create(self, mode, name, body, length, content_type='application/zip', profile='auto', foreground_isolated=False):
+        if content_type not in {'application/zip'} | VIDEO_TYPES | IMAGE_TYPES:
             raise ContractError('unsupported_media_type')
         if profile not in {'auto', 'uav'}:
             raise ContractError('invalid_profile')
-        input_type = 'video' if content_type in VIDEO_TYPES else 'photos'
+        if (mode == 'generated') != (content_type in IMAGE_TYPES) or (mode == 'panorama' and content_type != 'application/zip'):
+            raise ContractError('unsupported_media_type')
+        if (mode in {'panorama', 'generated'} and profile != 'auto') or (foreground_isolated and mode != 'generated'):
+            raise ContractError('invalid_profile')
+        input_type = 'image' if content_type in IMAGE_TYPES else ('video' if content_type in VIDEO_TYPES else 'photos')
         if input_type == 'video' and not self.capabilities()['video']['available']:
             raise ContractError('worker_unavailable')
-        if length <= 0 or length > self.limits.upload:
+        if length <= 0 or length > min(self.limits.upload, GENERATED_BYTES if mode == 'generated' else self.limits.upload):
             raise ContractError('too_large')
         if not self.upload_lock.acquire(blocking=False):
             raise ContractError('busy')
@@ -210,7 +220,7 @@ class Service:
             folder = self.root / identifier
             folder.mkdir(mode=0o700)
             remaining, started = length, time.monotonic()
-            source = folder / ('input.video' if input_type == 'video' else 'input.zip')
+            source = folder / (('input.png' if content_type == 'image/png' else 'input.jpg') if input_type == 'image' else ('input.video' if input_type == 'video' else 'input.zip'))
             with source.open('wb') as stream:
                 while remaining:
                     if time.monotonic() - started > 120:
@@ -220,10 +230,17 @@ class Service:
                         raise ContractError('invalid_archive')
                     stream.write(block)
                     remaining -= len(block)
-            info = inspect_video_input(source, self.limits) if input_type == 'video' else inspect_input(source, self.limits)
+            if input_type == 'image':
+                info = inspect_generated_input(source, content_type, foreground_isolated)
+            elif input_type == 'video':
+                info = inspect_video_input(source, self.limits)
+            else:
+                info = inspect_input(source, PANORAMA_LIMITS if mode == 'panorama' else self.limits)
             stamp = now()
             job = {'id': identifier, 'name': name, 'mode': mode, 'status': 'queued', 'stage': 'queued', 'createdAt': stamp, 'updatedAt': stamp, 'scaleStatus': 'unverified', 'imageCount': info['imageCount'], 'source': info['source'], 'artifacts': [], 'error': None}
-            job.update(inputType=input_type, captureProfile=profile)
+            job.update(inputType=input_type, captureProfile=profile, foregroundIsolated=bool(foreground_isolated))
+            if mode in {'panorama', 'generated'}:
+                job['metricMeasurementsAllowed'] = False
             with self.lock:
                 atomic_json(folder / 'state.json', job)
                 self.jobs[identifier] = job
@@ -272,8 +289,10 @@ class Service:
         try:
             with (folder / 'worker.log').open('wb') as log:
                 command = self.worker_command + ['--job-dir', str(folder), '--mode', job['mode'], '--device', self.device]
-                if job.get('inputType') == 'video':
-                    command += ['--input-type', 'video']
+                if job.get('inputType') in {'video', 'image'}:
+                    command += ['--input-type', job['inputType']]
+                if job.get('foregroundIsolated'):
+                    command += ['--foreground-isolated']
                 if job.get('captureProfile', 'auto') != 'auto':
                     command += ['--profile', job['captureProfile']]
                 options = {'start_new_session': True} if os.name != 'nt' else {'creationflags': subprocess.CREATE_NEW_PROCESS_GROUP}
@@ -317,13 +336,14 @@ class Service:
                         if error_file.stat().st_size > 8192:
                             raise ContractError('worker_limit')
                         error = json.loads(error_file.read_text('utf-8'))
-                        if error.get('code') in {'unsupported_image', 'unsupported_video', 'video_duration', 'video_dimensions', 'too_few_usable_frames', 'invalid_camera_policy', 'invalid_sfm_model', 'insufficient_validation_views', 'insufficient_registration', 'worker_unavailable', 'invalid_artifacts', 'too_large', 'reconstruction_failed'}:
+                        if error.get('code') in {'panorama_failed', 'generation_failed', 'foreground_required', 'unsupported_image', 'unsupported_video', 'video_duration', 'video_dimensions', 'too_few_usable_frames', 'invalid_camera_policy', 'invalid_sfm_model', 'insufficient_validation_views', 'insufficient_registration', 'worker_unavailable', 'invalid_artifacts', 'too_large', 'reconstruction_failed'}:
                             code = error['code']
                     except (ValueError, OSError):
                         pass
                     raise ContractError(code)
                 artifacts = validate_artifacts(folder / 'artifacts', job['mode'], self.limits)
-                manifest = json.loads((folder / 'artifacts' / 'reconstruction.json').read_text('utf-8'))
+                manifest_name = {'panorama': 'result.json', 'generated': 'generation.json'}.get(job['mode'], 'reconstruction.json')
+                manifest = json.loads((folder / 'artifacts' / manifest_name).read_text('utf-8'))
                 for item in artifacts:
                     item['url'] = f"{PREFIX}/jobs/{job['id']}/artifacts/{item['name']}"
                 with self.lock:
@@ -401,10 +421,13 @@ class Handler(BaseHTTPRequestHandler):
                 if not length or not length.isdigit() or len(self.headers.get_all('Content-Length', [])) != 1:
                     return self.json(411, {'error': 'length_required'})
                 content_type = self.headers.get('Content-Type', '').split(';')[0].strip().lower()
-                if content_type not in {'application/zip'} | VIDEO_TYPES:
+                if content_type not in {'application/zip'} | VIDEO_TYPES | IMAGE_TYPES:
                     return self.json(415, {'error': 'unsupported_media_type'})
                 query = parse_qs(parsed.query)
-                job = service.create(query.get('mode', [''])[0], query.get('name', ['Photo capture'])[0], self.rfile, int(length), content_type, query.get('profile', ['auto'])[0])
+                foreground = query.get('foregroundIsolated', ['0'])
+                if foreground not in (['0'], ['1']):
+                    raise ContractError('invalid_profile')
+                job = service.create(query.get('mode', [''])[0], query.get('name', ['Photo capture'])[0], self.rfile, int(length), content_type, query.get('profile', ['auto'])[0], foreground == ['1'])
                 return self.json(202, {'job': job})
         match = re.fullmatch(PREFIX + '/jobs/(' + UUID + ')(?:/(cancel|artifacts/([^/]+)))?', path)
         if match:

@@ -1,0 +1,17 @@
+# Small inference dependency set. Torch CPU is installed separately in Docker.
+# No Gradio, rembg/ONNX models, CUDA packages, texture baker or renderer service.
+numpy==1.26.4
+Pillow==12.3.0
+omegaconf==2.3.0
+einops==0.7.0
+transformers==4.44.2
+huggingface-hub==0.26.5
+trimesh==4.6.13
+scipy==1.13.1
+imageio==2.37.0
+# torchmcubes build, pinned because it links to the installed Torch C++ ABI.
+scikit-build-core==1.1.1
+pybind11==3.1.0
+packaging==25.0
+setuptools==80.9.0
+wheel==0.45.1

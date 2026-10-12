@@ -10,6 +10,9 @@ parser.add_argument('--origin', default='http://127.0.0.1:4180')
 parser.add_argument('--archive', type=Path, required=True)
 parser.add_argument('--output', type=Path, required=True)
 parser.add_argument('--video', type=Path, help='Optional generated test video: exercise real extraction and reconstruction')
+parser.add_argument('--distinct',type=Path,help='Second nonperiodic photo fixture; the difficult original is retained')
+parser.add_argument('--panorama',type=Path,help='Own rotational perspective photos to stitch through the real job API')
+parser.add_argument('--image',type=Path,help='Own transparent image for actual single-image inference through the real API')
 parser.add_argument('--timeout', type=int, default=1200)
 args = parser.parse_args()
 token = os.environ['RECONSTRUCTION_TOKEN']
@@ -30,10 +33,11 @@ capabilities = json.loads(request('/api/reconstruction/capabilities'))
 available = {mode['id']:mode['available'] for mode in capabilities['modes']}
 assert available.get('mesh') and available.get('splat'), capabilities
 payload = args.archive.read_bytes()
-def run_mode(mode, video=False):
-    label = 'video-mesh' if video else mode
+def run_mode(mode, video=False, distinct=False):
+    label = 'video-mesh' if video else ('distinct-'+mode) if distinct else mode
+    content = args.video.read_bytes() if video else args.distinct.read_bytes() if distinct else args.panorama.read_bytes() if mode=='panorama' else args.image.read_bytes() if mode=='generated' else payload
     job = json.loads(request('/api/reconstruction/jobs?mode='+mode+'&name=Synthetic-cube-'+label,
-        args.video.read_bytes() if video else payload, 'video/mp4' if video else 'application/zip'))['job']
+        content, 'video/mp4' if video else 'image/png' if mode=='generated' else 'application/zip'))['job']
     identifier = job['id']; assert re.fullmatch(r'[0-9a-f-]{36}',identifier)
     deadline = time.monotonic()+args.timeout
     last = None
@@ -49,7 +53,7 @@ def run_mode(mode, video=False):
     (args.output / (label+'-job.json')).write_text(json.dumps(job,indent=2),'utf8')
     assert job['status'] == 'complete', job
     assert job['scaleStatus'] == 'unverified', job
-    expected = {'mesh.zip','model.ply','reconstruction.json'} if mode=='mesh' else {'splat.ply','cameras.json','reconstruction.json'}
+    expected = {'mesh':{'mesh.zip','model.ply','reconstruction.json'},'splat':{'splat.ply','cameras.json','reconstruction.json'},'panorama':{'panorama.png','coverage.png','originals.zip','result.json'},'generated':{'generated-model.glb','generated-model.obj','generated-model.ply','model.zip','generation.json'}}[mode]
     artifacts = {item['name']:item for item in job['artifacts']}
     assert expected.issubset(artifacts), job
     if mode == 'mesh': expected.add('cameras.json')
@@ -57,7 +61,7 @@ def run_mode(mode, video=False):
     assert expected.issubset(artifacts), job
     folder = args.output/label; folder.mkdir(exist_ok=True)
     for name in expected:
-        assert re.fullmatch(r'[a-z.]+',name)
+        assert re.fullmatch(r'[a-z.-]+',name)
         content = request('/api/reconstruction/jobs/'+identifier+'/artifacts/'+name)
         item = artifacts[name]
         assert len(content) == item['bytes'] and hashlib.sha256(content).hexdigest() == item['sha256']
@@ -79,6 +83,20 @@ if args.video:
     except Exception as error:
         failures.append({'mode':'video-mesh','error':str(error)})
         print('video-mesh: validation failed: '+str(error),flush=True)
+if args.distinct:
+    for mode in ['mesh','splat']:
+        try: records.append(run_mode(mode,distinct=True))
+        except Exception as error:
+            failures.append({'mode':'distinct-'+mode,'error':str(error)})
+            print('distinct-'+mode+': validation failed: '+str(error),flush=True)
+for mode, enabled in [('panorama',args.panorama),('generated',args.image)]:
+    if not enabled: continue
+    try:
+        assert available.get(mode), capabilities
+        records.append(run_mode(mode))
+    except Exception as error:
+        failures.append({'mode':mode,'error':str(error)})
+        print(mode+': validation failed: '+str(error),flush=True)
 (args.output/'pipeline-results.json').write_text(json.dumps({'synthetic':True,'fieldAccuracyValidated':False,'allModesComplete':not failures,'runs':records,'failures':failures},indent=2),'utf8')
 if failures:
     raise SystemExit('Actual reconstruction validation failed for: '+', '.join(item['mode'] for item in failures))

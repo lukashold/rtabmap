@@ -13,17 +13,24 @@ services:
     build:
       context: ../reconstruction
       dockerfile: Dockerfile
+      additional_contexts:
+        panorama: ../panorama
+        generation: ../generation
       args:
         GPU_RUNTIME: CPU
         BUILD_JOBS: ${RECONSTRUCTION_BUILD_JOBS:-2}
-    image: kantura-reconstruction:0.5.0
+        ENABLE_GENERATION: ${RECONSTRUCTION_ENABLE_GENERATION:-0}
+    image: kantura-reconstruction:0.6.0
     environment:
       RECONSTRUCTION_TOKEN: ${SERVER_TOKEN:?Set a random SERVER_TOKEN of at least 32 characters in .env}
       DATA_DIR: /data
       WORKER_DEVICE: cpu
       WORKER_THREADS: ${RECONSTRUCTION_THREADS:-2}
       IMAGE_MAX_SIDE: ${RECONSTRUCTION_IMAGE_MAX_SIDE:-1600}
-      SPLAT_ITERATIONS: ${RECONSTRUCTION_SPLAT_ITERATIONS:-1000}
+      SPLAT_ITERATIONS: ${RECONSTRUCTION_SPLAT_ITERATIONS:-3000}
+      SPLAT_DOWNSCALE: ${RECONSTRUCTION_SPLAT_DOWNSCALE:-1}
+      SPLAT_VALIDATE: ${RECONSTRUCTION_SPLAT_VALIDATE:-0}
+      SFM_CAMERA_POLICY: ${RECONSTRUCTION_CAMERA_POLICY:-auto}
     volumes:
       - reconstruction-projects:/data
     tmpfs:

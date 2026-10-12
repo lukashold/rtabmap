@@ -1,6 +1,7 @@
 import { unzip, zip, strFromU8, strToU8 } from 'fflate';
 import { validateProject, MeasureError } from './measure.js';
 import { roomPlanBundle } from './roomplan.js';
+import { modelOrigin } from './model-origin.js';
 export const MAX_INPUT=200*1024*1024, MAX_UNPACKED=500*1024*1024;
 const allowed=/\.(obj|mtl|ply|glb|bin|png|jpe?g|webp|bmp)$/i;
 export function safePath(name) {
@@ -55,6 +56,7 @@ export async function readFiles(input,{roomLabels={}}={}) {
       let p;try{p=validateProject(JSON.parse(strFromU8(local['rtab-measure.json'])));}catch{throw new MeasureError('invalidProject');}
       const assets=Object.fromEntries(Object.entries(local).filter(([path])=>allowed.test(path))),models=Object.keys(assets).filter(path=>/\.(obj|ply|glb)$/i.test(path));
       if(models.length!==1||p.notes?.some(n=>n.photo&&!assets[n.photo]))throw new MeasureError('invalidProject');
+      if(modelOrigin(models[0],assets[models[0]])==='generated')p=validateProject({...p,source:'generated'});
       return {id:room.id,floor:room.floor,bundle:{assets,model:models[0],name:p.name,project:p},project:p};
     });
     const active=rooms.find(room=>room.id===manifest.activeRoom)||rooms[0];
@@ -64,9 +66,12 @@ export async function readFiles(input,{roomLabels={}}={}) {
   if(project?.notes?.some(n=>n.photo&&!assets[n.photo]))throw new MeasureError('missingAsset');
   const models=Object.keys(assets).filter(p=>/\.(obj|ply|glb)$/i.test(p));
   if(models.length!==1) throw new MeasureError(models.length?'multipleModels':'unsupported');
-  return {assets,model:models[0],project,name:project?.name||files[0].name.replace(/\.[^.]+$/,'')};
+  const source=modelOrigin(models[0],assets[models[0]]);
+  if(source&&project)project=validateProject({...project,source});
+  return {assets,model:models[0],source,project,name:project?.name||files[0].name.replace(/\.[^.]+$/,'')};
 }
 export async function packageProject(bundle,project) {
+  if(modelOrigin(bundle.model,bundle.assets[bundle.model])==='generated')project={...project,source:'generated'};
   validateProject(project);
   if(project.notes?.some(n=>n.photo&&!bundle.assets[n.photo]))throw new MeasureError('missingAsset');
   const entries={...bundle.assets,'rtab-measure.json':strToU8(JSON.stringify(project,null,2))};

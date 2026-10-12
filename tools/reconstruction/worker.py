@@ -122,7 +122,11 @@ def record_training_line(metrics, line):
 
 
 def reconstruct(job_dir, mode, device='cpu', iterations=3000, threads=2, image_max_side=1600,
-                input_type='photos', profile='auto', camera_policy='auto', splat_validate=False, splat_downscale=1):
+                input_type='photos', profile='auto', camera_policy='auto', splat_validate=False, splat_downscale=1,
+                foreground_isolated=False):
+    if mode in {'panorama', 'generated'}:
+        from capture_engines import run_capture
+        return run_capture(job_dir, mode, threads, foreground_isolated)
     job_dir = Path(job_dir).resolve()
     if input_type not in {'photos', 'video'} or profile not in {'auto', 'uav'}:
         raise ContractError('invalid_profile')
@@ -278,7 +282,8 @@ def main():
     parser.add_argument('--mode', required=True, choices=sorted(ARTIFACTS))
     parser.add_argument('--device', choices=['cpu', 'cuda', 'mps'], default='cpu')
     parser.add_argument('--iterations', type=int, default=int(os.environ.get('SPLAT_ITERATIONS', '3000')))
-    parser.add_argument('--input-type', choices=['photos', 'video'], default='photos')
+    parser.add_argument('--input-type', choices=['photos', 'video', 'image'], default='photos')
+    parser.add_argument('--foreground-isolated', action='store_true')
     parser.add_argument('--profile', choices=['auto', 'uav'], default='auto')
     parser.add_argument('--camera-policy', choices=['auto', 'single', 'per-image'], default=os.environ.get('SFM_CAMERA_POLICY', 'auto'))
     parser.add_argument('--splat-downscale', type=float, default=float(os.environ.get('SPLAT_DOWNSCALE', '1')))
@@ -290,7 +295,7 @@ def main():
         parser.error('iterations must be 1–30000, threads 1–64 and image max side 256–4096')
     try:
         reconstruct(args.job_dir, args.mode, args.device, args.iterations, args.threads, args.image_max_side,
-                    args.input_type, args.profile, args.camera_policy, args.splat_validate, args.splat_downscale)
+                    args.input_type, args.profile, args.camera_policy, args.splat_validate, args.splat_downscale, args.foreground_isolated)
     except Exception as error:
         if not isinstance(error, ContractError):
             traceback.print_exc()  # Private worker.log, never the public API.

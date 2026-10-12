@@ -1,0 +1,39 @@
+{
+  "triposr": {
+    "repository": "https://github.com/VAST-AI-Research/TripoSR.git",
+    "commit": "107cefdc244c39106fa830359024f6a2f1c78871",
+    "license": "MIT",
+    "weightsRepository": "stabilityai/TripoSR",
+    "weightsRevision": "5d95c2191bfbe7b97e1f1d1d7271dc28eaadd9ee"
+  },
+  "torchmcubes": {
+    "repository": "https://github.com/tatsy/torchmcubes.git",
+    "commit": "879926d0ef58e6ce0ac2630fdecb5e53af7ed3ff",
+    "license": "MPL-2.0"
+  },
+  "dino": {
+    "repository": "facebook/dino-vitb16",
+    "revision": "f205d5d8e640a89a2b8ef0369670dfc37cc07fc2",
+    "license": "Apache-2.0",
+    "note": "Only architecture config is needed: TripoSR checkpoint already contains image-tokenizer weights."
+  },
+  "downloads": [
+    {
+      "name": "model.ckpt",
+      "url": "https://huggingface.co/stabilityai/TripoSR/resolve/5d95c2191bfbe7b97e1f1d1d7271dc28eaadd9ee/model.ckpt",
+      "bytes": 1677246742,
+      "sha256": "429e2c6b22a0923967459de24d67f05962b235f79cde6b032aa7ed2ffcd970ee"
+    },
+    {
+      "name": "config.yaml",
+      "url": "https://huggingface.co/stabilityai/TripoSR/resolve/5d95c2191bfbe7b97e1f1d1d7271dc28eaadd9ee/config.yaml",
+      "bytes": 987,
+      "sha256": "74ca708ce086bf68e97709ea6b3d91f14717921c04691e84043f0eb8fcc68e62"
+    },
+    {
+      "name": "dino-config.json",
+      "url": "https://huggingface.co/facebook/dino-vitb16/resolve/f205d5d8e640a89a2b8ef0369670dfc37cc07fc2/config.json",
+      "sha256": "b87c0270b97db085fd82cf114a761fd0f62ae7914fbd407c752a2260646b689c"
+    }
+  ]
+}

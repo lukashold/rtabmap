@@ -3,6 +3,7 @@ import json
 import math
 import shutil
 import subprocess
+import sys
 import zipfile
 from pathlib import Path
 
@@ -20,8 +21,25 @@ def probe_video(path):
                '-f', 'mov', '-enable_drefs', '0', '-use_absolute_path', '0',
                '-probesize', '10000000', '-analyzeduration', '10000000',
                '-select_streams', 'v:0', '-show_entries',
-               'stream=codec_name,width,height,avg_frame_rate,duration:stream_tags=rotate:stream_side_data=rotation:format=duration',
+               # FFmpeg 4.4 names this section "side_data". The unique
+               # "stream_side_data" alias exists only in later releases.
+               'stream=codec_name,width,height,avg_frame_rate,duration:stream_tags=rotate:side_data=rotation:format=duration',
                '-of', 'json', str(path)]
+    result = None
+
+    def diagnostic(reason):
+        def bounded(field, maximum):
+            data = getattr(result, field, b'') or b''
+            if isinstance(data, bytes):
+                data = data.decode('utf-8', 'replace')
+            return data[:maximum]
+        # Only private worker.log receives these bounded, JSON-escaped details.
+        # No environment, bearer token, original filename or public API payload.
+        print(json.dumps({'program': 'ffprobe', 'reason': reason,
+                          'arguments': command[1:-1]+['<input.video>'],
+                          'exitCode': getattr(result, 'returncode', None),
+                          'stdout': bounded('stdout', 2048),
+                          'stderr': bounded('stderr', 2048)}, ensure_ascii=True), file=sys.stderr, flush=True)
     try:
         result = subprocess.run(command, stdin=subprocess.DEVNULL, capture_output=True, timeout=20, check=False)
         if result.returncode or len(result.stdout) > 65536:
@@ -54,9 +72,11 @@ def probe_video(path):
         return {'codec': video['codec_name'], 'encodedWidth': width, 'encodedHeight': height,
                 'durationSeconds': duration, 'averageFrameRate': rate,
                 'rotationDegrees': rotation, 'autorotation': 'ffmpeg-default-enabled'}
-    except ContractError:
+    except ContractError as error:
+        diagnostic(error.code)
         raise
     except (ValueError, KeyError, TypeError, ZeroDivisionError, OSError, subprocess.TimeoutExpired) as error:
+        diagnostic(type(error).__name__)
         raise ContractError('unsupported_video') from error
 
 

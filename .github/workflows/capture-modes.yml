@@ -1,0 +1,73 @@
+name: Panorama and single-image engines
+on:
+  push:
+    branches: ['kantura/main']
+    paths: ['tools/panorama/**','tools/generation/**','tools/validation/generation-fixture.py','.github/workflows/capture-modes.yml']
+  pull_request:
+    paths: ['tools/panorama/**','tools/generation/**','tools/validation/generation-fixture.py','.github/workflows/capture-modes.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  panorama:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build and test actual panorama engine
+        uses: docker/build-push-action@v6
+        with:
+          context: tools/panorama
+          load: true
+          tags: kantura-panorama:ci
+          cache-from: type=gha,scope=kantura-panorama
+          cache-to: type=gha,mode=max,scope=kantura-panorama
+      - name: Stitch original perspective images offline
+        run: |
+          mkdir -p panorama-ci
+          docker run --rm --network none --user "$(id -u):$(id -g)" --entrypoint python \
+            --mount type=bind,source="$PWD/panorama-ci",target=/validation \
+            kantura-panorama:ci /opt/panorama/synthetic.py /validation/photos.zip
+          docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges \
+            --user "$(id -u):$(id -g)" --tmpfs /tmp:rw,nosuid,size=512m \
+            --mount type=bind,source="$PWD/panorama-ci",target=/validation \
+            kantura-panorama:ci /validation/photos.zip /validation/result --width 2048 --timeout 600
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: actual-panorama-results
+          path: panorama-ci
+  generation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install Pillow==11.3.0
+      - name: Create own transparent single-view input
+        run: python tools/validation/generation-fixture.py --output generation-ci/input.png
+      - uses: docker/setup-buildx-action@v3
+      - name: Build pinned CPU engine and verify model weights
+        uses: docker/build-push-action@v6
+        with:
+          context: tools/generation
+          platforms: linux/amd64
+          load: true
+          tags: kantura-generation:ci
+          cache-from: type=gha,scope=kantura-generation-cpu
+          cache-to: type=gha,mode=max,scope=kantura-generation-cpu
+      - name: Generate actual neural 3D model without network
+        run: |
+          mkdir generation-ci/result
+          docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges \
+            --cpus=2 --memory=12g --user "$(id -u):$(id -g)" --tmpfs /tmp:rw,nosuid,size=512m \
+            --mount type=bind,source="$PWD/generation-ci",target=/validation \
+            kantura-generation:ci --input /validation/input.png --output /validation/result --resolution 96 --threads 2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: actual-generated-model
+          path: generation-ci

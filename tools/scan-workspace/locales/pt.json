@@ -498,7 +498,7 @@
       "recordVideo": "Gravar vídeo",
       "importVideo": "Importar vídeo de Ficheiros",
       "importPanorama": "Importar panorama",
-      "panoramaHelp": "Importe uma imagem equirretangular de 360° existente na proporção 2:1 (JPEG/PNG, até 32 MiB · 8192 × 4096 px). O Kantura não une imagens. Abra a vista panorâmica no navegador.",
+      "panoramaHelp": "Importe uma imagem equiretangular de 360° já montada na proporção 2:1 (JPEG/PNG, até 32 MiB · 8192 × 4096 px). Esta opção importa um panorama existente. Abra a vista imersiva no navegador.",
       "privacy": "Os originais ficam privados neste dispositivo, sem cópia automática na nuvem. Só a exportação os partilha. Fotografias e vídeos podem conter metadados de localização; os vídeos também incluem som. O modelo 3D ou splat é criado depois no servidor. Sem referência, a escala não está verificada.",
       "library": "As minhas captações originais",
       "count": "{count} fotografias · recomendado: pelo menos 20",
@@ -511,7 +511,21 @@
       "invalid": "Não foi possível guardar o ficheiro ou a captação. Verifique tipo, tamanho, espaço livre e proporção 2:1 do panorama.",
       "saved": "Original guardado localmente. Exporte o ficheiro original ou o conjunto de fotografias para processamento no servidor.",
       "exportOriginal": "Exportar ficheiro original",
-      "exportDataset": "Exportar ZIP com metadados"
+      "exportDataset": "Exportar ZIP com metadados",
+      "qualityDark": "A pré-visualização contém muitas zonas muito escuras. Use luz mais uniforme e verifique a imagem.",
+      "qualityBright": "A pré-visualização contém muitas zonas muito claras. Evite reflexos e verifique se faltam detalhes.",
+      "qualityTexture": "A pré-visualização tem pouco contraste de luminosidade. Inclua mais detalhes visíveis da superfície.",
+      "qualityEdges": "A pré-visualização mostra contornos pouco definidos. Verifique o foco, fique imóvel ao disparar e tire outra fotografia se necessário.",
+      "qualityScope": "Estes avisos não verificam a sobreposição nem a precisão das medições. Cada original é conservado.",
+      "fixedLens": "Câmara traseira grande-angular fixa · zoom 1×. O foco e a exposição continuam a ajustar-se.",
+      "panorama": "Captar fotografias para panorama",
+      "panoramaCaptureHelp": "Tire 20–36 fotografias sobrepostas. Mantenha a câmara o mais possível no mesmo ponto e rode à volta da objetiva sem se deslocar de lado. Cubra lentamente um círculo e acrescente vistas para cima e para baixo. Processe o ZIP original com Panorama no navegador. A união é feita no servidor; uma vista completa de 360° não é garantida e não tem profundidade.",
+      "panoramaCount": "{count} fotografias · panorama: recomendadas 20–36",
+      "generation-input": "Tirar uma fotografia para modelo IA",
+      "generationHelp": "Fotografe um único objeto totalmente visível sobre fundo simples ou importe um PNG recortado transparente. JPEG/PNG até 20 MiB e 16 megapíxeis. Exporte o original, escolha Modelo IA no navegador e confirme o primeiro plano. A IA inventa superfícies ocultas. O resultado não é uma digitalização e não deve servir para medições. Sem envio automático.",
+      "importGeneration": "Importar uma fotografia de Ficheiros",
+      "generationCount": "{count} / 1 fotografia · entrada IA",
+      "generationSize": "Original guardado. É demasiado grande para a IA: reduza uma cópia para até 20 MiB e 16 megapíxeis. O original fica inalterado."
     }
   },
   "video": {

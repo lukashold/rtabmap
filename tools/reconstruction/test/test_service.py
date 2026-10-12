@@ -17,11 +17,40 @@ from contract import LIMITS, ContractError
 from service import PREFIX, Service, atomic_json, make_server
 from test_contract import photo_zip
 from test_media import VIDEO_HEADER
+from capture_fixtures import input_image
 
 TOKEN = 'private-test-token-' + 'x' * 32
 
 
 class ServiceTests(unittest.TestCase):
+    def test_new_capture_modes_use_same_private_queue_and_download_validation(self):
+        self.start();self.http()
+        for mode,payload,media in [('panorama',photo_zip(count=2),'application/zip'),('generated',input_image(),'image/png')]:
+            status,body,_=self.request('POST',PREFIX+'/jobs?mode='+mode,payload,headers={'Content-Type':media})
+            self.assertEqual(status,202)
+            job=self.final(json.loads(body)['job']['id'])
+            self.assertEqual(job['status'],'complete',job)
+            self.assertFalse(job['metricMeasurementsAllowed'])
+            self.assertEqual(job['inputType'],'image' if mode=='generated' else 'photos')
+            for item in job['artifacts']:
+                self.assertEqual(self.request('GET',item['url'])[0],200)
+                self.assertEqual(self.request('GET',item['url'],token=None)[0],401)
+            self.assertFalse((self.root/job['id']/'work').exists())
+
+    def test_capture_mode_input_rules_and_explicit_foreground_confirmation(self):
+        self.start(autostart=False);self.http()
+        for query,payload,media,expected in [
+            ('mode=generated',input_image(False),'image/png',400),
+            ('mode=generated&foregroundIsolated=1',input_image(False),'image/png',202),
+            ('mode=generated&foregroundIsolated=yes',input_image(False),'image/png',400),
+            ('mode=panorama',VIDEO_HEADER,'video/mp4',400),
+            ('mode=mesh',input_image(),'image/png',400),
+            ('mode=panorama&profile=uav',photo_zip(count=2),'application/zip',400),
+            ('mode=generated&profile=uav',input_image(),'image/png',400)]:
+            with self.subTest(query=query):
+                status,_,_=self.request('POST',PREFIX+'/jobs?'+query,payload,headers={'Content-Type':media})
+                self.assertEqual(status,expected)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)

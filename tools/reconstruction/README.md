@@ -23,11 +23,14 @@ the existing viewer/project-storage server.
 ## Build on Windows/Linux Docker
 
 The initial image deliberately targets **linux/amd64**. Build context is this
-directory, not the repository root. Allow substantial disk, RAM and build time;
+directory, with sibling panorama/generation named build contexts (commands below).
+Docker Compose needs version 2.17 or later with `build.additional_contexts`;
+BuildKit reads the authoritative sibling sources directly. No generated source
+staging directory or duplicated checked-in engine code is used. Allow substantial disk, RAM and build time;
 C++ compilation and reconstruction are not lightweight web-server tasks.
 
 ```sh
-docker build --platform linux/amd64 -t kantura-reconstruction:0.6.0 .
+docker buildx build --load --build-context panorama=../panorama --build-context generation=../generation --platform linux/amd64 -t kantura-reconstruction:0.6.0 .
 docker volume create kantura-reconstruction
 docker run --rm -i --platform linux/amd64 kantura-reconstruction:0.6.0 python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
@@ -73,7 +76,7 @@ accuracy. Pins identify sources, not the quality of a reconstructed scene.
 Use the exact CUDA image digest from [pins.json](pins.json), for example:
 
 ```sh
-docker build --platform linux/amd64 -t kantura-reconstruction:0.6.0-cuda \
+docker buildx build --load --build-context panorama=../panorama --build-context generation=../generation --platform linux/amd64 -t kantura-reconstruction:0.6.0-cuda \
   --build-arg BASE_IMAGE=nvidia/cuda:12.1.1-devel-ubuntu22.04@sha256:7012e535a47883527d402da998384c30b936140c05e2537158c80b8143ee7425 \
   --build-arg GPU_RUNTIME=CUDA .
 ```
@@ -254,3 +257,32 @@ operators must provide both tools. `python -m unittest discover -s test -v`
 includes real synthetic video encoding/decoding and rotation tests when they are
 available, and clearly skips those tests otherwise. Generated test video proves
 the media path only, not photogrammetry quality.
+
+## Additional capture modes in the same service
+
+Panorama uses the project-owned `../panorama/stitch.py` in an isolated OpenCV
+Python environment and shares the existing private job supervisor. The default
+image includes it. Only observed spherical pixels are published; no depth or
+metric measurement is claimed. See [panorama source and limitations](../panorama/README.md).
+
+Single-image generation uses `../generation/generate.py` and is **off by default**.
+Build with `--build-arg ENABLE_GENERATION=1` to install the pinned CPU TripoSR
+runtime in `/opt/kantura-generation-env`, its source/license trees and approximately
+1.68 GB of verified model weights. This adds substantial image size, build cost,
+RAM and inference time. The existing COLMAP/OpenMVS/OpenSplat layers remain
+unchanged/cached. The installer runs contract/import tests; actual inference must
+be checked separately. See [generation setup and limitations](../generation/README.md).
+
+The optional weights live at `/opt/kantura-models`. Operators may mount a complete
+verified model directory there read-only, or set `KANTURA_MODEL_DIR` to another
+read-only mount containing the exact pinned files. Empty, absent or wrong-sized
+model files disable availability; the inference CLI also verifies SHA256 before
+loading. Runtime requests never fetch model files. Original uploads, generated
+outputs and model weights are separate; scratch cleanup never targets weights.
+
+Named contexts keep this build's source paths honest and avoid copying external
+models into the repository. In the viewer Compose file, reconstruction build uses
+`additional_contexts: {panorama: ../panorama, generation: ../generation}`. Docker
+CLI builds require the two `--build-context` flags shown above even when AI is
+disabled. Each runtime has separate Python dependencies; Python Torch children
+remove the old C++ LibTorch loader path so the two ABIs are not mixed.
