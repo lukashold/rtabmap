@@ -20,9 +20,25 @@ import worker
 
 MESH = ('ply\nformat ascii 1.0\nelement vertex 3\nproperty float x\nproperty float y\nproperty float z\n'
         'element face 1\nproperty list uchar int vertex_indices\nend_header\n0 0 0\n1 0 0\n0 1 0\n3 0 1 2\n')
+CAMERA = {'id': 0, 'img_name': 'frame_00001.jpg', 'width': 256, 'height': 256,
+          'fx': 300, 'fy': 300, 'position': [0, 0, 0],
+          'rotation': [[1, 0, 0], [0, 1, 0], [0, 0, 1]]}
 
 
 class WorkerHandoff(unittest.TestCase):
+    def test_actual_engine_diagnostic_format_is_bounded_and_preserves_final_loss(self):
+        metrics = {'lossSamples': [], 'validationPSNR': None, 'validationLoss': None}
+        for step in range(1200):
+            worker.record_training_line(metrics, f'Step {step}: 0.125 [50%]')
+        worker.record_training_line(metrics, 'frame_00001.jpg validation loss: 0.234')
+        worker.record_training_line(metrics, 'frame_00001.jpg validation PSNR: 21.75')
+        for line in ['Step 1201: NaN', 'Step 1201: 1e999', 'Step 1201: +e', 'validation PSNR: inf', 'validation loss: nan']:
+            worker.record_training_line(metrics, line)
+        self.assertEqual(len(metrics['lossSamples']), 1000)
+        self.assertEqual(metrics['lastLoss'], {'step': 1199, 'loss': .125})
+        self.assertEqual(metrics['validationPSNR'], 21.75)
+        self.assertEqual(metrics['validationLoss'], .234)
+
     def test_interface_scene_texturing_uses_existing_cameras_and_explicit_mesh(self):
         with tempfile.TemporaryDirectory() as directory:
             job = Path(directory)
@@ -53,17 +69,22 @@ class WorkerHandoff(unittest.TestCase):
                     argument('-o').with_suffix('.ply').write_text(MESH, 'ascii')
                     # Matches the pinned OpenMVS default: no scene_mesh.mvs.
                     self.assertFalse(argument('-o').exists())
+                elif command[0] == 'RefineMesh':
+                    self.assertTrue(argument('-i').is_file())
+                    self.assertEqual(argument('--mesh-file').read_text('ascii'), MESH)
+                    argument('-o').with_suffix('.ply').write_text(MESH, 'ascii')
                 elif command[0] == 'TextureMesh':
                     self.assertTrue(argument('-i').is_file())
                     self.assertEqual(argument('-i').name, 'scene_dense.mvs')
                     self.assertEqual(argument('--mesh-file').read_text('ascii'), MESH)
+                    self.assertEqual(argument('--mesh-file').name, 'scene_refined.ply')
                     argument('-o').with_suffix('.obj').write_text('# TEST DOUBLE\nmtllib model.mtl\nv 0 0 0\nv 1 0 0\nv 0 1 0\nusemtl material_0\nf 1 2 3\n', 'ascii')
                     argument('-o').with_suffix('.mtl').write_text('newmtl material_0\nKd 1 1 1\nTr 1.000000\nillum 1\n', 'ascii')
                 return SimpleNamespace(returncode=0)
 
-            with mock.patch.object(worker, 'prepare_images', side_effect=fake_prepare), mock.patch.object(worker.shutil, 'which', return_value='/test/engine'), mock.patch.object(worker.subprocess, 'run', side_effect=fake_run), contextlib.redirect_stdout(io.StringIO()):
+            with mock.patch.object(worker, 'prepare_images', side_effect=fake_prepare), mock.patch.object(worker, 'sfm_report', return_value=({'testDouble': True}, [CAMERA])), mock.patch.object(worker.shutil, 'which', return_value='/test/engine'), mock.patch.object(worker.subprocess, 'run', side_effect=fake_run), contextlib.redirect_stdout(io.StringIO()):
                 worker.reconstruct(job, 'mesh')
-            self.assertEqual([command[0] for command in calls][-3:], ['DensifyPointCloud', 'ReconstructMesh', 'TextureMesh'])
+            self.assertEqual([command[0] for command in calls][-4:], ['DensifyPointCloud', 'ReconstructMesh', 'RefineMesh', 'TextureMesh'])
             self.assertTrue((job / 'artifacts' / 'mesh.zip').is_file())
             self.assertEqual((job / 'artifacts' / 'model.ply').read_text('ascii'), MESH)
             self.assertFalse((job / 'work' / 'scene_mesh.mvs').exists())
@@ -80,6 +101,8 @@ class WorkerHandoff(unittest.TestCase):
             normalization = manifest['materialNormalization']
             self.assertEqual(normalization['files'], [{'file': 'model.mtl', 'materials': 1}])
             self.assertFalse(normalization['geometryChanged'])
+            self.assertEqual(json.loads((job / 'artifacts' / 'cameras.json').read_text('utf-8')), [CAMERA])
+            self.assertIn('right/down/forward', manifest['cameraConvention'])
 
     def test_opacity_normalization_only_changes_known_generated_rgb_atlas_lines(self):
         with tempfile.TemporaryDirectory() as directory:

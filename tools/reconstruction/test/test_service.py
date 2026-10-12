@@ -16,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from contract import LIMITS, ContractError
 from service import PREFIX, Service, atomic_json, make_server
 from test_contract import photo_zip
+from test_media import VIDEO_HEADER
 
 TOKEN = 'private-test-token-' + 'x' * 32
 
@@ -107,6 +108,48 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(self.request('POST', PREFIX + '/jobs?mode=mesh', b'zip')[0], 415)
         self.assertEqual(self.request('POST', PREFIX + '/jobs?mode=shell', photo_zip(), headers={'Content-Type': 'application/zip'})[0], 400)
         self.assertEqual(self.request('POST', PREFIX + '/jobs?mode=mesh', b'x' * 2049, headers={'Content-Type': 'application/zip'})[0], 413)
+
+    def test_video_and_uav_profile_admission_keep_original_and_report_deferred_image_count(self):
+        self.start(autostart=False)
+        self.http()
+        caps = json.loads(self.request('GET', PREFIX + '/capabilities')[1])
+        self.assertTrue(caps['video']['available'])
+        self.assertEqual(caps['video']['durationSeconds'], 180)
+        self.assertEqual(caps['profiles'], ['auto', 'uav'])
+        for media_type in ['video/mp4', 'video/quicktime']:
+            status, body, _ = self.request('POST', PREFIX + '/jobs?mode=mesh&profile=uav', VIDEO_HEADER,
+                                           headers={'Content-Type': media_type})
+            self.assertEqual(status, 202)
+            job = json.loads(body)['job']
+            self.assertEqual(job['inputType'], 'video')
+            self.assertEqual(job['captureProfile'], 'uav')
+            self.assertIsNone(job['imageCount'])
+            self.assertEqual((self.root / job['id'] / 'input.video').read_bytes(), VIDEO_HEADER)
+        self.assertEqual(self.request('POST', PREFIX + '/jobs?mode=mesh&profile=unknown', VIDEO_HEADER,
+                                     headers={'Content-Type': 'video/mp4'})[0], 400)
+        self.assertEqual(self.request('POST', PREFIX + '/jobs?mode=mesh', b'#EXTM3U\nhttps://private.example',
+                                     headers={'Content-Type': 'video/mp4'})[0], 400)
+        self.assertEqual(self.request('POST', PREFIX + '/jobs?mode=mesh', VIDEO_HEADER,
+                                     headers={'Content-Type': 'video/webm'})[0], 415)
+
+    def test_video_worker_arguments_are_explicit_and_original_is_preserved_after_cleanup(self):
+        self.start()
+        admitted = self.service.create('mesh', 'Video', io.BytesIO(VIDEO_HEADER), len(VIDEO_HEADER), 'video/mp4', 'uav')
+        job = self.final(admitted['id'])
+        self.assertEqual(job['status'], 'complete')  # Explicit FakeWorker, not reconstruction evidence.
+        self.assertEqual((self.root / job['id'] / 'input.video').read_bytes(), VIDEO_HEADER)
+        self.assertFalse((self.root / job['id'] / 'work').exists())
+        diagnostic = (self.root / job['id'] / 'worker.log').read_text('utf-8')
+        self.assertIn('input-type=video profile=uav', diagnostic)
+
+    def test_video_capability_does_not_claim_missing_decoder(self):
+        self.start(autostart=False)
+        self.service.verify_programs = True
+        with mock.patch('service.shutil.which', side_effect=lambda name: None if name == 'ffmpeg' else '/test/bin'):
+            self.assertFalse(self.service.capabilities()['video']['available'])
+            with self.assertRaises(ContractError) as error:
+                self.service.create('mesh', 'Video', io.BytesIO(VIDEO_HEADER), len(VIDEO_HEADER), 'video/mp4')
+            self.assertEqual(error.exception.code, 'worker_unavailable')
 
     def test_abort_upload_cleans_only_incomplete_private_folder(self):
         self.start(autostart=False)

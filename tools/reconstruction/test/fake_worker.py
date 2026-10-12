@@ -30,11 +30,14 @@ def main():
     parser.add_argument('--job-dir', type=Path, required=True)
     parser.add_argument('--mode', required=True)
     parser.add_argument('--device')
+    parser.add_argument('--input-type', default='photos')
+    parser.add_argument('--profile', default='auto')
     args = parser.parse_args()
     scratch = args.job_dir / 'work' / 'generated'
     scratch.mkdir(parents=True)
     (scratch / 'intermediate.bin').write_bytes(b'test-only intermediate')
     print('TEST DOUBLE worker started', flush=True)
+    print('input-type=' + args.input_type + ' profile=' + args.profile, flush=True)
     if args.behavior == 'failure':
         return 7
     if args.behavior == 'sleep':

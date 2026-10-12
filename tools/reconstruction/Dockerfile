@@ -19,14 +19,20 @@ RUN GPU_RUNTIME="${GPU_RUNTIME}" BUILD_JOBS="${BUILD_JOBS}" CUDA_ARCHITECTURES="
 COPY patches ./patches
 COPY openmvs-patch.sh ./
 RUN BUILD_JOBS="${BUILD_JOBS}" bash ./openmvs-patch.sh
-COPY contract.py worker.py service.py ./
+# Install after cached engine compilation. Fail closed if this exact Ubuntu
+# security-maintained package version disappears; update deliberately.
+ARG FFMPEG_VERSION=7:4.4.2-0ubuntu0.22.04.1
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg="${FFMPEG_VERSION}" && \
+    dpkg-query -W ffmpeg > ffmpeg-package.txt && rm -rf /var/lib/apt/lists/*
+COPY contract.py worker.py service.py media.py quality.py ./
 COPY README.md API.md THIRD-PARTY.md ./
 RUN useradd --uid 10001 --create-home --shell /usr/sbin/nologin kantura && \
     mkdir /data && chown kantura:kantura /data
 ENV PATH=/usr/local/bin:/usr/local/bin/OpenMVS:${PATH} \
     LD_LIBRARY_PATH=/opt/kantura/libtorch/lib:/usr/local/lib \
     HOST=0.0.0.0 PORT=4180 DATA_DIR=/data WORKER_DEVICE=cpu \
-    WORKER_THREADS=2 IMAGE_MAX_SIDE=1600 SPLAT_ITERATIONS=1000 \
+    WORKER_THREADS=2 IMAGE_MAX_SIDE=1600 SPLAT_ITERATIONS=3000 \
+    SFM_CAMERA_POLICY=auto SPLAT_DOWNSCALE=1 SPLAT_VALIDATE=0 \
     PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 QT_QPA_PLATFORM=offscreen
 USER 10001:10001
 EXPOSE 4180

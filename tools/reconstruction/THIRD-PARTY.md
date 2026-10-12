@@ -13,6 +13,7 @@ combined server image a BSD-only distribution.
 | VCG 2023.12 | [Exact source and its per-file notices](https://github.com/cnr-isti-vclab/vcglib/tree/6ac9e0c647a63e0e037813a1e92bd050d13efc85) | OpenMVS mesh dependency; not assumed BSD-only |
 | PoseLib | [Exact source](https://github.com/PoseLib/PoseLib/tree/8028473d92c9347794a0e3d3541863b5cbb15743) | COLMAP dependency, SHA256 pinned by upstream CMake |
 | LibTorch 2.2.1 | [PyTorch license and third-party notices](https://github.com/pytorch/pytorch/blob/v2.2.1/LICENSE) | OpenSplat tensor runtime; versioned CPU/CUDA upstream binary |
+| FFmpeg / ffprobe 4.4.2, Ubuntu `7:4.4.2-0ubuntu0.22.04.1` | [Ubuntu source package](https://launchpad.net/ubuntu/+source/ffmpeg/7:4.4.2-0ubuntu0.22.04.1), [FFmpeg license/build notices](https://ffmpeg.org/legal.html) | Bounded local video probing, autorotation and JPEG frame decoding; enabled codec libraries have additional terms |
 | Pillow 11.3.0 | [Pillow license](https://github.com/python-pillow/Pillow/blob/11.3.0/LICENSE) | JPEG/PNG decoding and orientation |
 | pillow-heif 0.22.0 | [BSD-3-Clause wrapper and dependency notices](https://github.com/bigcat88/pillow_heif/tree/v0.22.0) | HEIC/HEIF decoding through libheif; underlying codecs have their own licenses |
 
@@ -70,3 +71,22 @@ RGB atlases are opaque; no geometry, UVs, image pixels or original input archive
 are changed. `materialNormalization` in `reconstruction.json` records the rule,
 affected files and material counts (null for splats). This does not change how
 the viewer interprets user-imported MTL files or partially transparent materials.
+
+## Video and diagnostic source references
+
+The Docker recipe pins the FFmpeg binary package version explicitly and records
+it in `/opt/kantura/ffmpeg-package.txt`; its dependencies still use the Ubuntu
+repository rather than a snapshot. Installed copyright notices remain under
+`/usr/share/doc/ffmpeg`. Do not infer LGPL-only terms for a distro build with
+GPL-enabled codecs. Corresponding Ubuntu source and its packaging are linked
+above; the web/iOS viewer does not embed this server binary.
+
+CLI choices are based on the official [FFmpeg options](https://ffmpeg.org/ffmpeg.html),
+[MOV demuxer options](https://ffmpeg.org/ffmpeg-formats.html#mov_002fmp4_002f3gp),
+[pinned OpenMVS RefineMesh options](https://github.com/cdcseacave/openMVS/blob/ce03889e2055a3d6cbcae9dd5a93b5eeea94b909/apps/RefineMesh/RefineMesh.cpp),
+and [pinned OpenSplat validation options](https://github.com/WebODM/OpenSplat/blob/62fd86fe3b62644b65890557ad9bf397abdc7cfb/opensplat.cpp).
+Camera diagnostics read the documented pinned COLMAP binary model layout and
+its SQLite image-to-camera relation. Coordinate conventions were checked against
+OpenSplat's pinned `colmap.cpp` and `input_data.cpp`, including the export-time
+Y/Z flip. No external learned model, camera pose or metric reference is embedded
+in these diagnostic calculations.

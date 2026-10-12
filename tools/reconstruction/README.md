@@ -1,10 +1,11 @@
-# Kantura photo reconstruction service
+# Kantura photo/video reconstruction service
 
 Real, separate reconstruction programs behind a private queued HTTP API:
 
-1. Decode overlapping JPEG/PNG/HEIC photos; retain the original ZIP privately.
+1. Decode overlapping JPEG/PNG/HEIC photos or select useful frames from a bounded
+   MP4/MOV video; retain the original input privately.
 2. COLMAP extracts/matches features, estimates cameras and sparse 3D points.
-3. **Mesh:** OpenMVS computes dense geometry, a surface and an OBJ with textures.
+3. **Mesh:** OpenMVS computes dense geometry, a surface, photometric refinement and an OBJ with textures.
 4. **Gaussian splat:** OpenSplat optimizes actual 3D Gaussians from the registered
    images/points and writes a splat PLY and cameras JSON.
 
@@ -26,9 +27,9 @@ directory, not the repository root. Allow substantial disk, RAM and build time;
 C++ compilation and reconstruction are not lightweight web-server tasks.
 
 ```sh
-docker build --platform linux/amd64 -t kantura-reconstruction:0.5.0 .
+docker build --platform linux/amd64 -t kantura-reconstruction:0.6.0 .
 docker volume create kantura-reconstruction
-docker run --rm -i --platform linux/amd64 kantura-reconstruction:0.5.0 python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+docker run --rm -i --platform linux/amd64 kantura-reconstruction:0.6.0 python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
 Save a generated token in a private environment file, for example:
@@ -38,7 +39,10 @@ RECONSTRUCTION_TOKEN=replace-with-your-generated-token
 WORKER_DEVICE=cpu
 WORKER_THREADS=2
 IMAGE_MAX_SIDE=1600
-SPLAT_ITERATIONS=1000
+SPLAT_ITERATIONS=3000
+SPLAT_DOWNSCALE=1
+SPLAT_VALIDATE=0
+SFM_CAMERA_POLICY=auto
 ```
 
 ```sh
@@ -46,7 +50,7 @@ docker run --name kantura-reconstruction --init --platform linux/amd64 \
   --env-file .env --read-only --tmpfs /tmp:rw,noexec,nosuid,size=1g \
   --cap-drop ALL --security-opt no-new-privileges \
   -p 127.0.0.1:4180:4180 -v kantura-reconstruction:/data \
-  kantura-reconstruction:0.5.0
+  kantura-reconstruction:0.6.0
 ```
 
 Only loopback is published. Use the existing trusted Kantura proxy or an HTTPS
@@ -59,15 +63,17 @@ permissions before starting it.
 The official CPU LibTorch archive was downloaded completely on 11 October 2026
 (182,681,505 bytes); its SHA256 is pinned and checked before extraction. The
 official redirect is followed with normal TLS verification. Docker image
-compilation and real reconstruction are still pending validation. Pins are
-upstream commits and registry digests, not evidence of a successful engine run.
+compilation and real mesh/splat reconstruction passed the 0.5 CPU smoke check.
+The 0.6 video, grouping, refinement and longer-training changes require their
+own real pipeline validation; passing structural tests does not establish scan
+accuracy. Pins identify sources, not the quality of a reconstructed scene.
 
 ## NVIDIA option
 
 Use the exact CUDA image digest from [pins.json](pins.json), for example:
 
 ```sh
-docker build --platform linux/amd64 -t kantura-reconstruction:0.5.0-cuda \
+docker build --platform linux/amd64 -t kantura-reconstruction:0.6.0-cuda \
   --build-arg BASE_IMAGE=nvidia/cuda:12.1.1-devel-ubuntu22.04@sha256:7012e535a47883527d402da998384c30b936140c05e2537158c80b8143ee7425 \
   --build-arg GPU_RUNTIME=CUDA .
 ```
@@ -191,7 +197,7 @@ A real engine smoke test uses the built image and a real/procedural photo datase
 ```sh
 docker run --rm --platform linux/amd64 -v /absolute/private/job:/job \
   -e IMAGE_MAX_SIDE=512 -e SPLAT_ITERATIONS=10 -e WORKER_THREADS=2 \
-  kantura-reconstruction:0.5.0 python3 /opt/kantura/worker.py --job-dir /job --mode splat
+  kantura-reconstruction:0.6.0 python3 /opt/kantura/worker.py --job-dir /job --mode splat
 ```
 
 The mounted job folder must contain `input.zip` and no pre-existing `work` or
@@ -202,3 +208,49 @@ flags exposed to web users. Record the actual image digest, dataset provenance,
 commands, registration rate and rendered result. Physical photo quality, device
 workflow, metric calibration, GPU/MPS speed and maximum-size behavior remain
 separate tests. No real-engine test result is claimed by the unit suite.
+
+## Reconstruction settings and observable quality
+
+The default `SFM_CAMERA_POLICY=auto` shares COLMAP intrinsics only for matching
+EXIF make/model/lens/focal setting (including digital zoom and optional hashed
+serials) and processed dimensions. Matching dimensions alone never imply the
+same physical camera. Unknown metadata keeps separate cameras. `per-image`
+forces independence; `single` is an explicit operator assertion of one fixed
+lens/focal setting and requires identical processed dimensions. Use `single`
+only for a dataset whose capture settings you know, including a video without
+lens switches or zoom. Wrong sharing can harm reconstruction. EXIF evidence is
+not a calibration certificate. Raw serial numbers are not exposed in reports.
+
+The current mesh path uses full processed image resolution for dense matching,
+refinement and texture generation. OpenMVS `RefineMesh` uses two scales, eight
+views, no requested decimation and no requested hole filling; it operates on the
+estimated scene, so wrong SfM cameras cannot be repaired merely by refinement.
+These settings cost more CPU/RAM than the earlier half-resolution path. Bound
+cost with `IMAGE_MAX_SIDE` (256–4096, default 1600) and the existing worker budget.
+
+Splat training defaults to 3,000 iterations (`SPLAT_ITERATIONS`, range 1–30,000).
+`SPLAT_DOWNSCALE` (1–8) reduces processed image resolution. `SPLAT_VALIDATE=1`
+withholds the lexicographically first registered image from appearance training,
+requires at least nine registered images, and records the engine's actual
+validation PSNR/loss. It still uses that image for SfM. A 10-iteration smoke run
+only tests plumbing; even a longer run does not establish dimensional accuracy.
+See the manifest's loss history, registration, reprojection and input-quality
+fields, then inspect the actual scene against independent references.
+
+For videos, use modern MP4/MOV, H.264/HEVC/MPEG-4, 4–180 seconds, at most 4096
+pixels per side and 200 MiB. The private worker probes first, disables external
+MOV data references/network protocols, ignores audio, autorotates and limits
+sampling to 360 candidates/250 selected frames. The selected JPEG archive is a
+separate downloadable artifact after successful reconstruction. Low-detail,
+blurred, extremely exposed and repeated frames may leave too few views and fail.
+The same quality proxies only warn on photo ZIPs; original photos are not
+silently discarded. `profile=uav` records aerial-capture intent; it does not
+supply metric altitude/GPS constraints or georeferencing. This is an honest
+metadata profile, not a separate drone mapping engine.
+
+FFmpeg and ffprobe are required for videos. The container installs the exact
+Ubuntu FFmpeg package version after the cached engine-build layers; native
+operators must provide both tools. `python -m unittest discover -s test -v`
+includes real synthetic video encoding/decoding and rotation tests when they are
+available, and clearly skips those tests otherwise. Generated test video proves
+the media path only, not photogrammetry quality.

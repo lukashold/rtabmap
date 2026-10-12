@@ -21,11 +21,15 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install image and synthetic validation dependencies
-        run: python -m pip install -r tools/reconstruction/requirements.txt -r tools/validation/requirements.txt
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          python -m pip install -r tools/reconstruction/requirements.txt -r tools/validation/requirements.txt
       - name: Test archive and job contracts
         run: python -m unittest discover -s tools/reconstruction/test -v
+      - name: Test independent quality evaluator
+        run: python -m unittest discover -s tools/validation/test -v
       - name: Generate original synthetic multi-view photos
-        run: python tools/validation/procedural-capture.py --output /tmp/synthetic-photos.zip
+        run: python tools/validation/procedural-capture.py --output /tmp/synthetic-photos.zip --truth /tmp/synthetic-truth.json
       - uses: docker/setup-buildx-action@v3
       - name: Build actual CPU reconstruction engines
         uses: docker/build-push-action@v6
@@ -46,7 +50,8 @@ jobs:
             --mount type=volume,source=kantura-reconstruction-ci,target=/data \
             --tmpfs /tmp:rw,nosuid,size=1g \
             -p 127.0.0.1:4180:4180 \
-            -e RECONSTRUCTION_TOKEN -e SPLAT_ITERATIONS=10 -e IMAGE_MAX_SIDE=384 \
+            -e RECONSTRUCTION_TOKEN -e SPLAT_ITERATIONS=300 -e SPLAT_DOWNSCALE=2 -e SPLAT_VALIDATE=1 \
+            -e SFM_CAMERA_POLICY=single -e IMAGE_MAX_SIDE=384 \
             -e WORKER_THREADS=2 kantura-reconstruction:ci
           for attempt in $(seq 1 60); do
             if curl -fsS http://127.0.0.1:4180/health; then exit 0; fi
@@ -57,7 +62,14 @@ jobs:
       - name: Run real photogrammetry and Gaussian-splat processing
         env:
           RECONSTRUCTION_TOKEN: ci-synthetic-data-only-token-32-characters
-        run: python tools/validation/reconstruction-smoke.py --archive /tmp/synthetic-photos.zip --output reconstruction-smoke --timeout 1200
+        run: |
+          python tools/validation/capture-video.py --archive /tmp/synthetic-photos.zip --output /tmp/synthetic-video.mp4
+          python tools/validation/reconstruction-smoke.py --archive /tmp/synthetic-photos.zip --video /tmp/synthetic-video.mp4 --output reconstruction-smoke --timeout 2400
+      - name: Measure synthetic camera and cube reconstruction quality
+        run: |
+          python tools/validation/reconstruction-quality.py --truth /tmp/synthetic-truth.json --cameras reconstruction-smoke/mesh/cameras.json --mesh reconstruction-smoke/mesh/model.ply --output reconstruction-smoke/mesh-quality.json
+          python tools/validation/reconstruction-quality.py --truth /tmp/synthetic-truth.json --cameras reconstruction-smoke/splat/cameras.json --output reconstruction-smoke/splat-camera-quality.json
+          cp /tmp/synthetic-truth.json reconstruction-smoke/synthetic-truth.json
       - name: Worker diagnostics
         if: always()
         run: |

@@ -32,6 +32,23 @@ def photo_zip(manifest=False, extra=None, count=8):
 
 
 class Contracts(unittest.TestCase):
+    def test_optional_mesh_camera_and_video_photo_artifacts_require_valid_content_and_hashes(self):
+        artifacts(self.root, 'mesh')
+        camera = {'id': 0, 'img_name': 'frame_00001.jpg', 'width': 128, 'height': 128, 'fx': 100, 'fy': 100,
+                  'position': [0, 0, 0], 'rotation': [[1, 0, 0], [0, 1, 0], [0, 0, 1]]}
+        (self.root / 'cameras.json').write_text(json.dumps([camera]), 'utf-8')
+        (self.root / 'photos.zip').write_bytes(photo_zip(manifest=True))
+        manifest_path = self.root / 'reconstruction.json'
+        manifest = json.loads(manifest_path.read_text('utf-8'))
+        for name in ['cameras.json', 'photos.zip']:
+            manifest['files'][name] = sha256(self.root / name)
+        manifest_path.write_text(json.dumps(manifest), 'utf-8')
+        self.assertEqual(len(validate_artifacts(self.root, 'mesh')), 5)
+        (self.root / 'cameras.json').write_text('[]', 'utf-8')
+        manifest['files']['cameras.json'] = sha256(self.root / 'cameras.json')
+        manifest_path.write_text(json.dumps(manifest), 'utf-8')
+        self.error('invalid_artifacts', validate_artifacts, self.root, 'mesh')
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)

@@ -25,6 +25,10 @@ class Limits:
 
 LIMITS = Limits()
 EXTENSIONS = {'.jpg', '.jpeg', '.png', '.heic', '.heif'}
+VIDEO_TYPES = {'video/mp4', 'video/quicktime'}
+VIDEO_LIMITS = {'durationSeconds': 180, 'maxWidth': 4096, 'maxHeight': 4096,
+                'maxPixels': 16_777_216, 'maxFrameRate': 240, 'candidateFrames': 360}
+OPTIONAL_ARTIFACTS = {'photos.zip': 'application/zip', 'cameras.json': 'application/json'}
 ARTIFACTS = {
     'mesh': {'mesh.zip': 'application/zip', 'model.ply': 'application/octet-stream', 'reconstruction.json': 'application/json'},
     'splat': {'splat.ply': 'application/octet-stream', 'cameras.json': 'application/json', 'reconstruction.json': 'application/json'},
@@ -143,6 +147,18 @@ def sha256(path):
     return digest.hexdigest()
 
 
+def inspect_video_input(path, limits=LIMITS):
+    """Cheap ISO-BMFF preflight; decoding and limits are checked in the worker."""
+    path = Path(path)
+    if not 16 <= path.stat().st_size <= limits.upload:
+        raise ContractError('too_large')
+    with path.open('rb') as stream:
+        header = stream.read(16)
+    if header[4:8] != b'ftyp' or not 16 <= int.from_bytes(header[:4], 'big') <= 4096:
+        raise ContractError('unsupported_video')
+    return {'imageCount': None, 'source': {'source': 'video', 'scaleStatus': 'unverified'}}
+
+
 def inspect_ply(path, splat=False):
     """Validate scalar vertices and mesh face records, never geometry quality."""
     scalar = {'char': 'b', 'int8': 'b', 'uchar': 'B', 'uint8': 'B', 'short': 'h', 'int16': 'h', 'ushort': 'H', 'uint16': 'H', 'int': 'i', 'int32': 'i', 'uint': 'I', 'uint32': 'I', 'float': 'f', 'float32': 'f', 'double': 'd', 'float64': 'd'}
@@ -245,7 +261,10 @@ def inspect_ply(path, splat=False):
 
 def validate_artifacts(directory, mode, limits=LIMITS):
     directory = Path(directory).resolve()
-    expected = ARTIFACTS[mode]
+    expected = dict(ARTIFACTS[mode])
+    for name, media in OPTIONAL_ARTIFACTS.items():
+        if (directory / name).exists():
+            expected[name] = media
     result = []
     for name, media in expected.items():
         path = directory / name
@@ -265,6 +284,8 @@ def validate_artifacts(directory, mode, limits=LIMITS):
         for item in result:
             if item['name'] != 'reconstruction.json' and declared.get(item['name']) != item['sha256']:
                 raise ContractError('invalid_artifacts')
+        if 'photos.zip' in expected:
+            inspect_input(directory / 'photos.zip', limits)
         if mode == 'mesh':
             inspect_ply(directory / 'model.ply')
             with zipfile.ZipFile(directory / 'mesh.zip') as archive:
@@ -275,6 +296,7 @@ def validate_artifacts(directory, mode, limits=LIMITS):
                     raise ContractError('invalid_artifacts')
         else:
             inspect_ply(directory / 'splat.ply', splat=True)
+        if 'cameras.json' in expected:
             if (directory / 'cameras.json').stat().st_size > 4 * 1024**2:
                 raise ContractError('invalid_artifacts')
             cameras = json.loads((directory / 'cameras.json').read_text('utf-8'))

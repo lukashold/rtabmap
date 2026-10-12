@@ -12,6 +12,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--output', type=Path, required=True)
 parser.add_argument('--size', type=int, default=384)
 parser.add_argument('--count', type=int, default=32)
+parser.add_argument('--truth', type=Path, help='Optional independent evaluation data; never put this in the input ZIP')
 args = parser.parse_args()
 assert 128 <= args.size <= 1024 and 16 <= args.count <= 80
 args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -32,6 +33,7 @@ yy, xx = np.mgrid[0:size, 0:size]
 focal = .5 * size / math.tan(math.radians(55) / 2)
 camera_rays = np.stack(((xx+.5-size/2)/focal, -(yy+.5-size/2)/focal, np.ones_like(xx)), axis=-1)
 metadata = []
+truth_cameras = []
 with zipfile.ZipFile(args.output, 'w', zipfile.ZIP_DEFLATED) as archive:
     for index in range(args.count):
         angle = index * 2 * math.pi / args.count
@@ -71,9 +73,18 @@ with zipfile.ZipFile(args.output, 'w', zipfile.ZIP_DEFLATED) as archive:
         name = f'Images/view-{index:03d}.jpg'
         payload = buffer.getvalue(); archive.writestr(name,payload)
         metadata.append({'file':name,'bytes':len(payload)})
+        truth_cameras.append({'sourceFile':name, 'preparedFile':f'frame_{index+1:05d}.jpg',
+                              'position':eye.tolist(), 'rotation':np.column_stack((right,-up,forward)).tolist()})
     manifest = {'format':'kantura-photo-dataset','version':1,'id':'kantura-synthetic-cube-v1',
                 'name':'Synthetic textured cube — interaction test', 'createdAt':'2026-10-11T00:00:00Z',
                 'source':'kantura-synthetic-validation','captureMode':'object',
                 'scaleStatus':'unverified','images':metadata}
     archive.writestr('manifest.json',json.dumps(manifest,ensure_ascii=False))
 print(f'Created {args.count} original synthetic views: {args.output}')
+if args.truth:
+    args.truth.parent.mkdir(parents=True, exist_ok=True)
+    args.truth.write_text(json.dumps({'format':'kantura-synthetic-truth','version':1,
+        'cameraConvention':'camera-to-world: right, down, forward', 'fieldAccuracyValidated':False,
+        'cameras':truth_cameras, 'imageSize':[size,size], 'focalPixels':focal,
+        'cubeBounds':[[-1,-1,-1],[1,1,1]], 'groundHeight':-1.08},indent=2),'utf8')
+    print(f'Independent evaluation data (not an engine input): {args.truth}')
