@@ -798,7 +798,18 @@
       "stairLimitSide": "壁または手すり",
       "stairTransportHint": "階段では最も正確：一度階段を歩くと、実際の経路に沿って機器をチェックします。",
       "stairUseScan": "スキャンした階段をチェック",
-      "stairRoomHint": "この部屋で階段が検出されました。幅、頭上空間、搬入チェックのため階段を別にスキャンしてください。"
+      "stairRoomHint": "この部屋で階段が検出されました。幅、頭上空間、搬入チェックのため階段を別にスキャンしてください。",
+      "elementAdd": "建築要素を描く",
+      "element_beam": "梁",
+      "element_bulkhead": "天井の下がり（ボックス）",
+      "element_column": "柱",
+      "element_chase": "出っ張り / パイプスペース",
+      "elementPlaceHint": "床または天井の位置をタップ – 要素は最も近い壁にスナップします。",
+      "elementSizeHelp": "要素の長さ、壁からの奥行き、高さまたは天井からの下がり（メートル）。",
+      "elementLength": "長さ",
+      "elementDrop": "下がり",
+      "elementSize": "サイズを変更",
+      "elementClear": "有効高さ"
     }
   },
   "video": {

@@ -28,7 +28,7 @@ final class RoomWalkthroughViewController: UIViewController, UIGestureRecognizer
     private let photoCeiling = SCNNode(), markerPins = SCNNode(), furnitureNodes = SCNNode()
     private var extras = RoomExtras()
     private var folder: URL { room.jsonURL.deletingLastPathComponent() }
-    private enum Placing { case none, marker }
+    private enum Placing: Equatable { case none, marker, element(String) }
     private var placing = Placing.none
     private var movingFurniture: String?
     private var startFurniture = (x: 0.0, z: 0.0)
@@ -141,6 +141,9 @@ final class RoomWalkthroughViewController: UIViewController, UIGestureRecognizer
         let add = UIBarButtonItem(title: nil, image: UIImage(systemName: "plus.circle"), primaryAction: nil, menu: UIMenu(children: [
             UIAction(title: text("markerAdd"), image: UIImage(systemName: "mappin.and.ellipse")) { [weak self] _ in self?.startMarker() },
             UIAction(title: text("furnitureAdd"), image: UIImage(systemName: "sofa")) { [weak self] _ in self?.chooseFurniture() },
+            UIMenu(title: text("elementAdd"), image: UIImage(systemName: "square.stack.3d.down.right"), children: RoomExtras.structuralKinds.map { kind in
+                UIAction(title: text("element_" + kind), image: UIImage(systemName: kind == "column" ? "rectangle.portrait" : kind == "chase" ? "rectangle.lefthalf.inset.filled" : "rectangle.topthird.inset.filled")) { [weak self] _ in self?.startElement(kind) }
+            }),
             UIAction(title: text("markers"), image: UIImage(systemName: "list.bullet")) { [weak self] _ in self?.showMarkerList() }
         ]))
         add.accessibilityLabel = text("markerAdd")
@@ -229,6 +232,21 @@ final class RoomWalkthroughViewController: UIViewController, UIGestureRecognizer
     @objc private func pickSurface(_ gesture: UITapGestureRecognizer) {
         guard presentedViewController == nil else { return }
         let hits = sceneView.hitTest(gesture.location(in: sceneView), options: [.searchMode: SCNHitTestSearchMode.all.rawValue, .ignoreHiddenNodes: true])
+        if case .element(let kind) = placing {
+            guard let hit = hits.first(where: { hit in
+                var node: SCNNode? = hit.node
+                while let current = node { if current === solid || current === photoTiles || current === photoCeiling || current === plainCeiling { return true }; node = current.parent }
+                return false
+            }) else { return }
+            placing = .none
+            status.isHidden = true
+            let p = world.convertPosition(hit.worldCoordinates, from: nil)
+            guard let element = StructuralPlacement.make(kind, at: (Double(p.x), Double(p.z)), document: room.document, ceiling: height, name: text("element_" + kind)) else { return }
+            extras.furniture.append(element)
+            saveExtras(); buildFurniture()
+            editSize(element.id)
+            return
+        }
         if placing == .marker {
             // First real surface under the finger (labels and pins are skipped).
             guard let hit = hits.first(where: { hit in
@@ -319,20 +337,28 @@ final class RoomWalkthroughViewController: UIViewController, UIGestureRecognizer
         var blocked: [String] = []
         for f in extras.furniture {
             let conflicts = FurnitureLayout.conflicts(of: f, in: room.document, others: extras.furniture)
-            let color: UIColor = conflicts.isEmpty ? (f.id == movingFurniture ? KanturaDesign.mint : UIColor(red: 0.55, green: 0.47, blue: 0.75, alpha: 1)) : .systemRed
-            let box = SCNBox(width: CGFloat(f.width), height: CGFloat(f.height), length: CGFloat(f.depth), chamferRadius: 0.02)
-            box.materials = [material(color.withAlphaComponent(0.85))]
+            let structureColor = UIColor(white: 0.62, alpha: 1)
+            let color: UIColor = conflicts.isEmpty ? (f.id == movingFurniture ? KanturaDesign.mint : f.isStructural ? structureColor : UIColor(red: 0.55, green: 0.47, blue: 0.75, alpha: 1)) : .systemRed
+            let box = SCNBox(width: CGFloat(f.width), height: CGFloat(f.height), length: CGFloat(f.depth), chamferRadius: f.isStructural ? 0.005 : 0.02)
+            box.materials = [material(color.withAlphaComponent(f.isStructural ? 0.95 : 0.85))]
             let node = SCNNode(geometry: box)
             node.name = "furniture:" + f.id
-            node.position = SCNVector3(Float(f.x), Float(floorY + f.height / 2), Float(f.z))
+            node.position = SCNVector3(Float(f.x), Float(floorY + f.bottom + f.height / 2), Float(f.z))
             node.eulerAngles.y = Float(f.rotation)
-            // Front marker: a thin strip on the front face.
-            let front = SCNNode(geometry: SCNBox(width: CGFloat(f.width) * 0.8, height: 0.03, length: 0.01, chamferRadius: 0))
-            front.geometry?.materials = [material(.white, lit: false)]
-            front.position = SCNVector3(0, Float(f.height / 2) - 0.05, Float(f.depth / 2) + 0.006)
-            node.addChildNode(front)
-            let label = pill(f.name + " · " + length(f.width) + " × " + length(f.depth), color: color, size: max(0.09, CGFloat(extent) * 0.02))
-            label.position = SCNVector3(0, Float(f.height / 2) + 0.12, 0)
+            if !f.isStructural {
+                // Front marker: a thin strip on the front face.
+                let front = SCNNode(geometry: SCNBox(width: CGFloat(f.width) * 0.8, height: 0.03, length: 0.01, chamferRadius: 0))
+                front.geometry?.materials = [material(.white, lit: false)]
+                front.position = SCNVector3(0, Float(f.height / 2) - 0.05, Float(f.depth / 2) + 0.006)
+                node.addChildNode(front)
+            }
+            var caption = f.name + " · " + length(f.width) + " × " + length(f.depth)
+            if f.structural == "beam" || f.structural == "bulkhead" {
+                // What matters under a beam: how much it hangs down and the clear height left.
+                caption = f.name + " · ↓ " + length(f.height) + " · " + text("elementClear") + " " + length(f.bottom)
+            }
+            let label = pill(caption, color: color, size: max(0.09, CGFloat(extent) * 0.02))
+            label.position = SCNVector3(0, f.bottom > 0.5 ? -Float(f.height / 2) - 0.12 : Float(f.height / 2) + 0.12, 0)
             node.addChildNode(billboard(label))
             furnitureNodes.addChildNode(node)
             if !conflicts.isEmpty {
@@ -348,6 +374,54 @@ final class RoomWalkthroughViewController: UIViewController, UIGestureRecognizer
             status.alpha = 1
             status.label.text = blocked.isEmpty ? text("furnitureMoveHint") : blocked.joined(separator: "\n")
         }
+    }
+
+    private func startElement(_ kind: String) {
+        placing = .element(kind)
+        status.isHidden = false
+        status.alpha = 1
+        status.label.text = text("elementPlaceHint")
+    }
+
+    /// Width (length along the element), depth and height in one dialog.
+    /// Elements that hang from the ceiling keep their top at the ceiling.
+    private func editSize(_ id: String) {
+        guard let f = extras.furniture.first(where: { $0.id == id }), presentedViewController == nil else { return }
+        let alert = UIAlertController(title: f.name, message: f.isStructural ? text("elementSizeHelp") : nil, preferredStyle: .alert)
+        let hanging = f.structural == "beam" || f.structural == "bulkhead"
+        let entries = [(text("elementLength"), f.width), (text("depth"), f.depth), (hanging ? text("elementDrop") : text("heightField"), f.height)]
+        let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: MeasurementGuide.selectedLanguage)
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 3
+        formatter.usesGroupingSeparator = false
+        for (title, value) in entries {
+            alert.addTextField { field in
+                field.placeholder = title
+                field.accessibilityLabel = title
+                field.keyboardType = .decimalPad
+                field.text = formatter.string(from: NSNumber(value: value))
+                let unit = UILabel()
+                unit.text = " " + title + " (m) "
+                unit.font = .preferredFont(forTextStyle: .caption1)
+                unit.textColor = .secondaryLabel
+                field.leftView = unit
+                field.leftViewMode = .always
+            }
+        }
+        alert.addAction(UIAlertAction(title: text("cancel"), style: .cancel))
+        alert.addAction(UIAlertAction(title: text("done"), style: .default) { [weak self, weak alert] _ in
+            guard let self = self, let fields = alert?.textFields, fields.count == 3,
+                  let i = self.extras.furniture.firstIndex(where: { $0.id == id }) else { return }
+            let values = fields.map { Double(($0.text ?? "").replacingOccurrences(of: ",", with: ".").trimmingCharacters(in: .whitespaces)) }
+            guard values.allSatisfy({ $0 != nil && $0! > 0.01 && $0! <= 20 }) else { return }
+            var piece = self.extras.furniture[i]
+            piece.width = values[0]!; piece.depth = values[1]!; piece.height = values[2]!
+            if hanging { piece.elevation = max(0, self.height - piece.height) }
+            self.extras.furniture[i] = piece
+            self.saveExtras(); self.buildFurniture()
+        })
+        present(alert, animated: true)
     }
 
     private func startMarker() {
@@ -414,6 +488,7 @@ final class RoomWalkthroughViewController: UIViewController, UIGestureRecognizer
         guard let index = extras.furniture.firstIndex(where: { $0.id == id }) else { return }
         let f = extras.furniture[index]
         let sheet = UIAlertController(title: f.name, message: length(f.width) + " × " + length(f.depth) + " × " + length(f.height) + (f.catalog.map { " · " + $0 } ?? ""), preferredStyle: .actionSheet)
+        sheet.addAction(UIAlertAction(title: text("elementSize"), style: .default) { [weak self] _ in self?.editSize(id) })
         sheet.addAction(UIAlertAction(title: text("furnitureMove"), style: .default) { [weak self] _ in
             guard let self = self else { return }
             self.mode.selectedSegmentIndex = Mode.plan.rawValue

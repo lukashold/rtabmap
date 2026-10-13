@@ -78,7 +78,7 @@ enum RoomExport {
         let plan = plan(document)
         var out = "0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1009\n9\n$INSUNITS\n70\n6\n0\nENDSEC\n"
         out += "0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nLAYER\n70\n4\n"
-        for (name, color) in [("KANTURA_WALLS", 7), ("KANTURA_OPENINGS", 4), ("KANTURA_FLOOR", 8), ("KANTURA_DIMENSIONS", 2), ("KANTURA_FURNITURE", 6), ("KANTURA_MARKERS", 1)] {
+        for (name, color) in [("KANTURA_WALLS", 7), ("KANTURA_OPENINGS", 4), ("KANTURA_FLOOR", 8), ("KANTURA_DIMENSIONS", 2), ("KANTURA_FURNITURE", 6), ("KANTURA_STRUCTURE", 9), ("KANTURA_MARKERS", 1)] {
             out += "0\nLAYER\n2\n\(name)\n70\n0\n62\n\(color)\n6\nCONTINUOUS\n"
         }
         out += "0\nENDTAB\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n"
@@ -109,10 +109,12 @@ enum RoomExport {
             out += "0\nSEQEND\n8\nKANTURA_FLOOR\n"
         }
         for f in extras.furniture {
-            out += "0\nPOLYLINE\n8\nKANTURA_FURNITURE\n66\n1\n70\n1\n"
-            for c in FurnitureLayout.corners(f) { out += "0\nVERTEX\n8\nKANTURA_FURNITURE\n10\n\(n(c.x))\n20\n\(n(-c.z))\n30\n0.0\n" }
-            out += "0\nSEQEND\n8\nKANTURA_FURNITURE\n"
-            text(f.name, at: (f.x, -f.z), height: 0.08, angle: 0, layer: "KANTURA_FURNITURE")
+            let layer = f.isStructural ? "KANTURA_STRUCTURE" : "KANTURA_FURNITURE"
+            out += "0\nPOLYLINE\n8\n\(layer)\n66\n1\n70\n1\n"
+            for c in FurnitureLayout.corners(f) { out += "0\nVERTEX\n8\n\(layer)\n10\n\(n(c.x))\n20\n\(n(-c.z))\n30\n\(n(f.bottom))\n" }
+            out += "0\nSEQEND\n8\n\(layer)\n"
+            let caption = f.isStructural && f.bottom > 0 ? f.name + " UK +" + n(f.bottom) : f.name
+            text(caption, at: (f.x, -f.z), height: 0.08, angle: 0, layer: layer)
         }
         for (i, m) in extras.markers.enumerated() {
             out += "0\nCIRCLE\n8\nKANTURA_MARKERS\n10\n\(n(m.position[0]))\n20\n\(n(-m.position[2]))\n30\n0.0\n40\n0.1\n"
@@ -179,7 +181,7 @@ enum RoomExport {
         }
         for f in extras.furniture {
             let c = FurnitureLayout.corners(f).map { sx(($0.x, -$0.z)) }
-            svg += "<polygon class=\"furn\" points=\"" + c.map { String(format: "%.1f,%.1f", $0.0, $0.1) }.joined(separator: " ") + "\"><title>" + escape(f.name) + "</title></polygon>"
+            svg += "<polygon class=\"" + (f.isStructural ? (f.bottom > 0 ? "struct hang" : "struct") : "furn") + "\" points=\"" + c.map { String(format: "%.1f,%.1f", $0.0, $0.1) }.joined(separator: " ") + "\"><title>" + escape(f.name) + "</title></polygon>"
             let t = sx((f.x, -f.z))
             svg += String(format: "<text class=\"furnlabel\" x=\"%.1f\" y=\"%.1f\">", t.0, t.1) + escape(f.name) + "</text>"
         }
@@ -225,7 +227,7 @@ enum RoomExport {
             furnitureRows += "<tr><td>\(escape(f.name))</td><td>\(escape(m(f.width)))</td><td>\(escape(m(f.depth)))</td><td>\(escape(m(f.height)))</td></tr>"
         }
         let furnitureSection = furnitureRows.isEmpty ? "" : "<h2 class=\"section\">\(escape(labels.furniture))</h2><table><tbody>\(furnitureRows)</tbody></table>"
-        let furnitureData = extras.furniture.map { f in FurnitureLayout.corners(f).flatMap { [$0.x, -$0.z] } + [f.height] }
+        let furnitureData = extras.furniture.map { f in FurnitureLayout.corners(f).flatMap { [$0.x, -$0.z] } + [f.height, f.bottom, f.isStructural ? 1 : 0] }
         let tileData = (try? JSONSerialization.data(withJSONObject: ["tiles": walls.tiles, "furniture": furnitureData])).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
         let textures = walls.images.map { "\"data:image/jpeg;base64,\($0.base64EncodedString())\"" }.joined(separator: ",")
         let photoToggle = walls.tiles.isEmpty ? "" : "<label class=\"toggle\"><input type=\"checkbox\" id=\"photos\" checked> \(escape(labels.photos))</label>"
@@ -258,7 +260,7 @@ enum RoomExport {
         table{width:100%;border-collapse:collapse;margin-top:20px;font-variant-numeric:tabular-nums}
         td,th{text-align:left;padding:8px;border-bottom:1px solid var(--line)}
         .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-top:20px}.gallery img{width:100%;border-radius:10px}
-        .furn{fill:rgba(139,120,190,.35);stroke:#6d5bb0;stroke-width:2}.furnlabel{font-size:16px;fill:#4b3d86}
+        .furn{fill:rgba(139,120,190,.35);stroke:#6d5bb0;stroke-width:2}.struct{fill:rgba(120,120,120,.45);stroke:#555;stroke-width:2}.struct.hang{fill:rgba(120,120,120,.18);stroke-dasharray:10 6}.furnlabel{font-size:16px;fill:#4b3d86}
         .pinno{fill:#fff;font-size:20px;font-weight:700}
         .section{font-size:20px;margin:28px 0 10px}.markers{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
         .marker{border:1px solid var(--line);border-left:6px solid #888;border-radius:14px;padding:12px}.marker h3{margin:0 0 4px;font-size:16px}
@@ -306,9 +308,9 @@ enum RoomExport {
           faces.push({p,fill:o[6]?'rgba(42,166,200,.55)':'rgba(47,191,143,.55)',d:p.reduce((s,q)=>s+q[2],0)/4-0.01});});
          const usePhotos=photoBox&&photoBox.checked&&extra.tiles.length;
          if(usePhotos){faces.length=0;extra.tiles.forEach(t=>{const p=[0,1,2,3].map(k=>proj(t[1+k*5],t[2+k*5],t[3+k*5]));const uv=[0,1,2,3].map(k=>[t[4+k*5],t[5+k*5]]);faces.push({p,img:tex[t[0]],uv,d:p.reduce((s,q)=>s+q[2],0)/4});});}
-         extra.furniture.forEach(f=>{const h=f[8],c=[0,1,2,3].map(k=>[f[k*2],f[k*2+1]]);
-          for(let k=0;k<4;k++){const a=c[k],b=c[(k+1)%4],p=[proj(a[0],a[1],0),proj(b[0],b[1],0),proj(b[0],b[1],h),proj(a[0],a[1],h)];faces.push({p,fill:'rgba(139,120,190,.9)',d:p.reduce((s,q)=>s+q[2],0)/4});}
-          const top=c.map(q=>proj(q[0],q[1],h));faces.push({p:top,fill:'rgba(170,152,220,.95)',d:top.reduce((s,q)=>s+q[2],0)/4-0.05});});
+         extra.furniture.forEach(f=>{const z0=f[9]||0,h=z0+f[8],st=f[10]===1,c=[0,1,2,3].map(k=>[f[k*2],f[k*2+1]]);
+          for(let k=0;k<4;k++){const a=c[k],b=c[(k+1)%4],p=[proj(a[0],a[1],z0),proj(b[0],b[1],z0),proj(b[0],b[1],h),proj(a[0],a[1],h)];faces.push({p,fill:st?'rgba(150,150,150,.92)':'rgba(139,120,190,.9)',d:p.reduce((s,q)=>s+q[2],0)/4});}
+          const top=c.map(q=>proj(q[0],q[1],st&&z0>0?z0:h));faces.push({p:top,fill:st?'rgba(175,175,175,.95)':'rgba(170,152,220,.95)',d:top.reduce((s,q)=>s+q[2],0)/4-0.05});});
          faces.sort((a,b)=>b.d-a.d).forEach(f=>f.img?textured(f):quad(f.p,f.fill,'rgba(37,26,64,.35)'));}
         function tri(img,p0,p1,p2,t0,t1,t2){const w=img.naturalWidth,h=img.naturalHeight;if(!w)return;
          const x0=t0[0]*w,y0=t0[1]*h,x1=t1[0]*w,y1=t1[1]*h,x2=t2[0]*w,y2=t2[1]*h,den=(x1-x0)*(y2-y0)-(x2-x0)*(y1-y0);if(Math.abs(den)<1e-6)return;

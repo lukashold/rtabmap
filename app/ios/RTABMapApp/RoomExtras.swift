@@ -31,6 +31,12 @@ struct RoomExtras: Codable, Equatable {
         var catalog: String?        // catalogue name it came from
         var url: String?            // product page
         var model: String?          // optional glTF/USDZ URL
+        /// Building element instead of furniture: beam, bulkhead, column or chase.
+        var structural: String? = nil
+        /// Height of the underside above the floor (beams and bulkheads hang from the ceiling).
+        var elevation: Double? = nil
+        var bottom: Double { elevation ?? 0 }
+        var isStructural: Bool { structural != nil }
     }
     var format = "kantura-room-extras"
     var version = 1
@@ -40,6 +46,9 @@ struct RoomExtras: Codable, Equatable {
     static let fileName = "extras.json"
     static let markerKinds = ["defect", "question", "idea", "measure"]
     static let statuses = ["open", "done"]
+    /// beam = Unterzug/Träger across the room, bulkhead = Abkofferung along a wall at the
+    /// ceiling, column = Säule/Pfeiler, chase = Vorsprung/Schacht along a wall, floor to ceiling.
+    static let structuralKinds = ["beam", "bulkhead", "column", "chase"]
     enum ValidationError: Error { case invalid }
 
     func validate() throws {
@@ -57,7 +66,9 @@ struct RoomExtras: Codable, Equatable {
             guard ids.insert(f.id).inserted, f.id.range(of: "^[A-Za-z0-9-]{1,64}$", options: .regularExpression) != nil,
                   text(f.name, 200), text(f.manufacturer, 200), text(f.category, 60),
                   [f.width, f.depth, f.height].allSatisfy({ $0.isFinite && $0 > 0.01 && $0 <= 20 }),
-                  [f.x, f.z, f.rotation].allSatisfy({ $0.isFinite && abs($0) < 10000 }) else { throw ValidationError.invalid }
+                  [f.x, f.z, f.rotation].allSatisfy({ $0.isFinite && abs($0) < 10000 }),
+                  f.structural == nil || Self.structuralKinds.contains(f.structural!),
+                  f.elevation == nil || (f.elevation!.isFinite && f.elevation! >= 0 && f.elevation! <= 20) else { throw ValidationError.invalid }
         }
     }
 
@@ -179,6 +190,14 @@ enum FurnitureLayout {
     static func conflicts(of f: RoomExtras.Furniture, in document: RoomPlanDocument, others: [RoomExtras.Furniture]) -> Conflicts {
         let footprint = corners(f)
         var result = Conflicts()
+        func verticalOverlap(_ a: RoomExtras.Furniture, _ b: RoomExtras.Furniture) -> Bool {
+            a.bottom < b.bottom + b.height - 1e-6 && b.bottom < a.bottom + a.height - 1e-6
+        }
+        // Building elements sit against walls by design; only what they block counts.
+        if f.isStructural {
+            for other in others where other.id != f.id && !other.isStructural && verticalOverlap(f, other) && overlap(footprint, corners(other)) { result.furniture += 1 }
+            return result
+        }
         let walls = document.surfaces.filter { $0.kind == "wall" && $0.transform.count == 16 && $0.dimensions.count == 3 }
         let floorPoints = document.surfaces.filter { $0.kind == "floor" && $0.polygonCorners != nil }.flatMap { f in f.polygonCorners!.map { RoomPlanGeometry.world($0, f.transform) } }
         let centrePoints = floorPoints.isEmpty ? walls.map { RoomPlanGeometry.world([0, 0, 0], $0.transform) } : floorPoints
@@ -210,7 +229,7 @@ enum FurnitureLayout {
                 if overlap(footprint, strip(p, q, depth: min(1.2, o.x1 - o.x0))) { result.doors += 1 }
             }
         }
-        for other in others where other.id != f.id && overlap(footprint, corners(other)) { result.furniture += 1 }
+        for other in others where other.id != f.id && verticalOverlap(f, other) && overlap(footprint, corners(other)) { result.furniture += 1 }
         return result
     }
 }
@@ -227,5 +246,85 @@ extension RoomPhotoProjection {
             if best == nil || score > best!.score { best = (score, index, q.u, q.v) }
         }
         return best.map { ($0.index, $0.u, $0.v) }
+    }
+}
+
+/// Placing building elements: they snap to the scanned walls.
+enum StructuralPlacement {
+    typealias P = (x: Double, z: Double)
+    struct Wall { let a: P; let b: P; var length: Double { hypot(b.x - a.x, b.z - a.z) } }
+
+    static func walls(_ document: RoomPlanDocument) -> [Wall] {
+        document.surfaces.filter { $0.kind == "wall" && $0.transform.count == 16 && $0.dimensions.count == 3 }.map { w in
+            let a = RoomPlanGeometry.world([-w.dimensions[0] / 2, 0, 0], w.transform), b = RoomPlanGeometry.world([w.dimensions[0] / 2, 0, 0], w.transform)
+            return Wall(a: (a.x, a.z), b: (b.x, b.z))
+        }
+    }
+
+    /// Nearest wall, the foot point on it and the unit normal pointing to `p`.
+    static func nearest(_ p: P, walls: [Wall]) -> (wall: Wall, foot: P, normal: P, distance: Double)? {
+        walls.map { w -> (Wall, P, P, Double) in
+            let dx = w.b.x - w.a.x, dz = w.b.z - w.a.z, l2 = max(1e-9, dx * dx + dz * dz)
+            let t = max(0, min(1, ((p.x - w.a.x) * dx + (p.z - w.a.z) * dz) / l2))
+            let foot = (x: w.a.x + t * dx, z: w.a.z + t * dz)
+            let d = hypot(p.x - foot.x, p.z - foot.z)
+            let l = sqrt(l2)
+            var n = (x: -dz / l, z: dx / l)
+            if n.x * (p.x - foot.x) + n.z * (p.z - foot.z) < 0 { n = (-n.x, -n.z) }
+            return (w, foot, n, d)
+        }.min { $0.3 < $1.3 }.map { (wall: $0.0, foot: $0.1, normal: $0.2, distance: $0.3) }
+    }
+
+    /// Distance from `origin` along `direction` to the first wall (or nil).
+    static func cast(from origin: P, _ direction: P, walls: [Wall], skip minimum: Double = 0.05) -> Double? {
+        var best: Double?
+        for w in walls {
+            let ex = w.b.x - w.a.x, ez = w.b.z - w.a.z
+            let den = direction.x * ez - direction.z * ex
+            guard abs(den) > 1e-9 else { continue }
+            let ox = w.a.x - origin.x, oz = w.a.z - origin.z
+            let t = (ox * ez - oz * ex) / den, u = (ox * direction.z - oz * direction.x) / den
+            if t > minimum, u >= -0.01, u <= 1.01, best == nil || t < best! { best = t }
+        }
+        return best
+    }
+
+    /// A new element of `kind` at the tapped floor/ceiling point `p`.
+    static func make(_ kind: String, at p: P, document: RoomPlanDocument, ceiling: Double, name: String) -> RoomExtras.Furniture? {
+        let walls = walls(document)
+        guard let near = nearest(p, walls: walls) else { return nil }
+        let along = (x: (near.wall.b.x - near.wall.a.x) / max(1e-9, near.wall.length), z: (near.wall.b.z - near.wall.a.z) / max(1e-9, near.wall.length))
+        // Box local x = width, z = depth; rotation turns local x onto `axis`.
+        func rotation(_ axis: P) -> Double { atan2(-axis.z, axis.x) }
+        var f = RoomExtras.Furniture(id: RoomExtras.newID(), name: name, manufacturer: "", category: "structure", width: 1, depth: 0.3, height: 0.3,
+                                     x: p.x, z: p.z, rotation: 0, catalog: nil, url: nil, model: nil, structural: kind, elevation: nil)
+        switch kind {
+        case "beam":
+            // Spans from the nearest wall straight across the room.
+            let span = cast(from: near.foot, near.normal, walls: walls) ?? 3
+            f.width = span; f.depth = 0.25; f.height = 0.3
+            f.x = near.foot.x + near.normal.x * span / 2; f.z = near.foot.z + near.normal.z * span / 2
+            f.rotation = rotation(near.normal)
+            f.elevation = max(0, ceiling - f.height)
+        case "bulkhead":
+            f.width = near.wall.length; f.depth = 0.3; f.height = 0.25
+            let mid = (x: (near.wall.a.x + near.wall.b.x) / 2, z: (near.wall.a.z + near.wall.b.z) / 2)
+            f.x = mid.x + near.normal.x * f.depth / 2; f.z = mid.z + near.normal.z * f.depth / 2
+            f.rotation = rotation(along)
+            f.elevation = max(0, ceiling - f.height)
+        case "chase":
+            f.width = 0.4; f.depth = 0.25; f.height = ceiling
+            f.x = near.foot.x + near.normal.x * f.depth / 2; f.z = near.foot.z + near.normal.z * f.depth / 2
+            f.rotation = rotation(along)
+            f.elevation = 0
+        default: // column
+            f.width = 0.3; f.depth = 0.3; f.height = ceiling
+            if near.distance < 0.5 {
+                f.x = near.foot.x + near.normal.x * 0.15; f.z = near.foot.z + near.normal.z * 0.15
+            }
+            f.rotation = rotation(along)
+            f.elevation = 0
+        }
+        return f
     }
 }

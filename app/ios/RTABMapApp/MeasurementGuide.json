@@ -469,7 +469,18 @@
       "stairLimitSide": "Wand oder Geländer",
       "stairTransportHint": "Für Treppen am genauesten: Treppe einmal abgehen, dann wird das Gerät entlang des echten Wegs geprüft.",
       "stairUseScan": "Gescannte Treppe prüfen",
-      "stairRoomHint": "In diesem Raum wurde eine Treppe erkannt. Für Breite, Kopfhöhe und Transport-Check die Treppe separat scannen."
+      "stairRoomHint": "In diesem Raum wurde eine Treppe erkannt. Für Breite, Kopfhöhe und Transport-Check die Treppe separat scannen.",
+      "elementAdd": "Bauteil einzeichnen",
+      "element_beam": "Unterzug / Träger",
+      "element_bulkhead": "Abkofferung (Decke)",
+      "element_column": "Säule / Pfeiler",
+      "element_chase": "Vorsprung / Schacht",
+      "elementPlaceHint": "Tippe auf die Stelle an Boden oder Decke – das Bauteil rastet an der nächsten Wand ein.",
+      "elementSizeHelp": "Länge entlang des Bauteils, Tiefe von der Wand, Höhe bzw. Abhängung von der Decke – in Metern.",
+      "elementLength": "Länge",
+      "elementDrop": "Abhängung",
+      "elementSize": "Maße ändern",
+      "elementClear": "lichte Höhe"
     }
   },
   "en": {
@@ -942,7 +953,18 @@
       "stairLimitSide": "wall or handrail",
       "stairTransportHint": "Most accurate for stairs: walk the stairs once, then the appliance is checked along the real path.",
       "stairUseScan": "Check a scanned staircase",
-      "stairRoomHint": "Stairs were detected in this room. Scan the stairs separately for width, headroom and the transport check."
+      "stairRoomHint": "Stairs were detected in this room. Scan the stairs separately for width, headroom and the transport check.",
+      "elementAdd": "Draw building element",
+      "element_beam": "Beam / girder",
+      "element_bulkhead": "Bulkhead (ceiling)",
+      "element_column": "Column / pillar",
+      "element_chase": "Protrusion / duct chase",
+      "elementPlaceHint": "Tap the spot on the floor or ceiling – the element snaps to the nearest wall.",
+      "elementSizeHelp": "Length along the element, depth from the wall, height or drop below the ceiling – in metres.",
+      "elementLength": "Length",
+      "elementDrop": "Drop",
+      "elementSize": "Change size",
+      "elementClear": "clear height"
     }
   },
   "fr": {
@@ -1415,7 +1437,18 @@
       "stairLimitSide": "mur ou main courante",
       "stairTransportHint": "Le plus précis pour un escalier : parcourez-le une fois, l’appareil est alors contrôlé le long du trajet réel.",
       "stairUseScan": "Contrôler un escalier scanné",
-      "stairRoomHint": "Un escalier a été détecté dans cette pièce. Scannez-le séparément pour la largeur, l’échappée et le contrôle de transport."
+      "stairRoomHint": "Un escalier a été détecté dans cette pièce. Scannez-le séparément pour la largeur, l’échappée et le contrôle de transport.",
+      "elementAdd": "Dessiner un élément",
+      "element_beam": "Poutre / sommier",
+      "element_bulkhead": "Soffite (plafond)",
+      "element_column": "Poteau / pilier",
+      "element_chase": "Saillie / gaine",
+      "elementPlaceHint": "Touchez l’endroit au sol ou au plafond – l’élément s’aligne sur le mur le plus proche.",
+      "elementSizeHelp": "Longueur de l’élément, profondeur depuis le mur, hauteur ou retombée sous plafond – en mètres.",
+      "elementLength": "Longueur",
+      "elementDrop": "Retombée",
+      "elementSize": "Modifier les dimensions",
+      "elementClear": "hauteur libre"
     }
   },
   "es": {
@@ -1888,7 +1921,18 @@
       "stairLimitSide": "pared o barandilla",
       "stairTransportHint": "Lo más preciso para escaleras: recórrela una vez y el aparato se comprueba a lo largo del camino real.",
       "stairUseScan": "Comprobar escalera escaneada",
-      "stairRoomHint": "Se detectó una escalera en esta habitación. Escanéala aparte para ancho, altura libre y comprobación de transporte."
+      "stairRoomHint": "Se detectó una escalera en esta habitación. Escanéala aparte para ancho, altura libre y comprobación de transporte.",
+      "elementAdd": "Dibujar elemento",
+      "element_beam": "Viga / jácena",
+      "element_bulkhead": "Falso techo (cajón)",
+      "element_column": "Pilar / columna",
+      "element_chase": "Resalte / patinillo",
+      "elementPlaceHint": "Toca el lugar en el suelo o el techo: el elemento se ajusta a la pared más cercana.",
+      "elementSizeHelp": "Longitud del elemento, fondo desde la pared, altura o descuelgue bajo el techo, en metros.",
+      "elementLength": "Longitud",
+      "elementDrop": "Descuelgue",
+      "elementSize": "Cambiar medidas",
+      "elementClear": "altura libre"
     }
   },
   "it": {
@@ -2361,7 +2405,18 @@
       "stairLimitSide": "parete o corrimano",
       "stairTransportHint": "Per le scale è più preciso: percorri la scala una volta e l’apparecchio viene verificato lungo il percorso reale.",
       "stairUseScan": "Verifica scala scansionata",
-      "stairRoomHint": "In questa stanza è stata rilevata una scala. Scansionala a parte per larghezza, altezza libera e verifica di trasporto."
+      "stairRoomHint": "In questa stanza è stata rilevata una scala. Scansionala a parte per larghezza, altezza libera e verifica di trasporto.",
+      "elementAdd": "Disegna elemento",
+      "element_beam": "Trave",
+      "element_bulkhead": "Controsoffitto (cassonetto)",
+      "element_column": "Pilastro / colonna",
+      "element_chase": "Sporgenza / cavedio",
+      "elementPlaceHint": "Tocca il punto sul pavimento o sul soffitto: l’elemento si aggancia alla parete più vicina.",
+      "elementSizeHelp": "Lunghezza dell’elemento, profondità dalla parete, altezza o ribassamento dal soffitto, in metri.",
+      "elementLength": "Lunghezza",
+      "elementDrop": "Ribassamento",
+      "elementSize": "Modifica misure",
+      "elementClear": "altezza libera"
     }
   },
   "zh-Hans": {
@@ -2834,7 +2889,18 @@
       "stairLimitSide": "墙或扶手",
       "stairTransportHint": "楼梯最准确的方法：走一遍楼梯，然后沿真实路径检查电器。",
       "stairUseScan": "检查已扫描的楼梯",
-      "stairRoomHint": "此房间检测到楼梯。请单独扫描楼梯以获得宽度、净空和搬运检查。"
+      "stairRoomHint": "此房间检测到楼梯。请单独扫描楼梯以获得宽度、净空和搬运检查。",
+      "elementAdd": "绘制建筑构件",
+      "element_beam": "梁",
+      "element_bulkhead": "吊顶包管（天花板）",
+      "element_column": "柱",
+      "element_chase": "凸出 / 管井",
+      "elementPlaceHint": "点按地面或天花板上的位置——构件会吸附到最近的墙。",
+      "elementSizeHelp": "构件长度、离墙深度、高度或吊下高度（米）。",
+      "elementLength": "长度",
+      "elementDrop": "下垂高度",
+      "elementSize": "修改尺寸",
+      "elementClear": "净高"
     }
   },
   "pt": {
@@ -3069,7 +3135,18 @@
       "stairLimitSide": "parede ou corrimão",
       "stairTransportHint": "O mais preciso para escadas: percorra a escada uma vez e o aparelho é verificado ao longo do caminho real.",
       "stairUseScan": "Verificar escada digitalizada",
-      "stairRoomHint": "Foi detetada uma escada nesta divisão. Digitalize-a à parte para largura, pé-direito e verificação de transporte."
+      "stairRoomHint": "Foi detetada uma escada nesta divisão. Digitalize-a à parte para largura, pé-direito e verificação de transporte.",
+      "elementAdd": "Desenhar elemento",
+      "element_beam": "Viga",
+      "element_bulkhead": "Sanca / rebaixo (teto)",
+      "element_column": "Pilar / coluna",
+      "element_chase": "Saliência / courette",
+      "elementPlaceHint": "Toque no local do piso ou do teto – o elemento ajusta-se à parede mais próxima.",
+      "elementSizeHelp": "Comprimento do elemento, profundidade a partir da parede, altura ou rebaixo do teto – em metros.",
+      "elementLength": "Comprimento",
+      "elementDrop": "Rebaixo",
+      "elementSize": "Alterar medidas",
+      "elementClear": "altura livre"
     },
     "name": "Português",
     "title": "Medir com confiança",
@@ -3780,7 +3857,18 @@
       "stairLimitSide": "جدار أو درابزين",
       "stairTransportHint": "الأدق للدرج: امشِ عليه مرة واحدة، ثم يُفحص الجهاز على طول المسار الحقيقي.",
       "stairUseScan": "فحص درج ممسوح",
-      "stairRoomHint": "تم اكتشاف درج في هذه الغرفة. امسح الدرج منفصلًا للعرض والارتفاع الحر وفحص النقل."
+      "stairRoomHint": "تم اكتشاف درج في هذه الغرفة. امسح الدرج منفصلًا للعرض والارتفاع الحر وفحص النقل.",
+      "elementAdd": "رسم عنصر إنشائي",
+      "element_beam": "جسر / كمرة",
+      "element_bulkhead": "تغليف سقفي",
+      "element_column": "عمود / دعامة",
+      "element_chase": "بروز / مجرى تمديدات",
+      "elementPlaceHint": "اضغط على الموضع في الأرضية أو السقف – يلتصق العنصر بأقرب جدار.",
+      "elementSizeHelp": "الطول على امتداد العنصر، والعمق من الجدار، والارتفاع أو النزول من السقف – بالمتر.",
+      "elementLength": "الطول",
+      "elementDrop": "النزول",
+      "elementSize": "تغيير الأبعاد",
+      "elementClear": "الارتفاع الحر"
     }
   },
   "hi": {
@@ -4253,7 +4341,18 @@
       "stairLimitSide": "दीवार या रेलिंग",
       "stairTransportHint": "सीढ़ी के लिए सबसे सटीक: एक बार सीढ़ी चलें, फिर उपकरण को असली रास्ते पर जाँचा जाता है।",
       "stairUseScan": "स्कैन की गई सीढ़ी जाँचें",
-      "stairRoomHint": "इस कमरे में सीढ़ी मिली। चौड़ाई, ऊपरी जगह और ढुलाई जाँच के लिए सीढ़ी अलग से स्कैन करें।"
+      "stairRoomHint": "इस कमरे में सीढ़ी मिली। चौड़ाई, ऊपरी जगह और ढुलाई जाँच के लिए सीढ़ी अलग से स्कैन करें।",
+      "elementAdd": "निर्माण तत्व बनाएँ",
+      "element_beam": "बीम / गर्डर",
+      "element_bulkhead": "बल्कहेड (छत)",
+      "element_column": "स्तंभ / खंभा",
+      "element_chase": "उभार / डक्ट शाफ़्ट",
+      "elementPlaceHint": "फ़र्श या छत पर उस जगह टैप करें – तत्व सबसे पास की दीवार से जुड़ जाता है।",
+      "elementSizeHelp": "तत्व की लंबाई, दीवार से गहराई, ऊँचाई या छत से नीचे का हिस्सा – मीटर में।",
+      "elementLength": "लंबाई",
+      "elementDrop": "नीचे लटकाव",
+      "elementSize": "माप बदलें",
+      "elementClear": "साफ़ ऊँचाई"
     }
   },
   "bn": {
@@ -4726,7 +4825,18 @@
       "stairLimitSide": "দেয়াল বা রেলিং",
       "stairTransportHint": "সিঁড়ির জন্য সবচেয়ে নির্ভুল: একবার সিঁড়ি হাঁটুন, তারপর আসল পথ ধরে যন্ত্র যাচাই হয়।",
       "stairUseScan": "স্ক্যান করা সিঁড়ি যাচাই করুন",
-      "stairRoomHint": "এই ঘরে সিঁড়ি পাওয়া গেছে। প্রস্থ, উপরের জায়গা ও পরিবহন যাচাইয়ের জন্য সিঁড়ি আলাদা স্ক্যান করুন।"
+      "stairRoomHint": "এই ঘরে সিঁড়ি পাওয়া গেছে। প্রস্থ, উপরের জায়গা ও পরিবহন যাচাইয়ের জন্য সিঁড়ি আলাদা স্ক্যান করুন।",
+      "elementAdd": "নির্মাণ উপাদান আঁকুন",
+      "element_beam": "বিম / গার্ডার",
+      "element_bulkhead": "বাল্কহেড (ছাদ)",
+      "element_column": "স্তম্ভ / খুঁটি",
+      "element_chase": "উঁচু অংশ / ডাক্ট শ্যাফট",
+      "elementPlaceHint": "মেঝে বা ছাদে জায়গাটিতে ট্যাপ করুন – উপাদানটি নিকটতম দেয়ালে আটকে যাবে।",
+      "elementSizeHelp": "উপাদানের দৈর্ঘ্য, দেয়াল থেকে গভীরতা, উচ্চতা বা ছাদ থেকে নেমে আসা অংশ – মিটারে।",
+      "elementLength": "দৈর্ঘ্য",
+      "elementDrop": "নেমে আসা অংশ",
+      "elementSize": "মাপ বদলান",
+      "elementClear": "খালি উচ্চতা"
     }
   },
   "ru": {
@@ -5199,7 +5309,18 @@
       "stairLimitSide": "стена или перила",
       "stairTransportHint": "Точнее всего для лестниц: пройдите лестницу один раз, и прибор проверяется вдоль реального пути.",
       "stairUseScan": "Проверить отсканированную лестницу",
-      "stairRoomHint": "В этом помещении обнаружена лестница. Отсканируйте её отдельно для ширины, высоты прохода и проверки переноса."
+      "stairRoomHint": "В этом помещении обнаружена лестница. Отсканируйте её отдельно для ширины, высоты прохода и проверки переноса.",
+      "elementAdd": "Нарисовать элемент",
+      "element_beam": "Балка / ригель",
+      "element_bulkhead": "Короб (потолок)",
+      "element_column": "Колонна / пилон",
+      "element_chase": "Выступ / шахта",
+      "elementPlaceHint": "Коснитесь места на полу или потолке – элемент привяжется к ближайшей стене.",
+      "elementSizeHelp": "Длина элемента, глубина от стены, высота или опуск от потолка – в метрах.",
+      "elementLength": "Длина",
+      "elementDrop": "Опуск",
+      "elementSize": "Изменить размеры",
+      "elementClear": "высота в свету"
     }
   },
   "ja": {
@@ -5672,7 +5793,18 @@
       "stairLimitSide": "壁または手すり",
       "stairTransportHint": "階段では最も正確：一度階段を歩くと、実際の経路に沿って機器をチェックします。",
       "stairUseScan": "スキャンした階段をチェック",
-      "stairRoomHint": "この部屋で階段が検出されました。幅、頭上空間、搬入チェックのため階段を別にスキャンしてください。"
+      "stairRoomHint": "この部屋で階段が検出されました。幅、頭上空間、搬入チェックのため階段を別にスキャンしてください。",
+      "elementAdd": "建築要素を描く",
+      "element_beam": "梁",
+      "element_bulkhead": "天井の下がり（ボックス）",
+      "element_column": "柱",
+      "element_chase": "出っ張り / パイプスペース",
+      "elementPlaceHint": "床または天井の位置をタップ – 要素は最も近い壁にスナップします。",
+      "elementSizeHelp": "要素の長さ、壁からの奥行き、高さまたは天井からの下がり（メートル）。",
+      "elementLength": "長さ",
+      "elementDrop": "下がり",
+      "elementSize": "サイズを変更",
+      "elementClear": "有効高さ"
     }
   },
   "ko": {
@@ -6145,7 +6277,18 @@
       "stairLimitSide": "벽 또는 난간",
       "stairTransportHint": "계단은 이 방법이 가장 정확: 계단을 한 번 걸으면 실제 경로를 따라 기기를 확인합니다.",
       "stairUseScan": "스캔한 계단 확인",
-      "stairRoomHint": "이 방에서 계단이 감지되었습니다. 폭, 머리 위 높이, 운반 확인을 위해 계단을 따로 스캔하세요."
+      "stairRoomHint": "이 방에서 계단이 감지되었습니다. 폭, 머리 위 높이, 운반 확인을 위해 계단을 따로 스캔하세요.",
+      "elementAdd": "건축 요소 그리기",
+      "element_beam": "보 / 거더",
+      "element_bulkhead": "천장 박스(벌크헤드)",
+      "element_column": "기둥",
+      "element_chase": "돌출부 / 덕트 샤프트",
+      "elementPlaceHint": "바닥이나 천장의 위치를 탭하세요 – 요소가 가장 가까운 벽에 맞춰집니다.",
+      "elementSizeHelp": "요소 길이, 벽에서의 깊이, 높이 또는 천장에서 내려온 깊이 – 미터.",
+      "elementLength": "길이",
+      "elementDrop": "내려온 깊이",
+      "elementSize": "크기 변경",
+      "elementClear": "유효 높이"
     }
   },
   "id": {
@@ -6380,7 +6523,18 @@
       "stairLimitSide": "dinding atau pegangan",
       "stairTransportHint": "Paling akurat untuk tangga: telusuri tangga sekali, lalu alat dicek di sepanjang jalur nyata.",
       "stairUseScan": "Cek tangga yang dipindai",
-      "stairRoomHint": "Tangga terdeteksi di ruangan ini. Pindai tangga secara terpisah untuk lebar, ruang kepala, dan cek angkut."
+      "stairRoomHint": "Tangga terdeteksi di ruangan ini. Pindai tangga secara terpisah untuk lebar, ruang kepala, dan cek angkut.",
+      "elementAdd": "Gambar elemen bangunan",
+      "element_beam": "Balok",
+      "element_bulkhead": "Drop ceiling (bulkhead)",
+      "element_column": "Kolom / pilar",
+      "element_chase": "Tonjolan / shaft",
+      "elementPlaceHint": "Ketuk titik di lantai atau langit-langit – elemen menempel ke dinding terdekat.",
+      "elementSizeHelp": "Panjang elemen, kedalaman dari dinding, tinggi atau turunan dari langit-langit – dalam meter.",
+      "elementLength": "Panjang",
+      "elementDrop": "Turunan",
+      "elementSize": "Ubah ukuran",
+      "elementClear": "tinggi bebas"
     },
     "name": "Bahasa Indonesia",
     "title": "Mengukur dengan yakin",
@@ -6853,7 +7007,18 @@
       "stairLimitSide": "duvar veya tırabzan",
       "stairTransportHint": "Merdivenler için en doğrusu: merdiveni bir kez yürüyün, ardından cihaz gerçek yol boyunca kontrol edilir.",
       "stairUseScan": "Taranmış merdiveni kontrol et",
-      "stairRoomHint": "Bu odada merdiven algılandı. Genişlik, baş yüksekliği ve taşıma kontrolü için merdiveni ayrıca tarayın."
+      "stairRoomHint": "Bu odada merdiven algılandı. Genişlik, baş yüksekliği ve taşıma kontrolü için merdiveni ayrıca tarayın.",
+      "elementAdd": "Yapı elemanı çiz",
+      "element_beam": "Kiriş",
+      "element_bulkhead": "Asma tavan kutusu",
+      "element_column": "Kolon / ayak",
+      "element_chase": "Çıkıntı / tesisat şaftı",
+      "elementPlaceHint": "Zemin veya tavandaki noktaya dokunun – eleman en yakın duvara oturur.",
+      "elementSizeHelp": "Eleman boyu, duvardan derinlik, yükseklik veya tavandan sarkma – metre cinsinden.",
+      "elementLength": "Uzunluk",
+      "elementDrop": "Sarkma",
+      "elementSize": "Ölçüleri değiştir",
+      "elementClear": "net yükseklik"
     },
     "name": "Türkçe",
     "title": "Güvenle ölçün",

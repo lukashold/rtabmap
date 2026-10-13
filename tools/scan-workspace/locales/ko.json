@@ -798,7 +798,18 @@
       "stairLimitSide": "벽 또는 난간",
       "stairTransportHint": "계단은 이 방법이 가장 정확: 계단을 한 번 걸으면 실제 경로를 따라 기기를 확인합니다.",
       "stairUseScan": "스캔한 계단 확인",
-      "stairRoomHint": "이 방에서 계단이 감지되었습니다. 폭, 머리 위 높이, 운반 확인을 위해 계단을 따로 스캔하세요."
+      "stairRoomHint": "이 방에서 계단이 감지되었습니다. 폭, 머리 위 높이, 운반 확인을 위해 계단을 따로 스캔하세요.",
+      "elementAdd": "건축 요소 그리기",
+      "element_beam": "보 / 거더",
+      "element_bulkhead": "천장 박스(벌크헤드)",
+      "element_column": "기둥",
+      "element_chase": "돌출부 / 덕트 샤프트",
+      "elementPlaceHint": "바닥이나 천장의 위치를 탭하세요 – 요소가 가장 가까운 벽에 맞춰집니다.",
+      "elementSizeHelp": "요소 길이, 벽에서의 깊이, 높이 또는 천장에서 내려온 깊이 – 미터.",
+      "elementLength": "길이",
+      "elementDrop": "내려온 깊이",
+      "elementSize": "크기 변경",
+      "elementClear": "유효 높이"
     }
   },
   "video": {

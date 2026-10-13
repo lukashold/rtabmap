@@ -24,7 +24,7 @@ for language in MeasurementGuide.languages {
     precondition(guide.objectCapture!.values.allSatisfy { !$0.isEmpty })
     precondition(guide.objectCapture!["photosCount"]!.contains("{count}") && guide.objectCapture!["photosCount"]!.contains("{max}"))
     precondition(guide.splat!.count == 9)
-    precondition(guide.home!.count == 231)
+    precondition(guide.home!.count == 242)
     precondition(guide.home!["stairProgress"]!.contains("{distance}") && guide.home!["stairProgress"]!.contains("{height}"))
     for key in ["stairNarrowest", "stairCollision"] {
         precondition(["{distance}", "{cm}", "{where}"].allSatisfy { guide.home![key]!.contains($0) })
@@ -616,3 +616,28 @@ try stairDocument.validate()
 stairDocument.path.append([1, 2])
 do { try stairDocument.validate(); preconditionFailure("path points need x, y, z") } catch StairScanDocument.ValidationError.invalid { }
 print("Stair scan: profile, mesh file and appliance path checks passed")
+
+// Building elements snap to walls (room x −2…2, z −2.5…2.5, 2.5 m high).
+let beam = StructuralPlacement.make("beam", at: (0.5, -1.8), document: layoutRoom, ceiling: 2.5, name: "Beam")!
+precondition(abs(beam.width - 5) < 1e-6 && abs(beam.x - 0.5) < 1e-6 && abs(beam.z) < 1e-6 && abs(beam.bottom - 2.2) < 1e-9, "beam \(beam)")
+let beamCorners = FurnitureLayout.corners(beam)
+precondition(abs(beamCorners.map { $0.z }.max()! - 2.5) < 1e-6 && abs(beamCorners.map { $0.x }.max()! - 0.625) < 1e-6)
+let bulkhead = StructuralPlacement.make("bulkhead", at: (1.7, 0.3), document: layoutRoom, ceiling: 2.5, name: "Bulkhead")!
+precondition(abs(bulkhead.width - 5) < 1e-6 && abs(bulkhead.x - 1.85) < 1e-6 && abs(bulkhead.z) < 1e-6 && abs(bulkhead.bottom - 2.25) < 1e-9, "bulkhead \(bulkhead)")
+let column = StructuralPlacement.make("column", at: (-1.8, 1.0), document: layoutRoom, ceiling: 2.5, name: "Column")!
+precondition(abs(column.x + 1.85) < 1e-6 && abs(column.z - 1) < 1e-6 && column.bottom == 0 && column.height == 2.5)
+precondition(FurnitureLayout.conflicts(of: beam, in: layoutRoom, others: []).isEmpty)
+precondition(FurnitureLayout.conflicts(of: column, in: layoutRoom, others: []).isEmpty)
+var underBeam = table; underBeam.x = 0.5
+precondition(FurnitureLayout.conflicts(of: underBeam, in: layoutRoom, others: [beam]).furniture == 0)
+var wardrobe = table; wardrobe.id = "w9"; wardrobe.x = 0.5; wardrobe.height = 2.3
+precondition(FurnitureLayout.conflicts(of: wardrobe, in: layoutRoom, others: [beam]).furniture == 1)
+precondition(FurnitureLayout.conflicts(of: beam, in: layoutRoom, others: [wardrobe]).furniture == 1)
+var withElements = RoomExtras()
+withElements.furniture = [beam, column]
+try withElements.validate()
+withElements.furniture[0].structural = "wall"
+do { try withElements.validate(); preconditionFailure("unknown element kind") } catch RoomExtras.ValidationError.invalid { }
+let elementDXF = RoomExport.dxf(layoutRoom, labels: .init(), extras: RoomExtras(markers: [], furniture: [beam]))
+precondition(elementDXF.contains("KANTURA_STRUCTURE") && elementDXF.contains("UK +2.2000"))
+print("Building elements: placement, clearance and conflicts checks passed")
