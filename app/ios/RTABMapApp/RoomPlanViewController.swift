@@ -712,9 +712,13 @@ final class RoomSurfacesViewController: UIViewController {
 /// A saved room: interactive 3D model, headline numbers, share and delete.
 /// Uses exactly the JSON/USDZ pair already on disk.
 final class SavedRoomViewController: UIViewController, QLPreviewControllerDataSource {
-    private let room: SavedRoomPlan
+    static let changed = Notification.Name("KanturaRoomChanged")
+    private var room: SavedRoomPlan
+    private var column: UIStackView!
+    private var observer: NSObjectProtocol?
     var onDeleted: (() -> Void)?
     init(room: SavedRoomPlan) { self.room = room; super.init(nibName: nil, bundle: nil) }
+    deinit { if let observer = observer { NotificationCenter.default.removeObserver(observer) } }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     private func text(_ key: String) -> String { MeasurementGuide.homeText(key) }
 
@@ -739,7 +743,18 @@ final class SavedRoomViewController: UIViewController, QLPreviewControllerDataSo
         more.accessibilityLabel = MeasurementGuide.homeText("settings")
         navigationItem.rightBarButtonItem = more
 
-        let (_, column) = KanturaDesign.scrollColumn(in: self, spacing: 14)
+        column = KanturaDesign.scrollColumn(in: self, spacing: 14).column
+        // Corrections made in the room view update numbers here as well.
+        observer = NotificationCenter.default.addObserver(forName: Self.changed, object: nil, queue: .main) { [weak self] note in
+            guard let self = self, let updated = note.object as? SavedRoomPlan, updated.jsonURL == self.room.jsonURL else { return }
+            self.room = updated
+            self.render()
+        }
+        render()
+    }
+
+    private func render() {
+        column.arrangedSubviews.forEach { $0.removeFromSuperview() }
         var context = [KanturaHomeViewController.date(room.document.createdAt)]
         if let building = room.document.building { context.insert(building.name + " · " + building.floor, at: 0) }
         column.addArrangedSubview(KanturaDesign.label(context.joined(separator: " · "), style: .subheadline, secondary: true))
@@ -771,7 +786,10 @@ final class SavedRoomViewController: UIViewController, QLPreviewControllerDataSo
             guard let self = self else { return }
             self.navigationController?.pushViewController(TransportCheckViewController(preselected: self.room), animated: true)
         })
-        column.addArrangedSubview(KanturaDesign.secondaryButton(text("share"), icon: "square.and.arrow.up") { [weak self] in self?.share() })
+        column.addArrangedSubview(KanturaDesign.secondaryButton(text("export"), icon: "square.and.arrow.up") { [weak self] in
+            guard let self = self else { return }
+            self.navigationController?.pushViewController(RoomShareViewController(room: self.room), animated: true)
+        })
         column.addArrangedSubview(KanturaDesign.secondaryButton(text("view3d"), icon: "arkit") { [weak self] in self?.preview() })
         column.addArrangedSubview(KanturaDesign.secondaryButton(text("allSurfaces"), icon: "list.bullet") { [weak self] in
             guard let self = self else { return }

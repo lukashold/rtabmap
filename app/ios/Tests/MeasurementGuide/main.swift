@@ -24,7 +24,7 @@ for language in MeasurementGuide.languages {
     precondition(guide.objectCapture!.values.allSatisfy { !$0.isEmpty })
     precondition(guide.objectCapture!["photosCount"]!.contains("{count}") && guide.objectCapture!["photosCount"]!.contains("{max}"))
     precondition(guide.splat!.count == 9)
-    precondition(guide.home!.count == 101)
+    precondition(guide.home!.count == 132)
     precondition(Set(guide.home!.keys) == Set(guides["de"]!.home!.keys))
     precondition(guide.home!.values.allSatisfy { !$0.isEmpty })
     precondition(guide.home!["doorsWindows"]!.contains("{doors}") && guide.home!["doorsWindows"]!.contains("{windows}"))
@@ -451,3 +451,32 @@ precondition(placed[summaryWalls[0].id]?.count == 1 && placed[summaryWalls[1].id
 let placedDoor = placed[summaryWalls[0].id]![0]
 precondition(placedDoor.kind == "door" && abs((placedDoor.x1 - placedDoor.x0) - 0.8) < 1e-6 && abs(placedDoor.y0 + 1.25) < 1e-6)
 print("Room geometry: opening placement checks passed")
+
+// Manual corrections: an opening marked as wall closes its wall (no duplicate),
+// corrections are validated and can be undone.
+var corrected = RoomPlanDocument(name: "Test", createdAt: "2026-10-13T00:00:00Z", roomId: "r", surfaces: summaryWalls + [summaryFloor, summaryDoor, summaryWindow])
+corrected.corrections = [summaryDoor.id: "wall", summaryWindow.id: "door"]
+try corrected.validate()
+let applied = corrected.applyingCorrections()
+precondition(applied.surfaces.count == 6 && !applied.surfaces.contains { $0.id == summaryDoor.id })
+precondition(applied.surfaces.first { $0.id == summaryWindow.id }?.kind == "door")
+let closedSummary = RoomPlanSummary(applied)
+precondition(near(closedSummary.netWallArea, 43.5) && closedSummary.doors == 1 && closedSummary.windows == 0)
+corrected.corrections = ["unknown-id": "wall"]
+do { try corrected.validate(); preconditionFailure("correction for unknown surface") } catch RoomPlanDocument.ValidationError.invalidSurface { }
+print("Room corrections: close opening, re-classify, validation checks passed")
+
+// Exports: DXF lines in metres on named layers; self-contained HTML.
+let exportRoom = RoomPlanDocument(name: "Test", createdAt: "2026-10-13T00:00:00Z", roomId: "r", surfaces: summaryWalls + [summaryFloor, summaryDoor, summaryWindow])
+let dxf = RoomExport.dxf(exportRoom)
+precondition(dxf.hasPrefix("0\nSECTION") && dxf.hasSuffix("0\nEOF\n") && dxf.contains("$INSUNITS\n70\n6"))
+precondition(dxf.components(separatedBy: "0\nLINE\n8\nKANTURA_WALLS\n").count - 1 == 4)
+precondition(dxf.contains("4.00 m") && dxf.contains("5.00 m") && dxf.contains("KANTURA_OPENINGS"))
+let exportPlan = RoomExport.plan(exportRoom)
+precondition(exportPlan.walls.count == 4 && exportPlan.openings.count == 2 && abs(exportPlan.floorY) < 1e-9)
+precondition(exportPlan.openings.allSatisfy { $0.bottom >= -1e-6 && $0.top <= 2.5 + 1e-6 })
+let html = RoomExport.html(exportRoom, photos: [(name: "photo-001.jpg", jpeg: Data([0xFF, 0xD8, 0xFF]))])
+precondition(html.hasPrefix("<!doctype html>") && html.contains("<svg") && html.contains("canvas") && html.contains("data:image/jpeg;base64,/9j/"))
+precondition(!html.contains("http://") || html.contains("xmlns=\"http://www.w3.org/2000/svg\""))
+precondition(!html.contains("<script src"), "the HTML file must work offline")
+print("Room exports: DXF layers/units and offline HTML checks passed")

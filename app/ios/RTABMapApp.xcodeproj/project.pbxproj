@@ -18,6 +18,8 @@
 		A817AC060000000000000002 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = A817AC060000000000000001 /* InfoPlist.strings */; };
 		A817AC050000000000000002 /* videos in Resources */ = {isa = PBXBuildFile; fileRef = A817AC050000000000000001 /* videos */; };
 		A817AC040000000000000002 /* KanturaDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC040000000000000001 /* KanturaDesign.swift */; };
+		A817AC190000000000000002 /* RoomShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC190000000000000001 /* RoomShareViewController.swift */; };
+		A817AC180000000000000002 /* RoomExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC180000000000000001 /* RoomExport.swift */; };
 		A817AC170000000000000002 /* TransportCheckViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC170000000000000001 /* TransportCheckViewController.swift */; };
 		A817AC160000000000000002 /* TransportAssessment.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC160000000000000001 /* TransportAssessment.swift */; };
 		A817AC150000000000000002 /* RoomWalkthroughViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC150000000000000001 /* RoomWalkthroughViewController.swift */; };
@@ -177,6 +179,8 @@
 		A817AC06000000000000001E /* tr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "tr"; path = "RTABMapApp/Translations/tr.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 		A817AC050000000000000001 /* videos */ = {isa = PBXFileReference; lastKnownFileType = folder; name = videos; path = ../../tools/scan-workspace/public/videos; sourceTree = "<group>"; };
 		A817AC040000000000000001 /* KanturaDesign.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KanturaDesign.swift; path = RTABMapApp/KanturaDesign.swift; sourceTree = "<group>"; };
+		A817AC190000000000000001 /* RoomShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RoomShareViewController.swift; path = RTABMapApp/RoomShareViewController.swift; sourceTree = "<group>"; };
+		A817AC180000000000000001 /* RoomExport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RoomExport.swift; path = RTABMapApp/RoomExport.swift; sourceTree = "<group>"; };
 		A817AC170000000000000001 /* TransportCheckViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TransportCheckViewController.swift; path = RTABMapApp/TransportCheckViewController.swift; sourceTree = "<group>"; };
 		A817AC160000000000000001 /* TransportAssessment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TransportAssessment.swift; path = RTABMapApp/TransportAssessment.swift; sourceTree = "<group>"; };
 		A817AC150000000000000001 /* RoomWalkthroughViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RoomWalkthroughViewController.swift; path = RTABMapApp/RoomWalkthroughViewController.swift; sourceTree = "<group>"; };
@@ -558,6 +562,8 @@
 				A817AC080000000000000005 /* SplatViewerAssets */,
 				A817AC070000000000000003 /* ObjectCaptureViewController.swift */,
 				A817AC040000000000000001 /* KanturaDesign.swift */,
+				A817AC190000000000000001 /* RoomShareViewController.swift */,
+				A817AC180000000000000001 /* RoomExport.swift */,
 				A817AC170000000000000001 /* TransportCheckViewController.swift */,
 				A817AC160000000000000001 /* TransportAssessment.swift */,
 				A817AC150000000000000001 /* RoomWalkthroughViewController.swift */,
@@ -974,6 +980,8 @@
 				A817AC080000000000000004 /* SplatViewController.swift in Sources */,
 				A817AC070000000000000004 /* ObjectCaptureViewController.swift in Sources */,
 				A817AC040000000000000002 /* KanturaDesign.swift in Sources */,
+				A817AC190000000000000002 /* RoomShareViewController.swift in Sources */,
+				A817AC180000000000000002 /* RoomExport.swift in Sources */,
 				A817AC170000000000000002 /* TransportCheckViewController.swift in Sources */,
 				A817AC160000000000000002 /* TransportAssessment.swift in Sources */,
 				A817AC150000000000000002 /* RoomWalkthroughViewController.swift in Sources */,

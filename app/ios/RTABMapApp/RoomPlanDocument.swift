@@ -78,6 +78,33 @@ struct RoomPlanDocument: Codable {
     /// Detected furniture and fixtures (for example `stairs`, `refrigerator`) as
     /// oriented boxes. Dimensions are the box extents in metres, not a shape.
     var objects: [Object]? = nil
+    /// Manual corrections by the user: surface id → new kind ("wall", "door",
+    /// "window", "opening") or "deleted". The detected surfaces stay unchanged
+    /// in the file so a correction can always be undone.
+    var corrections: [String: String]? = nil
+
+    static let correctionKinds = ["wall", "door", "window", "opening", "deleted"]
+
+    /// The room as the user corrected it (used for display, areas and exports).
+    func applyingCorrections() -> RoomPlanDocument {
+        guard let corrections = corrections, !corrections.isEmpty else { return self }
+        // An opening that sits inside a detected wall and is marked "wall" simply
+        // closes that wall; it must not become a second, overlapping wall.
+        let hosted = Set(RoomPlanGeometry.openingsByWall(self.surfaces).values.flatMap { $0.map(\.id) })
+        let surfaces = self.surfaces.compactMap { s -> Surface? in
+            guard let kind = corrections[s.id] else { return s }
+            if kind == "deleted" { return nil }
+            if kind == "wall" && hosted.contains(s.id) { return nil }
+            // A floor is never re-classified; its outline is the area basis.
+            guard s.kind != "floor", kind != s.kind else { return s }
+            return Surface(id: s.id, kind: kind, dimensions: s.dimensions, transform: s.transform, confidence: s.confidence, polygonCorners: s.polygonCorners)
+        }
+        var corrected = RoomPlanDocument(name: name, createdAt: createdAt, roomId: roomId, surfaces: surfaces)
+        corrected.building = building
+        corrected.objects = objects
+        corrected.corrections = corrections
+        return corrected
+    }
 
     struct Object: Codable, Equatable {
         let id: String
@@ -101,6 +128,12 @@ struct RoomPlanDocument: Codable {
             throw ValidationError.invalidDocument
         }
         var ids = Set<String>()
+        if let corrections = corrections {
+            let known = Set(surfaces.map(\.id))
+            guard corrections.count <= 150, corrections.allSatisfy({ known.contains($0.key) && Self.correctionKinds.contains($0.value) }) else {
+                throw ValidationError.invalidSurface
+            }
+        }
         if let objects = objects {
             guard objects.count <= 150, objects.allSatisfy({ object in
                 !object.id.isEmpty && object.category.range(of: "^[A-Za-z]{1,40}$", options: .regularExpression) != nil &&
@@ -142,9 +175,30 @@ struct RoomPlanDocument: Codable {
 }
 
 struct SavedRoomPlan {
+    /// The room with the user's corrections applied.
     let document: RoomPlanDocument
     let jsonURL: URL
     let modelURL: URL
+    /// The file contents as stored (detection plus correction list).
+    let original: RoomPlanDocument
+
+    init(document: RoomPlanDocument, jsonURL: URL, modelURL: URL) {
+        self.original = document
+        self.document = document.applyingCorrections()
+        self.jsonURL = jsonURL
+        self.modelURL = modelURL
+    }
+
+    /// Store a correction (nil restores the detected kind) and return the reloaded room.
+    func correcting(_ id: String, to kind: String?) throws -> SavedRoomPlan {
+        var updated = original
+        var list = updated.corrections ?? [:]
+        let detected = original.surfaces.first { $0.id == id }?.kind
+        if let kind = kind, kind != detected { list[id] = kind } else { list[id] = nil }
+        updated.corrections = list.isEmpty ? nil : list
+        try updated.encoded().write(to: jsonURL, options: .atomic)
+        return SavedRoomPlan(document: updated, jsonURL: jsonURL, modelURL: modelURL)
+    }
 
     static func exportStem(name: String, identifier: UUID) -> String {
         let safe = name.prefix(60).unicodeScalars.map {

@@ -41,6 +41,12 @@ export async function readFiles(input,{roomLabels={}}={}) {
   let entries=Object.create(null);
   if(files.length===1&&/\.zip$/i.test(files[0].name)) entries=await unpack(new Uint8Array(await files[0].arrayBuffer()));
   else for(const file of files){const path=safePath(file.webkitRelativePath||file.name);if(Object.hasOwn(entries,path))throw new MeasureError('badArchive');entries[path]=new Uint8Array(await file.arrayBuffer());}
+  // A project ZIP from the iPhone app: one RoomPlan room (+ optional files).
+  const roomFiles=Object.keys(entries).filter(p=>/\.kantura-room\.json$/i.test(p)&&!p.startsWith('__MACOSX/'));
+  if(!entries['rtab-measure.json']&&!entries['kantura-building.json']&&roomFiles.length===1) {
+    if(entries[roomFiles[0]].length>5*1024*1024)throw new MeasureError('tooLarge');
+    try{return roomPlanBundle(JSON.parse(strFromU8(entries[roomFiles[0]])),roomLabels);}catch(error){throw new MeasureError(error?.code||'roomplanUnsupported');}
+  }
   let project;
   if(entries['rtab-measure.json']) {
     try {project=validateProject(JSON.parse(strFromU8(entries['rtab-measure.json'])));} catch { throw new MeasureError('invalidProject'); }

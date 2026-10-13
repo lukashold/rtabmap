@@ -12,25 +12,31 @@ import ImageIO
 ///
 /// Photos are projected onto RoomPlan's flat surfaces: furniture in front of a
 /// wall appears painted onto that wall, and areas no photo saw stay plain.
-final class RoomWalkthroughViewController: UIViewController {
+final class RoomWalkthroughViewController: UIViewController, UIGestureRecognizerDelegate {
     private enum Mode: Int { case plan, model, inside }
 
-    private let room: SavedRoomPlan
+    private var room: SavedRoomPlan
     private let photoDirectory: URL
     private let photos: RoomPhotoSet?
-    private let summary: RoomPlanSummary
+    private var summary: RoomPlanSummary
     private let scene = SCNScene()
     private let sceneView = SCNView()
     private let planCamera = SCNNode(), modelCamera = SCNNode(), eyeCamera = SCNNode()
     // Content groups switched per mode.
     private let solid = SCNNode(), photoTiles = SCNNode(), plainCeiling = SCNNode()
     private let planMarks = SCNNode(), modelLabels = SCNNode(), insideLabels = SCNNode()
+    /// Everything that turns with the two-finger rotation, pivoting on the room centre.
+    private let world = SCNNode()
+    private var startRotation: Float = 0
+    private var startPan = SCNVector3Zero
     private var wallMaterial = SCNMaterial()
     private let mode = UISegmentedControl()
     private let measures = UIButton(type: .system)
     private let status = KanturaHintPill("")
     private var yaw: Float = 0, pitch: Float = 0, startYaw: Float = 0, startPitch: Float = 0
     private var lookGestures: [UIGestureRecognizer] = []
+    private var planGestures: [UIGestureRecognizer] = []
+    private var hintShown = false
     private var centre = (x: 0.0, z: 0.0), floorY = 0.0, extent = 5.0
     private func text(_ key: String) -> String { MeasurementGuide.homeText(key) }
 
@@ -95,16 +101,128 @@ final class RoomWalkthroughViewController: UIViewController {
         sceneView.addGestureRecognizer(pan)
         sceneView.addGestureRecognizer(pinch)
         lookGestures = [pan, pinch]
+        // Two fingers turn the room (plan, 3D and inside); one tap corrects a surface.
+        let rotate = UIRotationGestureRecognizer(target: self, action: #selector(turn(_:)))
+        rotate.delegate = self
+        sceneView.addGestureRecognizer(rotate)
+        let tap = UITapGestureRecognizer(target: self, action: #selector(select(_:)))
+        sceneView.addGestureRecognizer(tap)
+        let planPan = UIPanGestureRecognizer(target: self, action: #selector(movePlan(_:)))
+        planPan.maximumNumberOfTouches = 1
+        let planPinch = UIPinchGestureRecognizer(target: self, action: #selector(zoomPlan(_:)))
+        planPinch.delegate = self
+        sceneView.addGestureRecognizer(planPan)
+        sceneView.addGestureRecognizer(planPinch)
+        planGestures = [planPan, planPinch]
+        let export = UIBarButtonItem(image: UIImage(systemName: "square.and.arrow.up"), style: .plain, target: self, action: #selector(openExport))
+        export.accessibilityLabel = text("export")
+        navigationItem.rightBarButtonItem = export
         status.isHidden = true
 
-        buildSolid()
-        buildPlanMarks()
-        buildModelLabels()
+        buildContent()
         buildCameras()
-        [solid, plainCeiling, photoTiles, planMarks, modelLabels, insideLabels].forEach { scene.rootNode.addChildNode($0) }
+        scene.rootNode.addChildNode(world)
+        [solid, plainCeiling, photoTiles, planMarks, modelLabels, insideLabels].forEach { world.addChildNode($0) }
+        alignToLongestWall()
         addLights()
         applyMode()
         buildPhotoTiles()
+    }
+
+    private func buildContent() {
+        [solid, plainCeiling, planMarks, modelLabels, insideLabels].forEach { group in group.childNodes.forEach { $0.removeFromParentNode() } }
+        buildSolid()
+        buildPlanMarks()
+        buildModelLabels()
+        world.pivot = SCNMatrix4MakeTranslation(Float(centre.x), 0, Float(centre.z))
+        world.position = SCNVector3(Float(centre.x), 0, Float(centre.z))
+    }
+
+    /// Start with the longest wall horizontal, like a drawn floor plan.
+    private func alignToLongestWall() {
+        guard let wall = walls.max(by: { $0.dimensions[0] < $1.dimensions[0] }) else { return }
+        let x = (wall.transform[0], wall.transform[2])
+        world.eulerAngles.y = Float(atan2(x.1, x.0))
+        orientPlanLabels()
+    }
+
+    /// Keep the lengths along the walls readable (never upside down) after turning.
+    private func orientPlanLabels() {
+        for holder in planMarks.childNodes where holder.name == "length" {
+            let total = holder.eulerAngles.y + world.eulerAngles.y
+            if cos(total) < 0 { holder.eulerAngles.y += .pi }
+        }
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool { true }
+
+    @objc private func turn(_ gesture: UIRotationGestureRecognizer) {
+        if gesture.state == .began { startRotation = world.eulerAngles.y }
+        // Screen-clockwise fingers turn the room clockwise as seen from above.
+        world.eulerAngles.y = startRotation - Float(gesture.rotation)
+        if gesture.state == .ended || gesture.state == .changed { orientPlanLabels() }
+    }
+
+    @objc private func movePlan(_ gesture: UIPanGestureRecognizer) {
+        guard let camera = planCamera.camera else { return }
+        if gesture.state == .began { startPan = planCamera.position }
+        let t = gesture.translation(in: sceneView)
+        let metresPerPoint = Float(camera.orthographicScale * 2) / Float(max(1, sceneView.bounds.height))
+        planCamera.position = SCNVector3(startPan.x - Float(t.x) * metresPerPoint, startPan.y, startPan.z - Float(t.y) * metresPerPoint)
+    }
+
+    @objc private func zoomPlan(_ gesture: UIPinchGestureRecognizer) {
+        guard let camera = planCamera.camera else { return }
+        camera.orthographicScale = max(0.8, min(60, camera.orthographicScale / Double(gesture.scale)))
+        gesture.scale = 1
+    }
+
+    @objc private func openExport() {
+        navigationController?.pushViewController(RoomShareViewController(room: room), animated: true)
+    }
+
+    // MARK: Corrections
+
+    @objc private func select(_ gesture: UITapGestureRecognizer) {
+        guard presentedViewController == nil, Mode(rawValue: mode.selectedSegmentIndex) != .inside else { return }
+        let hits = sceneView.hitTest(gesture.location(in: sceneView), options: [.searchMode: SCNHitTestSearchMode.all.rawValue, .ignoreHiddenNodes: true])
+        guard let name = hits.lazy.compactMap({ hit -> String? in
+            var node: SCNNode? = hit.node
+            while let current = node { if let n = current.name, n.hasPrefix("surface:") { return n } ; node = current.parent }
+            return nil
+        }).first else { return }
+        let id = String(name.dropFirst("surface:".count))
+        guard let surface = room.original.surfaces.first(where: { $0.id == id }) else { return }
+        let current = room.original.corrections?[id] ?? surface.kind
+        let sheet = UIAlertController(title: text("editTitle"), message: MeasurementGuide.roomText(surface.kind) + " · " + length(surface.dimensions[0]) + " × " + length(surface.dimensions[1]), preferredStyle: .actionSheet)
+        let options: [(String, String)] = surface.kind == "wall" ? [] : [("wall", "asWall"), ("door", "asDoor"), ("window", "asWindow"), ("opening", "asOpening")]
+        for (kind, key) in options where kind != current {
+            sheet.addAction(UIAlertAction(title: text(key), style: .default) { [weak self] _ in self?.correct(id, kind) })
+        }
+        if current != "deleted" { sheet.addAction(UIAlertAction(title: text("removeSurface"), style: .destructive) { [weak self] _ in self?.correct(id, "deleted") }) }
+        if room.original.corrections?[id] != nil { sheet.addAction(UIAlertAction(title: text("resetEdit"), style: .default) { [weak self] _ in self?.correct(id, nil) }) }
+        sheet.addAction(UIAlertAction(title: text("cancel"), style: .cancel))
+        sheet.popoverPresentationController?.sourceView = sceneView
+        sheet.popoverPresentationController?.sourceRect = CGRect(origin: gesture.location(in: sceneView), size: CGSize(width: 1, height: 1))
+        present(sheet, animated: true)
+    }
+
+    private func correct(_ id: String, _ kind: String?) {
+        do {
+            room = try room.correcting(id, to: kind)
+            summary = RoomPlanSummary(room.document)
+            let rotation = world.eulerAngles.y
+            buildContent()
+            world.eulerAngles.y = rotation
+            orientPlanLabels()
+            applyMode()
+            NotificationCenter.default.post(name: SavedRoomViewController.changed, object: room)
+            UIAccessibility.post(notification: .announcement, argument: text("edited"))
+        } catch {
+            let alert = UIAlertController(title: MeasurementGuide.roomText("exportFailed"), message: nil, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: MeasurementGuide.roomText("close"), style: .default))
+            present(alert, animated: true)
+        }
     }
 
     // MARK: Geometry helpers
@@ -165,14 +283,34 @@ final class RoomWalkthroughViewController: UIViewController {
             let geometry = SCNShape(path: shape, extrusionDepth: 0.1)
             geometry.materials = [wallMaterial]
             let node = SCNNode(geometry: geometry)
+            node.name = "surface:" + wall.id
             node.transform = matrix(wall.transform)
+            for o in openings[wall.id] ?? [] where o.kind != "window" {
+                // A faint tappable pane, so doors and openings can be corrected.
+                let pane = SCNNode(geometry: SCNPlane(width: CGFloat(o.x1 - o.x0), height: CGFloat(o.y1 - o.y0)))
+                pane.geometry?.materials = [material(KanturaDesign.mint.withAlphaComponent(0.18))]
+                pane.position = SCNVector3(Float((o.x0 + o.x1) / 2), Float((o.y0 + o.y1) / 2), 0)
+                pane.name = "surface:" + o.id
+                node.addChildNode(pane)
+            }
             for o in openings[wall.id] ?? [] where o.kind == "window" {
                 let glass = SCNPlane(width: CGFloat(o.x1 - o.x0), height: CGFloat(o.y1 - o.y0))
                 glass.materials = [material(UIColor.systemTeal.withAlphaComponent(0.35))]
                 let pane = SCNNode(geometry: glass)
+                pane.name = "surface:" + o.id
                 pane.position = SCNVector3(Float((o.x0 + o.x1) / 2), Float((o.y0 + o.y1) / 2), 0)
                 node.addChildNode(pane)
             }
+            solid.addChildNode(node)
+        }
+        // Openings not inside any wall are shown on their own (and can be corrected).
+        let hosted = Set(openings.values.flatMap { $0.map(\.id) })
+        for s in room.document.surfaces where ["door", "window", "opening"].contains(s.kind) && !hosted.contains(s.id) && s.transform.count == 16 && s.dimensions.count == 3 {
+            let box = SCNBox(width: CGFloat(s.dimensions[0]), height: CGFloat(s.dimensions[1]), length: 0.04, chamferRadius: 0)
+            box.materials = [material((s.kind == "window" ? UIColor.systemTeal : KanturaDesign.mint).withAlphaComponent(0.45))]
+            let node = SCNNode(geometry: box)
+            node.transform = matrix(s.transform)
+            node.name = "surface:" + s.id
             solid.addChildNode(node)
         }
         let floorMaterial = material(UIColor(red: 0.86, green: 0.78, blue: 0.66, alpha: 1))
@@ -249,7 +387,7 @@ final class RoomWalkthroughViewController: UIViewController {
     /// door/window markers on the wall line, area and name in the room.
     private func buildPlanMarks() {
         let top = Float(floorY + height + 0.05)
-        let ink = UIColor(red: 0.15, green: 0.1, blue: 0.25, alpha: 1)
+        let ink = UIColor(white: 0.55, alpha: 1)
         for wall in walls {
             let w = wall.dimensions[0], h = wall.dimensions[1]
             let a = RoomPlanGeometry.world([-w / 2, -h / 2, 0], wall.transform), b = RoomPlanGeometry.world([w / 2, -h / 2, 0], wall.transform)
@@ -266,6 +404,7 @@ final class RoomWalkthroughViewController: UIViewController {
             let label = pill(length(w), size: max(0.22, CGFloat(extent) * 0.045))
             label.eulerAngles.x = -.pi / 2
             let holder = SCNNode()
+            holder.name = "length"
             holder.position = SCNVector3(Float(mid.x + outX * 1.65), top + 0.01, Float(mid.z + outZ * 1.65))
             var angle = -atan2(Float(b.z - a.z), Float(b.x - a.x))
             if angle > .pi / 2 { angle -= .pi } else if angle < -.pi / 2 { angle += .pi }
@@ -279,19 +418,19 @@ final class RoomWalkthroughViewController: UIViewController {
             for o in openings[wall.id] ?? [] {
                 let a = RoomPlanGeometry.world([o.x0, -wall.dimensions[1] / 2, 0], wall.transform), b = RoomPlanGeometry.world([o.x1, -wall.dimensions[1] / 2, 0], wall.transform)
                 let color = o.kind == "window" ? UIColor.systemTeal : KanturaDesign.mint
-                planMarks.addChildNode(bar(from: SCNVector3(Float(a.x), top + 0.02, Float(a.z)), to: SCNVector3(Float(b.x), top + 0.02, Float(b.z)), thickness: 0.14, color: color))
+                let marker = bar(from: SCNVector3(Float(a.x), top + 0.02, Float(a.z)), to: SCNVector3(Float(b.x), top + 0.02, Float(b.z)), thickness: 0.14, color: color)
+                marker.name = "surface:" + o.id
+                planMarks.addChildNode(marker)
                 let mid = RoomPlanGeometry.world([(o.x0 + o.x1) / 2, -wall.dimensions[1] / 2, 0], wall.transform), towards = inward(from: mid)
                 let label = pill(MeasurementGuide.roomText(o.kind) + " " + length(o.x1 - o.x0), accent: true, size: max(0.17, CGFloat(extent) * 0.034))
                 label.position = SCNVector3(Float(mid.x + towards.x * 0.4), top + 0.03, Float(mid.z + towards.z * 0.4))
-                label.eulerAngles.x = -.pi / 2
-                planMarks.addChildNode(label)
+                planMarks.addChildNode(billboard(label))
             }
         }
         let name = room.document.building?.room ?? room.document.name
         let area = pill(name + " · " + KanturaDesign.metric(summary.floorArea, unit: "m²", decimals: 1), accent: true, size: max(0.25, CGFloat(extent) * 0.05))
         area.position = SCNVector3(Float(centre.x), top + 0.04, Float(centre.z))
-        area.eulerAngles.x = -.pi / 2
-        planMarks.addChildNode(area)
+        planMarks.addChildNode(billboard(area))
     }
 
     /// 3D: one length label per wall above its top edge, the room height once,
@@ -441,9 +580,22 @@ final class RoomWalkthroughViewController: UIViewController {
         case .inside: sceneView.pointOfView = eyeCamera
         }
         // Inside: own look-around gestures. Plan/3D: SceneKit's orbit/zoom control.
-        sceneView.allowsCameraControl = current != .inside
-        sceneView.defaultCameraController.interactionMode = current == .plan ? .pan : .orbitTurntable
+        // Plan: own pan/zoom (two fingers turn). 3D: SceneKit orbit. Inside: look around.
+        sceneView.allowsCameraControl = current == .model
+        sceneView.defaultCameraController.interactionMode = .orbitTurntable
         lookGestures.forEach { $0.isEnabled = current == .inside }
+        planGestures.forEach { $0.isEnabled = current == .plan }
+        if current != .inside && !hintShown {
+            hintShown = true
+            status.isHidden = false
+            status.alpha = 1
+            status.label.text = text("editHint")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
+                guard let self = self, self.status.label.text == self.text("editHint") else { return }
+                UIView.animate(withDuration: 0.4, animations: { self.status.alpha = 0 }) { _ in self.status.isHidden = true; self.status.alpha = 1 }
+            }
+            return
+        }
         sceneView.accessibilityHint = text(current == .inside ? "walkHint" : "walkOutsideHint")
         status.isHidden = current != .inside || photos == nil
         if current == .inside && photos == nil {

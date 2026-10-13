@@ -182,3 +182,25 @@ test('RoomPlan import preserves surfaces; areas survive building archive save an
   assert.deepEqual(project.openingAssignments, { [door.id]: null });
   close(areaSummary(project.roomSurfaces, project.openingAssignments).totals.net, 43.5, 'manual exclusion survives');
 });
+
+test('iPhone corrections: an opening marked as wall closes it, re-classified kinds are used', async () => {
+  const { applyCorrections } = await import('../src/roomplan.js');
+  const surfaces = room();
+  const door = surfaces.find(s => s.kind === 'door'), window = surfaces.find(s => s.kind === 'window');
+  const corrected = applyCorrections({ surfaces, corrections: { [door.id]: 'wall', [window.id]: 'door' } });
+  assert.equal(corrected.surfaces.length, surfaces.length - 1);
+  assert.equal(corrected.surfaces.find(s => s.id === window.id).kind, 'door');
+  close(areaSummary(corrected.surfaces).totals.net, 43.5, 'door closed, window kept as opening');
+  assert.throws(() => applyCorrections({ surfaces, corrections: { missing: 'wall' } }));
+  assert.throws(() => applyCorrections({ surfaces, corrections: { [door.id]: 'floor' } }));
+});
+
+test('a project ZIP from the iPhone with one .kantura-room.json opens as a room', async () => {
+  const { zipSync, strToU8 } = await import('fflate');
+  const toPlan = s => ({ id: s.id, kind: s.kind, dimensions: s.dimensions, transform: s.transform, confidence: s.confidence, ...(s.polygonCorners ? { polygonCorners: s.polygonCorners } : {}) });
+  const data = { format: 'kantura-room-plan', version: 1, units: 'm', coordinateSystem: { upAxis: 'y', handedness: 'right', matrixOrder: 'column-major' }, name: 'Zimmer', surfaces: room().map(toPlan) };
+  const zip = zipSync({ 'Zimmer-1234/Zimmer.kantura-room.json': strToU8(JSON.stringify(data)), 'Zimmer-1234/Zimmer.dxf': strToU8('0\nEOF\n') });
+  const bundle = await readFiles([new File([zip], 'Zimmer.zip')]);
+  assert.equal(bundle.roomPlan, true);
+  close(areaSummary(bundle.project.roomSurfaces).totals.net, 41.5, 'net area from the zipped room');
+});
