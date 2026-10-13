@@ -6,7 +6,7 @@ import AVKit
 /// All scanning, saving and processing stays in the existing controllers; this
 /// screen only lists results and routes the user.
 final class KanturaHomeViewController: UIViewController {
-    enum Route { case roomScan, gateScan, lidarProjects, lidarWorkflow, photoObject, scenePhotos, splat, expert, transport }
+    enum Route { case roomScan, stairScan, gateScan, lidarProjects, lidarWorkflow, photoObject, scenePhotos, splat, expert, transport }
     var onRoute: ((Route) -> Void)?
     var onLanguageChange: (() -> Void)?
     /// RoomPlan needs a LiDAR iPhone/iPad with iOS 17; otherwise the main button
@@ -57,22 +57,19 @@ final class KanturaHomeViewController: UIViewController {
             column.addArrangedSubview(card)
             column.setCustomSpacing(24, after: card)
         }
-        let rooms = Self.savedRooms()
-        if rooms.isEmpty {
+        let items = Self.savedRooms().map(LibraryItem.room) + Self.savedStairs().map(LibraryItem.stair)
+        if items.isEmpty {
             column.addArrangedSubview(emptyState())
         } else {
-            let groups = Dictionary(grouping: rooms) { room -> String in
-                guard let building = room.document.building else { return "" }
-                return building.name + " · " + building.floor
-            }
-            for title in groups.keys.sorted() {
+            let groups = Dictionary(grouping: items) { LibraryLabels.group($0.building) }
+            for title in groups.keys.sorted(by: { ($0.isEmpty ? 1 : 0, $0) < ($1.isEmpty ? 1 : 0, $1) }) {
                 if !title.isEmpty || groups.count > 1 {
                     let header = KanturaDesign.label(title.isEmpty ? MeasurementGuide.roomText("otherRooms") : title, style: .subheadline, secondary: true)
                     header.accessibilityTraits.insert(.header)
                     column.addArrangedSubview(header)
                     column.setCustomSpacing(8, after: header)
                 }
-                for room in groups[title]! { column.addArrangedSubview(card(for: room)) }
+                for item in groups[title]!.sorted(by: { $0.createdAt > $1.createdAt }) { column.addArrangedSubview(card(for: item)) }
                 if let last = column.arrangedSubviews.last { column.setCustomSpacing(26, after: last) }
             }
         }
@@ -110,6 +107,27 @@ final class KanturaHomeViewController: UIViewController {
             .appendingPathComponent("KanturaRooms", isDirectory: true))
     }
 
+    static func savedStairs() -> [SavedStairScan] {
+        SavedStairScan.load(from: SavedStairScan.directory(in: FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]))
+    }
+
+    /// A saved room or stair scan as shown on the start screen.
+    enum LibraryItem {
+        case room(SavedRoomPlan), stair(SavedStairScan)
+        var name: String {
+            switch self {
+            case .room(let r): return r.document.building?.room ?? r.document.name
+            case .stair(let s): return s.displayName
+            }
+        }
+        var building: RoomPlanDocument.Building? {
+            switch self { case .room(let r): return r.original.building; case .stair(let s): return s.document.building }
+        }
+        var createdAt: String {
+            switch self { case .room(let r): return r.document.createdAt; case .stair(let s): return s.document.createdAt }
+        }
+    }
+
     private func emptyState() -> UIView {
         let illustration = KanturaDesign.symbolTile("cube.transparent", size: 88)
         let wrapper = UIView()
@@ -134,21 +152,32 @@ final class KanturaHomeViewController: UIViewController {
         return stack
     }
 
-    private func card(for room: SavedRoomPlan) -> UIView {
-        let summary = RoomPlanSummary(room.document)
-        let name = room.document.building?.room ?? room.document.name
+    private func card(for item: LibraryItem) -> UIView {
+        let name = item.name
         let heading = KanturaDesign.label(name, style: .headline)
-        var facts = [KanturaDesign.metric(summary.floorArea, unit: "m²", decimals: 1)]
-        if summary.wallHeight != nil { facts.append(KanturaDesign.metric(summary.wallHeight, unit: "m", decimals: 2)) }
-        facts.append(Self.date(room.document.createdAt))
+        var facts: [String] = []
+        let icon: String
+        switch item {
+        case .room(let room):
+            let summary = RoomPlanSummary(room.document)
+            icon = "square.split.bottomrightquarter"
+            facts.append(KanturaDesign.metric(summary.floorArea, unit: "m²", decimals: 1))
+            if summary.wallHeight != nil { facts.append(KanturaDesign.metric(summary.wallHeight, unit: "m", decimals: 2)) }
+        case .stair(let stair):
+            icon = "figure.stairs"
+            let p = stair.document.profile
+            facts.append("↕ " + KanturaDesign.metric(p.drop, unit: "m", decimals: 2))
+            if let w = p.minWidth { facts.append("↔ " + KanturaDesign.metric(w, unit: "m", decimals: 2)) }
+        }
         let detail = KanturaDesign.label(facts.joined(separator: " · "), style: .subheadline, secondary: true)
-        let copy = UIStackView(arrangedSubviews: [heading, detail])
+        let time = KanturaDesign.label(Self.date(item.createdAt), style: .footnote, secondary: true)
+        let copy = UIStackView(arrangedSubviews: [heading, detail, time])
         copy.axis = .vertical
-        copy.spacing = 4
+        copy.spacing = 3
         let chevron = UIImageView(image: UIImage(systemName: "chevron.forward"))
         chevron.tintColor = KanturaDesign.muted
         chevron.setContentHuggingPriority(.required, for: .horizontal)
-        let row = UIStackView(arrangedSubviews: [KanturaDesign.symbolTile("square.split.bottomrightquarter"), copy, chevron])
+        let row = UIStackView(arrangedSubviews: [KanturaDesign.symbolTile(icon), copy, chevron])
         row.spacing = 14
         row.alignment = .center
         row.isUserInteractionEnabled = false
@@ -162,16 +191,86 @@ final class KanturaHomeViewController: UIViewController {
             card.topAnchor.constraint(equalTo: button.topAnchor), card.bottomAnchor.constraint(equalTo: button.bottomAnchor)
         ])
         button.isAccessibilityElement = true
-        button.accessibilityLabel = name + ", " + facts.joined(separator: ", ")
+        button.accessibilityLabel = name + ", " + facts.joined(separator: ", ") + ", " + Self.date(item.createdAt)
         button.accessibilityTraits = .button
-        button.addAction(UIAction { [weak self] _ in self?.open(room) }, for: .touchUpInside)
+        button.addAction(UIAction { [weak self] _ in self?.open(item) }, for: .touchUpInside)
         button.addAction(UIAction { [weak button] _ in button?.alpha = 0.7 }, for: [.touchDown, .touchDragEnter])
         button.addAction(UIAction { [weak button] _ in button?.alpha = 1 }, for: [.touchUpInside, .touchUpOutside, .touchCancel, .touchDragExit])
-        let delete = UIAction(title: text("delete"), image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in self?.confirmDelete(room) }
         button.addInteraction(UIContextMenuInteraction(delegate: ContextMenu.shared))
-        ContextMenu.shared.actions[ObjectIdentifier(button)] = [delete]
-        button.accessibilityCustomActions = [UIAccessibilityCustomAction(name: text("delete")) { [weak self] _ in self?.confirmDelete(room); return true }]
+        ContextMenu.shared.actions[ObjectIdentifier(button)] = menu(for: item)
+        button.accessibilityCustomActions = [
+            UIAccessibilityCustomAction(name: text("rename")) { [weak self] _ in self?.edit(item); return true },
+            UIAccessibilityCustomAction(name: text("delete")) { [weak self] _ in self?.confirmDelete(item); return true }
+        ]
         return button
+    }
+
+    /// Long-press menu: rename, move to an apartment/floor, delete.
+    private func menu(for item: LibraryItem) -> [UIMenuElement] {
+        let rename = UIAction(title: text("rename"), image: UIImage(systemName: "pencil")) { [weak self] _ in self?.edit(item) }
+        let current = item.building
+        var places: [(apartment: String, floor: String)] = []
+        for other in Self.savedRooms().map(LibraryItem.room) + Self.savedStairs().map(LibraryItem.stair) {
+            guard let b = other.building, !places.contains(where: { $0.apartment == b.name && $0.floor == b.floor }) else { continue }
+            places.append((b.name, b.floor))
+        }
+        var assign: [UIMenuElement] = places.sorted { ($0.apartment, $0.floor) < ($1.apartment, $1.floor) }.map { place in
+            let title = LibraryLabels.group(.init(name: place.apartment, floor: place.floor, room: ""))
+            let action = UIAction(title: title, image: UIImage(systemName: "building.2")) { [weak self] _ in
+                self?.relabel(item, name: item.name, apartment: place.apartment, floor: place.floor)
+            }
+            if current?.name == place.apartment && current?.floor == place.floor { action.state = .on }
+            return action
+        }
+        assign.append(UIAction(title: text("newApartment"), image: UIImage(systemName: "plus")) { [weak self] _ in self?.edit(item, focusApartment: true) })
+        if current != nil {
+            assign.append(UIAction(title: text("noApartment"), image: UIImage(systemName: "tray")) { [weak self] _ in
+                self?.relabel(item, name: item.name, apartment: "", floor: "")
+            })
+        }
+        let delete = UIAction(title: text("delete"), image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in self?.confirmDelete(item) }
+        return [rename, UIMenu(title: text("assign"), image: UIImage(systemName: "building.2"), children: assign), UIMenu(options: .displayInline, children: [delete])]
+    }
+
+    private func edit(_ item: LibraryItem, focusApartment: Bool = false) {
+        guard presentedViewController == nil else { return }
+        let alert = UIAlertController(title: text("renameTitle"), message: nil, preferredStyle: .alert)
+        let b = item.building
+        let values = [item.name, b.map { $0.name == LibraryLabels.placeholder ? "" : $0.name } ?? "", b.map { $0.floor == LibraryLabels.placeholder ? "" : $0.floor } ?? ""]
+        for (index, placeholder) in [text("itemName"), text("apartment"), text("floorLabel")].enumerated() {
+            alert.addTextField { field in
+                field.placeholder = placeholder
+                field.text = values[index]
+                field.autocapitalizationType = .sentences
+                field.clearButtonMode = .whileEditing
+                field.accessibilityLabel = placeholder
+            }
+        }
+        alert.addAction(UIAlertAction(title: text("cancel"), style: .cancel))
+        alert.addAction(UIAlertAction(title: text("done"), style: .default) { [weak self, weak alert] _ in
+            let fields = alert?.textFields ?? []
+            let name = (fields.first?.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            self?.relabel(item, name: name.isEmpty ? item.name : name, apartment: fields.count > 1 ? fields[1].text ?? "" : "", floor: fields.count > 2 ? fields[2].text ?? "" : "")
+        })
+        present(alert, animated: true) {
+            if focusApartment, let fields = alert.textFields, fields.count > 1 { fields[1].text = ""; fields[1].becomeFirstResponder() }
+        }
+    }
+
+    private func relabel(_ item: LibraryItem, name: String, apartment: String, floor: String) {
+        do {
+            switch item {
+            case .room(let room):
+                let updated = try room.relabeled(name: name, apartment: apartment, floor: floor)
+                NotificationCenter.default.post(name: SavedRoomViewController.changed, object: updated)
+            case .stair(let stair): _ = try stair.relabeled(name: name, apartment: apartment, floor: floor)
+            }
+        } catch {
+            let alert = UIAlertController(title: text("invalidInput"), message: nil, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: text("cancel"), style: .cancel))
+            present(alert, animated: true)
+        }
+        reload()
     }
 
     static func date(_ iso: String) -> String {
@@ -179,22 +278,30 @@ final class KanturaHomeViewController: UIViewController {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: MeasurementGuide.selectedLanguage)
         formatter.dateStyle = .medium
-        formatter.timeStyle = .none
+        formatter.timeStyle = .short
         return formatter.string(from: date)
     }
 
-    private func open(_ room: SavedRoomPlan) {
-        let detail = SavedRoomViewController(room: room)
-        detail.onDeleted = { [weak self] in self?.reload() }
-        navigationController?.pushViewController(detail, animated: true)
+    private func open(_ item: LibraryItem) {
+        switch item {
+        case .room(let room):
+            let detail = SavedRoomViewController(room: room)
+            detail.onDeleted = { [weak self] in self?.reload() }
+            navigationController?.pushViewController(detail, animated: true)
+        case .stair(let stair):
+            navigationController?.pushViewController(StairResultViewController(scan: stair), animated: true)
+        }
     }
 
-    private func confirmDelete(_ room: SavedRoomPlan) {
+    private func confirmDelete(_ item: LibraryItem) {
         guard presentedViewController == nil else { return }
         let alert = UIAlertController(title: text("deleteTitle"), message: text("deleteBody"), preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: text("cancel"), style: .cancel))
         alert.addAction(UIAlertAction(title: text("delete"), style: .destructive) { [weak self] _ in
-            SavedRoomViewController.remove(room)
+            switch item {
+            case .room(let room): SavedRoomViewController.remove(room)
+            case .stair(let stair): try? FileManager.default.removeItem(at: stair.folder)
+            }
             self?.reload()
         })
         present(alert, animated: true)
@@ -216,7 +323,11 @@ final class KanturaHomeViewController: UIViewController {
         let sheet = KanturaMoreCaptureViewController()
         sheet.onRoute = { [weak self] route in
             // The transport check needs no camera; it opens inside this navigation.
-            if route == .transport { self?.navigationController?.pushViewController(TransportCheckViewController(), animated: true) }
+            if route == .transport {
+                let check = TransportCheckViewController()
+                check.onStairScan = { [weak self] in self?.onRoute?(.stairScan) }
+                self?.navigationController?.pushViewController(check, animated: true)
+            }
             else { self?.onRoute?(route) }
         }
         let navigation = UINavigationController(rootViewController: sheet)
@@ -288,6 +399,7 @@ final class KanturaMoreCaptureViewController: UIViewController {
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: MeasurementGuide.all[MeasurementGuide.selectedLanguage]?.close, style: .done, target: self, action: #selector(close))
         let (_, column) = KanturaDesign.scrollColumn(in: self, spacing: 10)
         let entries: [(KanturaHomeViewController.Route, String, String, String)] = [
+            (.stairScan, MeasurementGuide.homeText("stairTitle"), MeasurementGuide.homeText("stairDetail"), "figure.stairs"),
             (.gateScan, MeasurementGuide.homeText("gate"), MeasurementGuide.homeText("gateDetail"), "camera.viewfinder"),
             (.photoObject, MeasurementGuide.objectText("title"), MeasurementGuide.objectText("detail"), "camera.aperture"),
             (.scenePhotos, MeasurementGuide.sceneText("title"), MeasurementGuide.sceneText("detail"), "camera.on.rectangle"),

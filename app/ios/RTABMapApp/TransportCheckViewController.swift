@@ -14,6 +14,8 @@ final class TransportCheckViewController: UIViewController, UITextFieldDelegate 
     private let result = UIStackView()
     private let animation = SCNView()
     private var lastAssessment: TransportAssessment?
+    /// Starts a stair scan (set by the start screen).
+    var onStairScan: (() -> Void)?
     private func text(_ key: String) -> String { MeasurementGuide.homeText(key) }
 
     init(preselected: SavedRoomPlan? = nil) {
@@ -32,6 +34,7 @@ final class TransportCheckViewController: UIViewController, UITextFieldDelegate 
         scroll = layout.scroll
         column = layout.column
         column.addArrangedSubview(KanturaDesign.label(text("transportIntro"), style: .subheadline, secondary: true))
+        stairCard()
 
         section(text("device"))
         column.addArrangedSubview(menuButton(text("deviceCatalog"), icon: "list.bullet", menu: catalogMenu()))
@@ -75,6 +78,32 @@ final class TransportCheckViewController: UIViewController, UITextFieldDelegate 
             if let door = suggestions.first(where: { $0.kind == .door }) { apply(door) }
             if let height = suggestions.first(where: { $0.kind == .roomHeight }) { apply(height) }
             if let stairs = suggestions.first(where: { $0.kind == .stairs }) { apply(stairs) }
+        }
+    }
+
+    /// Stairs are checked best against a stair scan: the appliance is moved
+    /// along the real path instead of using a few hand-entered numbers.
+    private func stairCard() {
+        let stairs = KanturaHomeViewController.savedStairs()
+        let card: KanturaActionCard
+        if stairs.isEmpty {
+            card = KanturaActionCard(title: text("stairTitle"), detail: text("stairTransportHint"), icon: "figure.stairs", emphasis: .mint)
+            card.addAction(UIAction { [weak self] _ in self?.onStairScan?() }, for: .touchUpInside)
+            card.isHidden = onStairScan == nil
+            column.addArrangedSubview(card)
+        } else {
+            let button = KanturaDesign.secondaryButton(text("stairUseScan"), icon: "figure.stairs") {}
+            var items: [UIMenuElement] = stairs.prefix(30).map { stair in
+                UIAction(title: stair.displayName + " · " + KanturaHomeViewController.date(stair.document.createdAt)) { [weak self] _ in
+                    self?.navigationController?.pushViewController(StairResultViewController(scan: stair), animated: true)
+                }
+            }
+            if onStairScan != nil {
+                items.append(UIAction(title: text("stairTitle"), image: UIImage(systemName: "plus")) { [weak self] _ in self?.onStairScan?() })
+            }
+            button.menu = UIMenu(children: items)
+            button.showsMenuAsPrimaryAction = true
+            column.addArrangedSubview(button)
         }
     }
 

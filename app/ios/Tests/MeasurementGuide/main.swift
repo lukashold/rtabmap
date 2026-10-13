@@ -24,7 +24,11 @@ for language in MeasurementGuide.languages {
     precondition(guide.objectCapture!.values.allSatisfy { !$0.isEmpty })
     precondition(guide.objectCapture!["photosCount"]!.contains("{count}") && guide.objectCapture!["photosCount"]!.contains("{max}"))
     precondition(guide.splat!.count == 9)
-    precondition(guide.home!.count == 180)
+    precondition(guide.home!.count == 231)
+    precondition(guide.home!["stairProgress"]!.contains("{distance}") && guide.home!["stairProgress"]!.contains("{height}"))
+    for key in ["stairNarrowest", "stairCollision"] {
+        precondition(["{distance}", "{cm}", "{where}"].allSatisfy { guide.home![key]!.contains($0) })
+    }
     precondition(Set(guide.home!.keys) == Set(guides["de"]!.home!.keys))
     precondition(guide.home!.values.allSatisfy { !$0.isEmpty })
     precondition(guide.home!["doorsWindows"]!.contains("{doors}") && guide.home!["doorsWindows"]!.contains("{windows}"))
@@ -527,3 +531,88 @@ precondition(RoomPhotoCoverage.direction(to: (x: 0, y: 1, z: 3), camera: frontCa
 precondition(RoomPhotoCoverage.direction(to: (x: 3, y: 1, z: 0), camera: frontCamera.transform) == .right)
 precondition(RoomPhotoCoverage.direction(to: (x: -3, y: 1, z: 0), camera: frontCamera.transform) == .left)
 print("Photo round: coverage and direction checks passed")
+
+// Library labels: rename and assign to an apartment/floor.
+precondition(LibraryLabels.building(room: "Büro", apartment: " ", floor: "") == nil)
+let labelled = LibraryLabels.building(room: "Büro", apartment: "Top 4", floor: "")!
+precondition(labelled.name == "Top 4" && labelled.floor == LibraryLabels.placeholder && labelled.room == "Büro")
+precondition(LibraryLabels.group(labelled) == "Top 4" && LibraryLabels.group(nil) == "")
+print("Library labels checks passed")
+
+// Stair scans: synthetic straight flight (12 risers 0.18/0.27) between two landings,
+// side walls, a soffit parallel to the flight and flat ceilings 2.6 m high.
+func syntheticStair(width: Double, soffit: Double, spacing sp: Double = 0.04) -> (StairMesh, [StairVec]) {
+    let steps = 12, rise = 0.18, run = 0.27, flat = 1.5
+    func floorAt(_ u: Double) -> Double {
+        if u < flat { return 0 }
+        let k = Int((u - flat) / run) + 1
+        return k > steps ? -Double(steps) * rise : -Double(k) * rise
+    }
+    func ceilingAt(_ u: Double) -> Double {
+        let end = flat + Double(steps - 1) * run
+        if u < flat { return 2.6 }
+        if u > end { return -Double(steps) * rise + 2.6 }
+        return min(2.6, -(u - flat) / run * rise + soffit)
+    }
+    var mesh = StairMesh()
+    var noise: UInt64 = 42
+    func jitter() -> Float { noise = noise &* 6364136223846793005 &+ 1442695040888963407; return Float(Double(noise >> 33) / Double(1 << 31) - 0.5) * 0.02 }
+    func add(_ x: Double, _ y: Double, _ z: Double, _ n: (Float, Float, Float)) {
+        mesh.positions += [Float(x) + jitter(), Float(y) + jitter(), Float(z) + jitter()]
+        mesh.normals += [n.0, n.1, n.2]
+    }
+    let total = flat * 2 + Double(steps) * run
+    var u = 0.0
+    while u <= total {
+        let f = floorAt(u), c = ceilingAt(u)
+        var x = -width / 2
+        while x <= width / 2 { add(x, f, -u, (0, 1, 0)); add(x, c, -u, (0, -1, 0)); x += sp }
+        var y = f
+        while y <= c { add(-width / 2, y, -u, (1, 0, 0)); add(width / 2, y, -u, (-1, 0, 0)); y += sp }
+        u += sp
+    }
+    for k in 1...steps {
+        let z = -(flat + Double(k - 1) * run)
+        var y = -Double(k - 1) * rise
+        while y >= -Double(k) * rise {
+            var x = -width / 2
+            while x <= width / 2 { add(x, y, z, (0, 0, -1)); x += sp }
+            y -= sp
+        }
+    }
+    var path: [StairVec] = []
+    u = 0
+    while u <= total { path.append(StairVec(0.12 + 0.02 * sin(u * 7), floorAt(u) + 1.45, -u)); u += 0.05 }
+    return (mesh, path)
+}
+let (stairMesh, stairPath) = syntheticStair(width: 0.9, soffit: 2.2)
+let stairProfile = try StairAnalyzer.analyze(mesh: stairMesh, path: stairPath)
+precondition(stairProfile.risers == 12, "risers \(stairProfile.risers)")
+precondition(abs(stairProfile.riser! - 0.18) < 0.025 && abs(stairProfile.going! - 0.27) < 0.035, "riser \(stairProfile.riser!) going \(stairProfile.going!)")
+precondition(abs(stairProfile.drop - 2.16) < 0.06, "drop \(stairProfile.drop)")
+precondition(abs(stairProfile.minWidth! - 0.9) < 0.07, "width \(stairProfile.minWidth!)")
+precondition(abs(stairProfile.turnDegrees) < 12 && abs(stairProfile.slopeDegrees! - 33.7) < 6, "turn \(stairProfile.turnDegrees) slope \(stairProfile.slopeDegrees!)")
+precondition(stairProfile.minHeadroom! > 1.9 && stairProfile.minHeadroom! < 2.45, "headroom \(stairProfile.minHeadroom!)")
+// Mesh file round trip and cropping.
+let reread = try StairMesh(data: stairMesh.encoded())
+precondition(reread == stairMesh)
+let tri = StairMesh(positions: [0, 0, 0, 1, 0, 0, 0, 0, 1, 9, 0, 9], normals: [Float](repeating: 0, count: 12), faces: [0, 1, 2, 1, 2, 3])
+let croppedTri = tri.cropped(near: [StairVec(0, 1.5, 0)], radius: 2)
+precondition(croppedTri.vertexCount == 3 && croppedTri.faces == [0, 1, 2])
+precondition(tri.obj().contains("f 1//1 2//2 3//3"))
+// A 0.60 × 0.66 × 2.03 m fridge goes down the 0.9 m flight tilted, not upright.
+let fridgeCheck = StairTransport(profile: stairProfile, mesh: stairMesh, object: .init(width: 0.60, depth: 0.66, height: 2.03), stride: 4)!
+precondition(fridgeCheck.verdict != .blocked, "fridge \(fridgeCheck.verdict) \(fridgeCheck.worst.clearance) at \(fridgeCheck.worst.distance)")
+precondition(fridgeCheck.handlings.contains(.tilted) || fridgeCheck.handlings.contains(.tiltedSideways))
+// Same fridge, 0.55 m wide staircase: blocked by the side walls.
+let (narrowMesh, narrowPath) = syntheticStair(width: 0.55, soffit: 2.2)
+let narrowProfile = try StairAnalyzer.analyze(mesh: narrowMesh, path: narrowPath)
+precondition(abs(narrowProfile.minWidth! - 0.55) < 0.07, "narrow width \(narrowProfile.minWidth!)")
+let narrowCheck = StairTransport(profile: narrowProfile, mesh: narrowMesh, object: .init(width: 0.60, depth: 0.66, height: 2.03), stride: 4)!
+precondition(narrowCheck.verdict == .blocked && narrowCheck.worst.limit == .side, "narrow \(narrowCheck.verdict) \(narrowCheck.worst.limit)")
+// Document validation.
+var stairDocument = StairScanDocument(name: "Treppe", createdAt: "2026-10-13T00:00:00Z", id: "s1", building: labelled, path: stairPath.map(\.array), profile: stairProfile)
+try stairDocument.validate()
+stairDocument.path.append([1, 2])
+do { try stairDocument.validate(); preconditionFailure("path points need x, y, z") } catch StairScanDocument.ValidationError.invalid { }
+print("Stair scan: profile, mesh file and appliance path checks passed")

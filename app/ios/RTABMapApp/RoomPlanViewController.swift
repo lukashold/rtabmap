@@ -803,7 +803,8 @@ final class SavedRoomViewController: UIViewController, QLPreviewControllerDataSo
     private func render() {
         column.arrangedSubviews.forEach { $0.removeFromSuperview() }
         var context = [KanturaHomeViewController.date(room.document.createdAt)]
-        if let building = room.document.building { context.insert(building.name + " · " + building.floor, at: 0) }
+        let group = LibraryLabels.group(room.document.building)
+        if !group.isEmpty { context.insert(group, at: 0) }
         column.addArrangedSubview(KanturaDesign.label(context.joined(separator: " · "), style: .subheadline, secondary: true))
 
         let scene = SCNView()
@@ -829,9 +830,18 @@ final class SavedRoomViewController: UIViewController, QLPreviewControllerDataSo
         if !RoomWalkthroughViewController.hasPhotos(room) {
             column.addArrangedSubview(KanturaDesign.label(text("walkNoPhotos"), style: .footnote, secondary: true))
         }
-        column.addArrangedSubview(KanturaDesign.secondaryButton(text("transportTitle"), icon: "shippingbox") { [weak self] in
+        // RoomPlan keeps one storey per room: stairs going down need their own scan.
+        let home = navigationController?.viewControllers.first as? KanturaHomeViewController
+        if room.document.objects?.contains(where: { $0.category == "stairs" }) == true, let home = home {
+            let card = KanturaActionCard(title: text("stairTitle"), detail: text("stairRoomHint"), icon: "figure.stairs", emphasis: .mint)
+            card.addAction(UIAction { [weak home] _ in home?.onRoute?(.stairScan) }, for: .touchUpInside)
+            column.addArrangedSubview(card)
+        }
+        column.addArrangedSubview(KanturaDesign.secondaryButton(text("transportTitle"), icon: "shippingbox") { [weak self, weak home] in
             guard let self = self else { return }
-            self.navigationController?.pushViewController(TransportCheckViewController(preselected: self.room), animated: true)
+            let check = TransportCheckViewController(preselected: self.room)
+            if home != nil { check.onStairScan = { [weak home] in home?.onRoute?(.stairScan) } }
+            self.navigationController?.pushViewController(check, animated: true)
         })
         let extras = RoomExtras.load(from: room.jsonURL.deletingLastPathComponent())
         let openMarkers = extras.markers.filter { $0.status == "open" }.count

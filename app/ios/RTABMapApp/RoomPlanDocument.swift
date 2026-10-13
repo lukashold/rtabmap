@@ -68,7 +68,7 @@ struct RoomPlanDocument: Codable {
 
     var format = "kantura-room-plan"
     var version = 1
-    let name: String
+    var name: String
     let createdAt: String
     let roomId: String
     var units = "m"
@@ -196,6 +196,16 @@ struct SavedRoomPlan {
         let detected = original.surfaces.first { $0.id == id }?.kind
         if let kind = kind, kind != detected { list[id] = kind } else { list[id] = nil }
         updated.corrections = list.isEmpty ? nil : list
+        try updated.encoded().write(to: jsonURL, options: .atomic)
+        return SavedRoomPlan(document: updated, jsonURL: jsonURL, modelURL: modelURL)
+    }
+
+    /// Rename the room and assign it to an apartment/building and floor.
+    func relabeled(name: String, apartment: String, floor: String) throws -> SavedRoomPlan {
+        var updated = original
+        updated.name = String(name.prefix(200))
+        updated.building = LibraryLabels.building(room: updated.name, apartment: apartment, floor: floor)
+        try updated.validate()
         try updated.encoded().write(to: jsonURL, options: .atomic)
         return SavedRoomPlan(document: updated, jsonURL: jsonURL, modelURL: modelURL)
     }

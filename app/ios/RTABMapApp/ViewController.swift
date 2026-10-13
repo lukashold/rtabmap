@@ -2293,6 +2293,7 @@ class ViewController: GLKViewController, ARSessionDelegate, RTABMapObserver, UIP
     private func route(_ route: KanturaHomeViewController.Route) {
         switch route {
         case .roomScan: showRoomPlan()
+        case .stairScan: showStairScan()
         case .photoObject: showObjectCapture()
         case .scenePhotos: showSceneCapture()
         case .splat: showSplatViewer()
@@ -2424,6 +2425,18 @@ class ViewController: GLKViewController, ARSessionDelegate, RTABMapObserver, UIP
         } else {
             showUnsupported(title: MeasurementGuide.roomText("title"), message: MeasurementGuide.roomText("unsupported"))
         }
+    }
+
+    func showStairScan() {
+        guard StairScanViewController.isSupported else {
+            showUnsupported(title: MeasurementGuide.homeText("stairTitle"), message: MeasurementGuide.homeText("stairUnsupported"))
+            return
+        }
+        guard prepareForRoomPlanPresentation() else { return }
+        let capture = StairScanViewController()
+        capture.onSaved = { [weak self] in self?.homeScreen?.reload() }
+        capture.onClose = { [weak self] in self?.modeClosed() }
+        presentMode(capture)
     }
 
     private func prepareMeasurementScan() {
