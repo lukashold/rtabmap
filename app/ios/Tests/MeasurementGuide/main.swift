@@ -24,6 +24,11 @@ for language in MeasurementGuide.languages {
     precondition(guide.objectCapture!.values.allSatisfy { !$0.isEmpty })
     precondition(guide.objectCapture!["photosCount"]!.contains("{count}") && guide.objectCapture!["photosCount"]!.contains("{max}"))
     precondition(guide.splat!.count == 9)
+    precondition(guide.home!.count == 53)
+    precondition(Set(guide.home!.keys) == Set(guides["de"]!.home!.keys))
+    precondition(guide.home!.values.allSatisfy { !$0.isEmpty })
+    precondition(guide.home!["doorsWindows"]!.contains("{doors}") && guide.home!["doorsWindows"]!.contains("{windows}"))
+    precondition(guide.home!["unresolvedNote"]!.contains("{count}"))
     precondition(Set(guide.splat!.keys) == Set(guides["en"]!.splat!.keys))
     precondition(guide.splat!.values.allSatisfy { !$0.isEmpty })
     precondition(guide.sceneCapture!.count == 38)
@@ -342,3 +347,42 @@ let decodedPayload = try JSONSerialization.jsonObject(with: Data(payload.utf8)) 
 precondition(decodedPayload["name"] == hostileName && decodedPayload["language"] == "ar")
 precondition(Data(base64Encoded: decodedPayload["base64"]!) == hostile.data)
 print("Offline Splat import: bounded reads, file-type/signature checks, truncated data, and safe bridge payload checks passed")
+
+// Room summary: the same 4 × 5 m, 2.5 m high acceptance room as the browser test
+// (tools/scan-workspace/test/areas.test.mjs) must give 20 / 45 / 41.5 m².
+func summaryFrame(_ center: [Double], _ x: [Double]) -> [Double] {
+    let y = [0.0, 1, 0], z = [x[1] * y[2] - x[2] * y[1], x[2] * y[0] - x[0] * y[2], x[0] * y[1] - x[1] * y[0]]
+    return x + [0] + y + [0] + z + [0] + center + [1]
+}
+func summarySurface(_ id: String, _ kind: String, _ dimensions: [Double], _ transform: [Double], _ corners: [[Double]]? = nil) -> RoomPlanDocument.Surface {
+    RoomPlanDocument.Surface(id: id, kind: kind, dimensions: dimensions, transform: transform, confidence: "high", polygonCorners: corners)
+}
+let summaryWalls = [
+    summarySurface("w1", "wall", [4, 2.5, 0], summaryFrame([0, 1.25, -2.5], [1, 0, 0])),
+    summarySurface("w2", "wall", [5, 2.5, 0], summaryFrame([2, 1.25, 0], [0, 0, 1])),
+    summarySurface("w3", "wall", [4, 2.5, 0], summaryFrame([0, 1.25, 2.5], [-1, 0, 0])),
+    summarySurface("w4", "wall", [5, 2.5, 0], summaryFrame([-2, 1.25, 0], [0, 0, -1]))
+]
+let summaryFloor = summarySurface("f", "floor", [4, 5, 0], [1,0,0,0, 0,0,-1,0, 0,1,0,0, 0,0,0,1], [[-2,-2.5,0],[2,-2.5,0],[2,2.5,0],[-2,2.5,0]])
+let summaryDoor = summarySurface("d", "door", [0.8, 2.5, 0.04], summaryFrame([0.5, 1.25, -2.49], [1, 0, 0]))
+let summaryWindow = summarySurface("o", "window", [1, 1.5, 0.04], summaryFrame([2.01, 1.4, 1], [0, 0, 1]))
+let summary = RoomPlanSummary(RoomPlanDocument(name: "Test", createdAt: "2026-10-13T00:00:00Z", roomId: "r",
+    surfaces: summaryWalls + [summaryFloor, summaryDoor, summaryWindow]))
+func near(_ a: Double?, _ b: Double) -> Bool { a.map { abs($0 - b) < 1e-9 } ?? false }
+precondition(near(summary.floorArea, 20) && near(summary.floorPerimeter, 18))
+precondition(near(summary.grossWallArea, 45) && near(summary.openingArea, 3.5) && near(summary.netWallArea, 41.5))
+precondition(near(summary.wallHeight, 2.5) && summary.walls == 4 && summary.doors == 1 && summary.windows == 1)
+precondition(summary.unresolvedOpenings == 0 && !summary.incomplete)
+// Overlapping windows are deducted once; a stray opening is not deducted at all.
+let overlapping = RoomPlanSummary(RoomPlanDocument(name: "Test", createdAt: "2026-10-13T00:00:00Z", roomId: "r",
+    surfaces: summaryWalls + [summaryFloor,
+        summarySurface("a", "window", [1, 1, 0], summaryFrame([0, 1.5, -2.5], [1, 0, 0])),
+        summarySurface("b", "window", [1, 1, 0], summaryFrame([0.5, 1.5, -2.5], [1, 0, 0])),
+        summarySurface("c", "door", [0.8, 2, 0], summaryFrame([0, 1, 0], [1, 0, 0]))]))
+precondition(near(overlapping.openingArea, 1.5) && near(overlapping.netWallArea, 43.5) && overlapping.unresolvedOpenings == 1)
+// A wall without height has no gross area; the total is marked incomplete.
+var lowWalls = summaryWalls
+lowWalls[1] = summarySurface("w2", "wall", [5, 0, 0], summaryFrame([2, 1.25, 0], [0, 0, 1]))
+let partial = RoomPlanSummary(RoomPlanDocument(name: "Test", createdAt: "2026-10-13T00:00:00Z", roomId: "r", surfaces: lowWalls + [summaryFloor]))
+precondition(partial.incomplete && near(partial.grossWallArea, 32.5))
+print("Room summary: floor, gross/net wall area, overlap and incomplete-wall checks passed")

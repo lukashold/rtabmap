@@ -40,6 +40,7 @@ struct MeasurementGuide: Decodable {
     let objectCapture: [String: String]?
     let splat: [String: String]?
     let sceneCapture: [String: String]?
+    let home: [String: String]?
 
     static func roomText(_ key: String) -> String {
         all[selectedLanguage]?.roomPlan?[key] ?? all["de"]?.roomPlan?[key] ?? key
@@ -52,6 +53,12 @@ struct MeasurementGuide: Decodable {
     }
     static func sceneText(_ key: String) -> String {
         all[selectedLanguage]?.sceneCapture?[key] ?? all["de"]?.sceneCapture?[key] ?? key
+    }
+    /// Start screen, scan preparation, result and saved-room texts.
+    static func homeText(_ key: String, _ values: [String: CustomStringConvertible] = [:]) -> String {
+        var text = all[selectedLanguage]?.home?[key] ?? all["de"]?.home?[key] ?? key
+        for (name, value) in values { text = text.replacingOccurrences(of: "{\(name)}", with: value.description) }
+        return text
     }
 
     static let languages = ["de", "en", "fr", "es", "it", "zh-Hans", "pt", "ar", "hi", "bn", "ru", "ja", "ko", "id", "tr"]

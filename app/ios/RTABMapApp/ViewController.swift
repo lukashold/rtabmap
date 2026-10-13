@@ -2255,8 +2255,71 @@ class ViewController: GLKViewController, ARSessionDelegate, RTABMapObserver, UIP
         return MeasurementWorkflowState(phase: phase, canReconstruct: mMapNodes > 0, hasProjects: !databases.isEmpty)
     }
 
+    /// The start screen ("My scans"). Capture modes are presented on top of it,
+    /// so closing any mode returns there instead of to the expert scanner UI.
+    private weak var homeNavigation: UINavigationController?
+    private weak var homeScreen: KanturaHomeViewController?
+    private var modalHost: UIViewController { homeNavigation ?? self }
+    private var canPresentMode: Bool {
+        (presentedViewController == nil || presentedViewController === homeNavigation) &&
+            modalHost.presentedViewController == nil && measurementWorkflowState.phase != .busy && !guidedWorkspacePresented
+    }
+
     func showMeasurementGuide() {
-        // A modal guide must never conceal ongoing capture or processing.
+        // The start screen must never conceal ongoing capture or processing.
+        guard presentedViewController == nil, measurementWorkflowState.phase != .busy,
+              MeasurementGuide.all[MeasurementGuide.selectedLanguage] != nil else { return }
+        updateDatabases()
+        let home = KanturaHomeViewController()
+        if #available(iOS 17.0, *) { home.roomScanSupported = RoomPlanViewController.isSupported } else { home.roomScanSupported = false }
+        let workflow = MeasurementGuide.all[MeasurementGuide.selectedLanguage]?.workflow
+        switch measurementWorkflowState.phase {
+        case .captured, .pointCloud: home.lidarStatus = workflow?.capturedTitle
+        case .mesh: home.lidarStatus = workflow?.modelTitle
+        default: home.lidarStatus = nil
+        }
+        home.onLanguageChange = { [weak self] in
+            guard let self = self else { return }
+            self.updateState(state: self.mState)
+        }
+        home.onRoute = { [weak self] route in self?.route(route) }
+        let navigation = UINavigationController(rootViewController: home)
+        navigation.modalPresentationStyle = .fullScreen
+        homeNavigation = navigation
+        homeScreen = home
+        present(navigation, animated: true)
+    }
+
+    private func route(_ route: KanturaHomeViewController.Route) {
+        switch route {
+        case .roomScan: showRoomPlan()
+        case .photoObject: showObjectCapture()
+        case .scenePhotos: showSceneCapture()
+        case .splat: showSplatViewer()
+        case .gateScan: leaveHome { [weak self] in self?.prepareMeasurementScan() }
+        case .lidarProjects: leaveHome { [weak self] in self?.openLibrary() }
+        case .lidarWorkflow: leaveHome { [weak self] in self?.showLidarGuide() }
+        case .expert: leaveHome {}
+        }
+    }
+
+    private func leaveHome(then action: @escaping () -> Void) {
+        guard let navigation = homeNavigation, presentedViewController === navigation else { action(); return }
+        navigation.dismiss(animated: true) { [weak self] in
+            self?.resetNoTouchTimer(true)
+            action()
+        }
+    }
+
+    private func modeClosed() {
+        guidedWorkspacePresented = false
+        resetNoTouchTimer(true)
+        homeScreen?.reload()
+    }
+
+    /// Step-by-step LiDAR workflow (capture → assemble → measure → share) for
+    /// an RTAB-Map session that is already in progress.
+    private func showLidarGuide() {
         guard presentedViewController == nil, measurementWorkflowState.phase != .busy,
               MeasurementGuide.all[MeasurementGuide.selectedLanguage] != nil else { return }
         updateDatabases()
@@ -2264,7 +2327,7 @@ class ViewController: GLKViewController, ARSessionDelegate, RTABMapObserver, UIP
         guide.workflowState = measurementWorkflowState
         guide.onClose = { [weak self] in self?.resetNoTouchTimer(true) }
         guide.onRoomPlan = { [weak self] in self?.showRoomPlan() }
-        guide.onRoomPlanLibrary = { [weak self] in self?.showRoomPlanLibrary() }
+        guide.onRoomPlanLibrary = { [weak self] in self?.showMeasurementGuide() }
         guide.onObjectCapture = { [weak self] in self?.showObjectCapture() }
         guide.onSplat = { [weak self] in self?.showSplatViewer() }
         guide.onSceneCapture = { [weak self] in self?.showSceneCapture() }
@@ -2298,7 +2361,7 @@ class ViewController: GLKViewController, ARSessionDelegate, RTABMapObserver, UIP
     }
 
     private func prepareForRoomPlanPresentation() -> Bool {
-        guard presentedViewController == nil, measurementWorkflowState.phase != .busy, !guidedWorkspacePresented else { return false }
+        guard canPresentMode else { return false }
         // Retain the current RTAB-Map model, but release its camera and AR session.
         session.pause()
         locationManager?.stopUpdatingLocation()
@@ -2307,92 +2370,58 @@ class ViewController: GLKViewController, ARSessionDelegate, RTABMapObserver, UIP
         return true
     }
 
-    private func showSplatViewer() {
-        guard presentedViewController == nil, measurementWorkflowState.phase != .busy, !guidedWorkspacePresented else { return }
-        let viewer = SplatViewController()
-        viewer.onClose = { [weak self] in
-            self?.guidedWorkspacePresented = false
-            self?.resetNoTouchTimer(true)
-        }
+    private func presentMode(_ root: UIViewController) {
         guidedWorkspacePresented = true
-        let navigation = UINavigationController(rootViewController: viewer)
+        let navigation = UINavigationController(rootViewController: root)
         navigation.modalPresentationStyle = .fullScreen
+        modalHost.present(navigation, animated: true)
+    }
+
+    private func showUnsupported(title: String, message: String) {
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: MeasurementGuide.roomText("close"), style: .default))
+        modalHost.present(alert, animated: true)
+    }
+
+    private func showSplatViewer() {
+        guard canPresentMode else { return }
+        let viewer = SplatViewController()
+        viewer.onClose = { [weak self] in self?.modeClosed() }
         // A file viewer needs no camera, AR session or scanner-state mutation.
-        present(navigation, animated: true)
+        presentMode(viewer)
     }
 
     private func showSceneCapture() {
         guard prepareForRoomPlanPresentation() else { return }
         let workspace = SceneCaptureViewController()
-        workspace.onClose = { [weak self] in
-            self?.guidedWorkspacePresented = false
-            self?.resetNoTouchTimer(true)
-        }
-        guidedWorkspacePresented = true
-        let navigation = UINavigationController(rootViewController: workspace)
-        navigation.modalPresentationStyle = .fullScreen
-        present(navigation, animated: true)
+        workspace.onClose = { [weak self] in self?.modeClosed() }
+        presentMode(workspace)
     }
 
     private func showObjectCapture() {
-        guard prepareForRoomPlanPresentation() else { return }
         if #available(iOS 17.0, *), ObjectCaptureViewController.isSupported {
+            guard prepareForRoomPlanPresentation() else { return }
             let capture = ObjectCaptureViewController()
-            capture.onClose = { [weak self] in
-                self?.guidedWorkspacePresented = false
-                self?.resetNoTouchTimer(true)
-            }
+            capture.onClose = { [weak self] in self?.modeClosed() }
             // Shared exclusion flag also prevents RTAB-Map from restarting its
             // AR session when returning from the background or a system sheet.
-            guidedWorkspacePresented = true
-            let navigation = UINavigationController(rootViewController: capture)
-            navigation.modalPresentationStyle = .fullScreen
-            present(navigation, animated: true)
+            presentMode(capture)
         } else {
-            let alert = UIAlertController(title: MeasurementGuide.objectText("title"),
-                message: MeasurementGuide.objectText("unsupported"), preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: MeasurementGuide.roomText("close"), style: .default))
-            present(alert, animated: true)
+            showUnsupported(title: MeasurementGuide.objectText("title"), message: MeasurementGuide.objectText("unsupported"))
         }
     }
 
-    private func showRoomPlan() {
-        guard prepareForRoomPlanPresentation() else { return }
+    private func showRoomPlan(skipPreparation: Bool = false) {
         if #available(iOS 17.0, *), RoomPlanViewController.isSupported {
+            guard prepareForRoomPlanPresentation() else { return }
             let room = RoomPlanViewController()
-            room.onNewRoom = { [weak self] in self?.showRoomPlan() }
-            room.onClose = { [weak self] in
-                self?.guidedWorkspacePresented = false
-                self?.resetNoTouchTimer(true)
-            }
-            guidedWorkspacePresented = true
-            let navigation = UINavigationController(rootViewController: room)
-            navigation.modalPresentationStyle = .fullScreen
-            present(navigation, animated: true)
+            room.skipPreparation = skipPreparation
+            room.onNewRoom = { [weak self] in self?.showRoomPlan(skipPreparation: true) }
+            room.onSaved = { [weak self] in self?.homeScreen?.reload() }
+            room.onClose = { [weak self] in self?.modeClosed() }
+            presentMode(room)
         } else {
-            let alert = UIAlertController(title: MeasurementGuide.roomText("title"), message: MeasurementGuide.roomText("unsupported"), preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: MeasurementGuide.roomText("close"), style: .default))
-            present(alert, animated: true)
-        }
-    }
-
-    private func showRoomPlanLibrary() {
-        guard prepareForRoomPlanPresentation() else { return }
-        if #available(iOS 17.0, *) {
-            let library = RoomPlanLibraryViewController(style: .insetGrouped)
-            library.onClose = { [weak self] in
-                self?.guidedWorkspacePresented = false
-                self?.resetNoTouchTimer(true)
-            }
-            library.onNewRoom = { [weak self] in self?.showRoomPlan() }
-            guidedWorkspacePresented = true
-            let navigation = UINavigationController(rootViewController: library)
-            navigation.modalPresentationStyle = .fullScreen
-            present(navigation, animated: true)
-        } else {
-            let alert = UIAlertController(title: MeasurementGuide.roomText("library"), message: MeasurementGuide.roomText("unsupported"), preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: MeasurementGuide.roomText("close"), style: .default))
-            present(alert, animated: true)
+            showUnsupported(title: MeasurementGuide.roomText("title"), message: MeasurementGuide.roomText("unsupported"))
         }
     }
 
