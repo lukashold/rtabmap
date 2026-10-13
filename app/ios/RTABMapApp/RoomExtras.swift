@@ -335,6 +335,8 @@ enum StructuralPlacement {
 /// downward-facing surfaces clearly below the ceiling (RoomPlan only models
 /// walls, doors, windows and the floor, so these are missing from the plan).
 enum StructuralDetection {
+    /// Last run: occupied cells, cells with enough points, largest region (for diagnostics).
+    static var lastStats = (cells: 0, kept: 0, regions: 0)
     /// - Parameters:
     ///   - floorY: world height of the floor
     ///   - ceiling: room height above the floor
@@ -356,6 +358,7 @@ enum StructuralDetection {
         // Cells with a consistent underside (≥ 3 points), then 4-connected regions.
         var cells: [Int64: Double] = [:]
         for (k, values) in drops where values.count >= 3 { cells[k] = values.sorted()[values.count / 2] }
+        lastStats = (drops.count, cells.count, 0)
         var seen = Set<Int64>(), result: [RoomExtras.Furniture] = []
         for start in cells.keys.sorted() where !seen.contains(start) {
             var stack = [start], region: [(Int, Int, Double)] = []
@@ -368,6 +371,7 @@ enum StructuralDetection {
                     if cells[n] != nil, !seen.contains(n), abs(cells[n]! - cells[k]!) < 0.08 { seen.insert(n); stack.append(n) }
                 }
             }
+            lastStats.regions = max(lastStats.regions, region.count)
             guard region.count >= 15 else { continue }  // ≥ 0.15 m²
             // Principal axis of the region in plan.
             let pts = region.map { (x: (Double($0.0) + 0.5) * cell, z: (Double($0.1) + 0.5) * cell) }
