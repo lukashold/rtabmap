@@ -2,6 +2,7 @@
   "name": "rtabmap-measure-workspace",
   "version": "0.6.0",
   "private": true,
+  "license": "BSD-3-Clause",
   "type": "module",
   "description": "Local-first RTAB-Map measurement workspace and multilingual guide",
   "scripts": {

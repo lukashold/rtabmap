@@ -70,3 +70,7 @@ Do not include signing certificates, provisioning profiles, OAuth secrets or per
 Original project code uses the repository's [BSD 3-Clause license](LICENSE). Retain copyright and third-party notices, and contribute only code/media you have the right to distribute. A new dependency needs its exact version, license and purpose documented; do not copy proprietary product assets or treat the whole native bundle as BSD.
 
 The current native dependency audit flags `WITH_ORB_OCTREE=ON` (GPLv3 implementation), OpenCV's `OPENCV_ENABLE_NONFREE=ON`, the actual SuiteSparse/g2o components, and statically built LASzip 2.0.1/libLAS. Changing a flag requires rebuilding and checking the resulting linked components. See the [concrete release audit](docs/APP-STORE-RELEASE.md#native-abhängigkeiten-und-lizenzen). Store distribution additionally needs complete notices, privacy review, signing and device testing; this repository is not a completed App Store clearance.
+
+## License of contributions
+
+Contributions to this repository are accepted under its BSD 3-Clause License (inbound = outbound). See [LICENSING.md](LICENSING.md).
