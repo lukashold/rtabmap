@@ -574,7 +574,11 @@
       "elementClear": "net yükseklik",
       "elementFound": "LiDAR {count} olası yapı elemanı buldu",
       "elementFoundAccept": "Ekle",
-      "elementFoundIgnore": "Ekleme"
+      "elementFoundIgnore": "Ekleme",
+      "stairWalk": "Kendin yürü",
+      "stairWalkHint": "Kaydırıcı veya ▶ ile ilerle, tek parmakla etrafa bak. Kutu önündeki cihazı gösterir.",
+      "stairWalkStep": "Basamak {step} / {steps}",
+      "stairWalkFridge": "Cihazı taşı"
     },
     "name": "Türkçe",
     "title": "Güvenle ölçün",

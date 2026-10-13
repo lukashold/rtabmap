@@ -574,7 +574,11 @@
       "elementClear": "altura livre",
       "elementFound": "O LiDAR encontrou {count} possíveis elementos",
       "elementFoundAccept": "Adicionar",
-      "elementFoundIgnore": "Não adicionar"
+      "elementFoundIgnore": "Não adicionar",
+      "stairWalk": "Percorrer você mesmo",
+      "stairWalkHint": "Avance com o controlo ou ▶ e olhe em volta com um dedo. A caixa mostra o aparelho à sua frente.",
+      "stairWalkStep": "Degrau {step} de {steps}",
+      "stairWalkFridge": "Levar o aparelho"
     },
     "name": "Português",
     "title": "Medir com confiança",

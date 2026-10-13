@@ -24,7 +24,7 @@ for language in MeasurementGuide.languages {
     precondition(guide.objectCapture!.values.allSatisfy { !$0.isEmpty })
     precondition(guide.objectCapture!["photosCount"]!.contains("{count}") && guide.objectCapture!["photosCount"]!.contains("{max}"))
     precondition(guide.splat!.count == 9)
-    precondition(guide.home!.count == 245)
+    precondition(guide.home!.count == 249)
     precondition(guide.home!["stairProgress"]!.contains("{distance}") && guide.home!["stairProgress"]!.contains("{height}"))
     for key in ["stairNarrowest", "stairCollision"] {
         precondition(["{distance}", "{cm}", "{where}"].allSatisfy { guide.home![key]!.contains($0) })

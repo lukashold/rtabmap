@@ -812,7 +812,11 @@
       "elementClear": "الارتفاع الحر",
       "elementFound": "وجد LiDAR {count} عناصر إنشائية محتملة",
       "elementFoundAccept": "إضافة",
-      "elementFoundIgnore": "عدم الإضافة"
+      "elementFoundIgnore": "عدم الإضافة",
+      "stairWalk": "امشِ بنفسك",
+      "stairWalkHint": "تحرّك بالمنزلق أو ▶ وانظر حولك بإصبع واحد. الصندوق يُظهر الجهاز أمامك.",
+      "stairWalkStep": "الدرجة {step} من {steps}",
+      "stairWalkFridge": "احمل الجهاز"
     }
   },
   "video": {

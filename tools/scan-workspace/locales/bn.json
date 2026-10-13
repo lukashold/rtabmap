@@ -812,7 +812,11 @@
       "elementClear": "খালি উচ্চতা",
       "elementFound": "LiDAR {count}টি সম্ভাব্য নির্মাণ উপাদান পেয়েছে",
       "elementFoundAccept": "যোগ করুন",
-      "elementFoundIgnore": "যোগ করবেন না"
+      "elementFoundIgnore": "যোগ করবেন না",
+      "stairWalk": "নিজে হেঁটে দেখুন",
+      "stairWalkHint": "স্লাইডার বা ▶ দিয়ে এগোন, এক আঙুলে চারপাশ দেখুন। বাক্সটি আপনার সামনের যন্ত্র দেখায়।",
+      "stairWalkStep": "ধাপ {step} / {steps}",
+      "stairWalkFridge": "যন্ত্র সঙ্গে নিন"
     }
   },
   "video": {

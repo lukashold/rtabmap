@@ -812,7 +812,11 @@
       "elementClear": "有効高さ",
       "elementFound": "LiDAR が建築要素の候補を {count} 件検出しました",
       "elementFoundAccept": "追加",
-      "elementFoundIgnore": "追加しない"
+      "elementFoundIgnore": "追加しない",
+      "stairWalk": "自分で歩いてみる",
+      "stairWalkHint": "スライダーか ▶ で進み、1本指で見回します。箱は前方の機器を示します。",
+      "stairWalkStep": "{steps} 段中 {step} 段目",
+      "stairWalkFridge": "機器を運ぶ"
     }
   },
   "video": {

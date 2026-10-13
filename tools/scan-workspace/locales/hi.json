@@ -812,7 +812,11 @@
       "elementClear": "साफ़ ऊँचाई",
       "elementFound": "LiDAR को {count} संभावित निर्माण तत्व मिले",
       "elementFoundAccept": "जोड़ें",
-      "elementFoundIgnore": "न जोड़ें"
+      "elementFoundIgnore": "न जोड़ें",
+      "stairWalk": "ख़ुद चलकर देखें",
+      "stairWalkHint": "स्लाइडर या ▶ से चलें, एक उंगली से चारों ओर देखें। बक्सा आपके आगे उपकरण दिखाता है।",
+      "stairWalkStep": "सीढ़ी {step} / {steps}",
+      "stairWalkFridge": "उपकरण साथ ले जाएँ"
     }
   },
   "video": {

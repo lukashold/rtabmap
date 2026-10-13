@@ -574,7 +574,11 @@
       "elementClear": "tinggi bebas",
       "elementFound": "LiDAR menemukan {count} kemungkinan elemen bangunan",
       "elementFoundAccept": "Tambahkan",
-      "elementFoundIgnore": "Jangan tambahkan"
+      "elementFoundIgnore": "Jangan tambahkan",
+      "stairWalk": "Jalani sendiri",
+      "stairWalkHint": "Bergerak dengan penggeser atau ▶, lihat sekeliling dengan satu jari. Kotak menunjukkan alat di depanmu.",
+      "stairWalkStep": "Anak tangga {step} dari {steps}",
+      "stairWalkFridge": "Bawa alatnya"
     },
     "name": "Bahasa Indonesia",
     "title": "Mengukur dengan yakin",

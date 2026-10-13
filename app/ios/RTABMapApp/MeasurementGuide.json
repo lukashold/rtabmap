@@ -483,7 +483,11 @@
       "elementClear": "lichte Höhe",
       "elementFound": "LiDAR hat {count} mögliche Bauteile gefunden",
       "elementFoundAccept": "Übernehmen",
-      "elementFoundIgnore": "Nicht übernehmen"
+      "elementFoundIgnore": "Nicht übernehmen",
+      "stairWalk": "Selbst durchgehen",
+      "stairWalkHint": "Mit dem Regler oder ▶ gehen, mit einem Finger umsehen. Die Kiste zeigt das Gerät vor dir.",
+      "stairWalkStep": "Stufe {step} von {steps}",
+      "stairWalkFridge": "Gerät mitnehmen"
     }
   },
   "en": {
@@ -970,7 +974,11 @@
       "elementClear": "clear height",
       "elementFound": "LiDAR found {count} possible building elements",
       "elementFoundAccept": "Add them",
-      "elementFoundIgnore": "Don’t add"
+      "elementFoundIgnore": "Don’t add",
+      "stairWalk": "Walk through yourself",
+      "stairWalkHint": "Move with the slider or ▶, look around with one finger. The box shows the appliance ahead of you.",
+      "stairWalkStep": "Step {step} of {steps}",
+      "stairWalkFridge": "Carry the appliance"
     }
   },
   "fr": {
@@ -1457,7 +1465,11 @@
       "elementClear": "hauteur libre",
       "elementFound": "Le LiDAR a trouvé {count} éléments possibles",
       "elementFoundAccept": "Ajouter",
-      "elementFoundIgnore": "Ne pas ajouter"
+      "elementFoundIgnore": "Ne pas ajouter",
+      "stairWalk": "Parcourir soi-même",
+      "stairWalkHint": "Avancez avec le curseur ou ▶, regardez autour avec un doigt. La boîte montre l’appareil devant vous.",
+      "stairWalkStep": "Marche {step} sur {steps}",
+      "stairWalkFridge": "Porter l’appareil"
     }
   },
   "es": {
@@ -1944,7 +1956,11 @@
       "elementClear": "altura libre",
       "elementFound": "El LiDAR encontró {count} posibles elementos",
       "elementFoundAccept": "Añadir",
-      "elementFoundIgnore": "No añadir"
+      "elementFoundIgnore": "No añadir",
+      "stairWalk": "Recorrer tú mismo",
+      "stairWalkHint": "Avanza con el control o ▶ y mira alrededor con un dedo. La caja muestra el aparato delante de ti.",
+      "stairWalkStep": "Peldaño {step} de {steps}",
+      "stairWalkFridge": "Llevar el aparato"
     }
   },
   "it": {
@@ -2431,7 +2447,11 @@
       "elementClear": "altezza libera",
       "elementFound": "Il LiDAR ha trovato {count} possibili elementi",
       "elementFoundAccept": "Aggiungi",
-      "elementFoundIgnore": "Non aggiungere"
+      "elementFoundIgnore": "Non aggiungere",
+      "stairWalk": "Percorri tu stesso",
+      "stairWalkHint": "Muoviti con il cursore o ▶, guarda intorno con un dito. La scatola mostra l’apparecchio davanti a te.",
+      "stairWalkStep": "Gradino {step} di {steps}",
+      "stairWalkFridge": "Porta l’apparecchio"
     }
   },
   "zh-Hans": {
@@ -2918,7 +2938,11 @@
       "elementClear": "净高",
       "elementFound": "LiDAR 发现 {count} 个可能的建筑构件",
       "elementFoundAccept": "添加",
-      "elementFoundIgnore": "不添加"
+      "elementFoundIgnore": "不添加",
+      "stairWalk": "亲自走一遍",
+      "stairWalkHint": "用滑块或 ▶ 前进，单指环顾四周。方框表示你前方的电器。",
+      "stairWalkStep": "第 {step} 级，共 {steps} 级",
+      "stairWalkFridge": "携带电器"
     }
   },
   "pt": {
@@ -3167,7 +3191,11 @@
       "elementClear": "altura livre",
       "elementFound": "O LiDAR encontrou {count} possíveis elementos",
       "elementFoundAccept": "Adicionar",
-      "elementFoundIgnore": "Não adicionar"
+      "elementFoundIgnore": "Não adicionar",
+      "stairWalk": "Percorrer você mesmo",
+      "stairWalkHint": "Avance com o controlo ou ▶ e olhe em volta com um dedo. A caixa mostra o aparelho à sua frente.",
+      "stairWalkStep": "Degrau {step} de {steps}",
+      "stairWalkFridge": "Levar o aparelho"
     },
     "name": "Português",
     "title": "Medir com confiança",
@@ -3892,7 +3920,11 @@
       "elementClear": "الارتفاع الحر",
       "elementFound": "وجد LiDAR {count} عناصر إنشائية محتملة",
       "elementFoundAccept": "إضافة",
-      "elementFoundIgnore": "عدم الإضافة"
+      "elementFoundIgnore": "عدم الإضافة",
+      "stairWalk": "امشِ بنفسك",
+      "stairWalkHint": "تحرّك بالمنزلق أو ▶ وانظر حولك بإصبع واحد. الصندوق يُظهر الجهاز أمامك.",
+      "stairWalkStep": "الدرجة {step} من {steps}",
+      "stairWalkFridge": "احمل الجهاز"
     }
   },
   "hi": {
@@ -4379,7 +4411,11 @@
       "elementClear": "साफ़ ऊँचाई",
       "elementFound": "LiDAR को {count} संभावित निर्माण तत्व मिले",
       "elementFoundAccept": "जोड़ें",
-      "elementFoundIgnore": "न जोड़ें"
+      "elementFoundIgnore": "न जोड़ें",
+      "stairWalk": "ख़ुद चलकर देखें",
+      "stairWalkHint": "स्लाइडर या ▶ से चलें, एक उंगली से चारों ओर देखें। बक्सा आपके आगे उपकरण दिखाता है।",
+      "stairWalkStep": "सीढ़ी {step} / {steps}",
+      "stairWalkFridge": "उपकरण साथ ले जाएँ"
     }
   },
   "bn": {
@@ -4866,7 +4902,11 @@
       "elementClear": "খালি উচ্চতা",
       "elementFound": "LiDAR {count}টি সম্ভাব্য নির্মাণ উপাদান পেয়েছে",
       "elementFoundAccept": "যোগ করুন",
-      "elementFoundIgnore": "যোগ করবেন না"
+      "elementFoundIgnore": "যোগ করবেন না",
+      "stairWalk": "নিজে হেঁটে দেখুন",
+      "stairWalkHint": "স্লাইডার বা ▶ দিয়ে এগোন, এক আঙুলে চারপাশ দেখুন। বাক্সটি আপনার সামনের যন্ত্র দেখায়।",
+      "stairWalkStep": "ধাপ {step} / {steps}",
+      "stairWalkFridge": "যন্ত্র সঙ্গে নিন"
     }
   },
   "ru": {
@@ -5353,7 +5393,11 @@
       "elementClear": "высота в свету",
       "elementFound": "LiDAR нашёл возможных элементов: {count}",
       "elementFoundAccept": "Добавить",
-      "elementFoundIgnore": "Не добавлять"
+      "elementFoundIgnore": "Не добавлять",
+      "stairWalk": "Пройти самому",
+      "stairWalkHint": "Двигайтесь ползунком или ▶, осматривайтесь одним пальцем. Коробка показывает прибор перед вами.",
+      "stairWalkStep": "Ступень {step} из {steps}",
+      "stairWalkFridge": "Нести прибор"
     }
   },
   "ja": {
@@ -5840,7 +5884,11 @@
       "elementClear": "有効高さ",
       "elementFound": "LiDAR が建築要素の候補を {count} 件検出しました",
       "elementFoundAccept": "追加",
-      "elementFoundIgnore": "追加しない"
+      "elementFoundIgnore": "追加しない",
+      "stairWalk": "自分で歩いてみる",
+      "stairWalkHint": "スライダーか ▶ で進み、1本指で見回します。箱は前方の機器を示します。",
+      "stairWalkStep": "{steps} 段中 {step} 段目",
+      "stairWalkFridge": "機器を運ぶ"
     }
   },
   "ko": {
@@ -6327,7 +6375,11 @@
       "elementClear": "유효 높이",
       "elementFound": "LiDAR가 건축 요소 후보 {count}개를 찾았습니다",
       "elementFoundAccept": "추가",
-      "elementFoundIgnore": "추가 안 함"
+      "elementFoundIgnore": "추가 안 함",
+      "stairWalk": "직접 걸어보기",
+      "stairWalkHint": "슬라이더나 ▶로 이동하고 한 손가락으로 둘러보세요. 상자는 앞에 있는 기기를 보여줍니다.",
+      "stairWalkStep": "{steps}단 중 {step}단",
+      "stairWalkFridge": "기기 운반"
     }
   },
   "id": {
@@ -6576,7 +6628,11 @@
       "elementClear": "tinggi bebas",
       "elementFound": "LiDAR menemukan {count} kemungkinan elemen bangunan",
       "elementFoundAccept": "Tambahkan",
-      "elementFoundIgnore": "Jangan tambahkan"
+      "elementFoundIgnore": "Jangan tambahkan",
+      "stairWalk": "Jalani sendiri",
+      "stairWalkHint": "Bergerak dengan penggeser atau ▶, lihat sekeliling dengan satu jari. Kotak menunjukkan alat di depanmu.",
+      "stairWalkStep": "Anak tangga {step} dari {steps}",
+      "stairWalkFridge": "Bawa alatnya"
     },
     "name": "Bahasa Indonesia",
     "title": "Mengukur dengan yakin",
@@ -7063,7 +7119,11 @@
       "elementClear": "net yükseklik",
       "elementFound": "LiDAR {count} olası yapı elemanı buldu",
       "elementFoundAccept": "Ekle",
-      "elementFoundIgnore": "Ekleme"
+      "elementFoundIgnore": "Ekleme",
+      "stairWalk": "Kendin yürü",
+      "stairWalkHint": "Kaydırıcı veya ▶ ile ilerle, tek parmakla etrafa bak. Kutu önündeki cihazı gösterir.",
+      "stairWalkStep": "Basamak {step} / {steps}",
+      "stairWalkFridge": "Cihazı taşı"
     },
     "name": "Türkçe",
     "title": "Güvenle ölçün",

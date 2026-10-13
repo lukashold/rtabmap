@@ -812,7 +812,11 @@
       "elementClear": "высота в свету",
       "elementFound": "LiDAR нашёл возможных элементов: {count}",
       "elementFoundAccept": "Добавить",
-      "elementFoundIgnore": "Не добавлять"
+      "elementFoundIgnore": "Не добавлять",
+      "stairWalk": "Пройти самому",
+      "stairWalkHint": "Двигайтесь ползунком или ▶, осматривайтесь одним пальцем. Коробка показывает прибор перед вами.",
+      "stairWalkStep": "Ступень {step} из {steps}",
+      "stairWalkFridge": "Нести прибор"
     }
   },
   "video": {
