@@ -1,6 +1,7 @@
 import { strToU8 } from 'fflate';
 import { MeasureError, resultFor } from './measure.js';
 import { ShapeUtils, Vector2 } from 'three';
+import { storedSurfaces } from './areas.js';
 
 const kinds=['wall','door','window','opening','floor'];
 const finite=v=>Number.isFinite(v)&&Math.abs(v)<=100000;
@@ -56,6 +57,9 @@ export function roomPlanBundle(data,labels={}) {
   obj=obj.replace(/^v (.+)$/gm,(_,line)=>'v '+normalize(line.split(' ').map(Number)).join(' '));
   measurements.forEach(m=>m.points=m.points.map(normalize));notes.forEach(note=>note.point=normalize(note.point));
   const mtl='newmtl wall\nKd 0.84 0.82 0.9\nnewmtl door\nKd 0.44 0.87 0.72\nnewmtl window\nKd 0.48 0.7 0.94\nnewmtl opening\nKd 0.78 0.7 0.94\nnewmtl floor\nKd 0.68 0.56 0.44\n';
-  const project={version:1,name:data.name,scale:1,upAxis:'y',calibrated:false,demo:!!data.demo,measurements,notes,checks:[]};
+  // Preserve the original detected surfaces (translated with the model) so floor,
+  // gross/net wall areas and opening assignments can be recomputed and corrected.
+  const roomSurfaces=storedSurfaces(data.surfaces,offset,(s,i)=>`${labels[s.kind]||s.kind} ${i+1}`);
+  const project={version:1,name:data.name,scale:1,upAxis:'y',calibrated:false,demo:!!data.demo,measurements,notes,checks:[],roomSurfaces,openingAssignments:{}};
   return {model:'roomplan.obj',assets:{'roomplan.obj':strToU8(obj),'roomplan.mtl':strToU8(mtl)},name:data.name,project,roomPlan:true,demo:!!data.demo,location:data.building};
 }
