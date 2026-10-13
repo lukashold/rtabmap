@@ -533,7 +533,6 @@ precondition(RoomPhotoCoverage.direction(to: (x: -3, y: 1, z: 0), camera: frontC
 print("Photo round: coverage and direction checks passed")
 
 // Release (-O) builds drop precondition messages; print them before trapping.
-setvbuf(stdout, nil, _IOLBF, 0)
 func check(_ condition: Bool, _ message: @autoclosure () -> String = "", file: StaticString = #file, line: UInt = #line) {
     if !condition { print("FAILED line \(line): \(message())"); fflush(stdout); preconditionFailure(message(), file: file, line: line) }
 }
