@@ -355,9 +355,9 @@ enum StructuralDetection {
             guard p.y < top - 0.08, p.y > floorY + 1.6, p.x > minX, p.x < maxX, p.z > minZ, p.z < maxZ else { continue }
             drops[key(Int(Foundation.floor(p.x / cell)), Int(Foundation.floor(p.z / cell))), default: []].append(top - p.y)
         }
-        // Cells with a consistent underside (≥ 3 points), then 4-connected regions.
+        // Cells with an underside (≥ 2 points), then connected regions.
         var cells: [Int64: Double] = [:]
-        for (k, values) in drops where values.count >= 3 { cells[k] = values.sorted()[values.count / 2] }
+        for (k, values) in drops where values.count >= 2 { cells[k] = values.sorted()[values.count / 2] }
         lastStats = (drops.count, cells.count, 0)
         var seen = Set<Int64>(), result: [RoomExtras.Furniture] = []
         for start in cells.keys.sorted() where !seen.contains(start) {
@@ -366,10 +366,11 @@ enum StructuralDetection {
             while let k = stack.popLast() {
                 let i = Int(k >> 32), j = Int(Int32(truncatingIfNeeded: k))
                 region.append((i, j, cells[k]!))
-                for (di, dj) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+                // Neighbours up to two cells away bridge small gaps in the mesh.
+                for di in -2...2 { for dj in -2...2 where di != 0 || dj != 0 {
                     let n = key(i + di, j + dj)
                     if cells[n] != nil, !seen.contains(n), abs(cells[n]! - cells[k]!) < 0.08 { seen.insert(n); stack.append(n) }
-                }
+                } }
             }
             lastStats.regions = max(lastStats.regions, region.count)
             guard region.count >= 15 else { continue }  // ≥ 0.15 m²
