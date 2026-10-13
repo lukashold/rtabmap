@@ -205,7 +205,7 @@ struct RoomPhotoMesh {
                     let centre = (local.map { $0.0 }.reduce(0, +) / 4, local.map { $0.1 }.reduce(0, +) / 4)
                     guard RoomPhotoProjection.inside(centre, outline) else { continue }
                 }
-                add(local.map { p in let w = world([p.0, p.1, 0], m); return (w.x + offset.x, w.y + offset.y, w.z + offset.z) }, normal: normal)
+                add(local.map { p -> V in let w = world([p.0, p.1, 0], m); return (x: w.x + offset.x, y: w.y + offset.y, z: w.z + offset.z) }, normal: normal)
             }
         }
         let walls = document.surfaces.filter { $0.kind == "wall" && $0.dimensions.count == 3 && $0.transform.count == 16 }

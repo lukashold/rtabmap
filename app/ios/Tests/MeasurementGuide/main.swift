@@ -405,7 +405,8 @@ precondition(!RoomPhotoProjection.isNewView(frontCamera.transform, kept: [frontC
 precondition(RoomPhotoProjection.isNewView(grazing.transform, kept: [frontCamera.transform]))
 let photoSet = RoomPhotoSet(photos: [frontCamera, grazing])
 try photoSet.validate()
-precondition(try JSONDecoder().decode(RoomPhotoSet.self, from: JSONEncoder().encode(photoSet)) == photoSet)
+let decodedPhotoSet = try JSONDecoder().decode(RoomPhotoSet.self, from: JSONEncoder().encode(photoSet))
+precondition(decodedPhotoSet == photoSet)
 do { try RoomPhotoSet(photos: [RoomPhotoSet.Photo(file: "../x.jpg", transform: frontCamera.transform, intrinsics: frontCamera.intrinsics, width: 1, height: 1, timestamp: 0)]).validate(); preconditionFailure("unsafe file name") } catch RoomPhotoSet.ValidationError.invalid { }
 let photoMesh = RoomPhotoMesh.build(RoomPlanDocument(name: "Test", createdAt: "2026-10-13T00:00:00Z", roomId: "r", surfaces: summaryWalls + [summaryFloor]),
     photos: [frontCamera], ceilingHeight: 2.5)
