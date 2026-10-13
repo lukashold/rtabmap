@@ -624,17 +624,17 @@ let beamCorners = FurnitureLayout.corners(beam)
 precondition(abs(beamCorners.map { $0.z }.max()! - 2.5) < 1e-6 && abs(beamCorners.map { $0.x }.max()! - 0.625) < 1e-6)
 let bulkhead = StructuralPlacement.make("bulkhead", at: (1.7, 0.3), document: layoutRoom, ceiling: 2.5, name: "Bulkhead")!
 precondition(abs(bulkhead.width - 5) < 1e-6 && abs(bulkhead.x - 1.85) < 1e-6 && abs(bulkhead.z) < 1e-6 && abs(bulkhead.bottom - 2.25) < 1e-9, "bulkhead \(bulkhead)")
-let column = StructuralPlacement.make("column", at: (-1.8, 1.0), document: layoutRoom, ceiling: 2.5, name: "Column")!
-precondition(abs(column.x + 1.85) < 1e-6 && abs(column.z - 1) < 1e-6 && column.bottom == 0 && column.height == 2.5)
+let pillar = StructuralPlacement.make("column", at: (-1.8, 1.0), document: layoutRoom, ceiling: 2.5, name: "Column")!
+precondition(abs(pillar.x + 1.85) < 1e-6 && abs(pillar.z - 1) < 1e-6 && pillar.bottom == 0 && pillar.height == 2.5)
 precondition(FurnitureLayout.conflicts(of: beam, in: layoutRoom, others: []).isEmpty)
-precondition(FurnitureLayout.conflicts(of: column, in: layoutRoom, others: []).isEmpty)
+precondition(FurnitureLayout.conflicts(of: pillar, in: layoutRoom, others: []).isEmpty)
 var underBeam = table; underBeam.x = 0.5
 precondition(FurnitureLayout.conflicts(of: underBeam, in: layoutRoom, others: [beam]).furniture == 0)
 var wardrobe = table; wardrobe.id = "w9"; wardrobe.x = 0.5; wardrobe.height = 2.3
 precondition(FurnitureLayout.conflicts(of: wardrobe, in: layoutRoom, others: [beam]).furniture == 1)
 precondition(FurnitureLayout.conflicts(of: beam, in: layoutRoom, others: [wardrobe]).furniture == 1)
 var withElements = RoomExtras()
-withElements.furniture = [beam, column]
+withElements.furniture = [beam, pillar]
 try withElements.validate()
 withElements.furniture[0].structural = "wall"
 do { try withElements.validate(); preconditionFailure("unknown element kind") } catch RoomExtras.ValidationError.invalid { }

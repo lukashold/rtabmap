@@ -105,12 +105,12 @@ struct StairPointGrid {
     private var buckets: [Int64: [Int32]] = [:]
     init(xs: [Double], zs: [Double], cell: Double) {
         self.cell = cell
-        for i in 0..<xs.count { buckets[Self.key(Int(floor(xs[i] / cell)), Int(floor(zs[i] / cell))), default: []].append(Int32(i)) }
+        for i in 0..<xs.count { buckets[Self.key(Int(Foundation.floor(xs[i] / cell)), Int(Foundation.floor(zs[i] / cell))), default: []].append(Int32(i)) }
     }
     private static func key(_ i: Int, _ j: Int) -> Int64 { Int64(i) << 32 | Int64(UInt32(bitPattern: Int32(truncatingIfNeeded: j))) }
     func near(x: Double, z: Double, radius: Double, _ body: (Int) -> Void) {
-        for i in Int(floor((x - radius) / cell))...Int(floor((x + radius) / cell)) {
-            for j in Int(floor((z - radius) / cell))...Int(floor((z + radius) / cell)) {
+        for i in Int(Foundation.floor((x - radius) / cell))...Int(Foundation.floor((x + radius) / cell)) {
+            for j in Int(Foundation.floor((z - radius) / cell))...Int(Foundation.floor((z + radius) / cell)) {
                 if let list = buckets[Self.key(i, j)] { for k in list { body(Int(k)) } }
             }
         }
@@ -325,9 +325,9 @@ struct StairTransport {
         var seen = Set<Int64>(), pts: [StairVec] = []
         for i in 0..<mesh.vertexCount {
             let p = mesh.position(i)
-            let ix: Int64 = Int64(floor(p.x / 0.03)) & 0x1FFFFF
-            let iy: Int64 = Int64(floor(p.y / 0.03)) & 0x1FFFFF
-            let iz: Int64 = Int64(floor(p.z / 0.03)) & 0x1FFFFF
+            let ix: Int64 = Int64(Foundation.floor(p.x / 0.03)) & 0x1FFFFF
+            let iy: Int64 = Int64(Foundation.floor(p.y / 0.03)) & 0x1FFFFF
+            let iz: Int64 = Int64(Foundation.floor(p.z / 0.03)) & 0x1FFFFF
             let key: Int64 = ix | (iy << 21) | (iz << 42)
             if seen.insert(key).inserted { pts.append(p) }
         }
