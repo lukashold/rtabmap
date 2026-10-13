@@ -105,7 +105,7 @@ final class RoomWalkthroughViewController: UIViewController, UIGestureRecognizer
         let rotate = UIRotationGestureRecognizer(target: self, action: #selector(turn(_:)))
         rotate.delegate = self
         sceneView.addGestureRecognizer(rotate)
-        let tap = UITapGestureRecognizer(target: self, action: #selector(select(_:)))
+        let tap = UITapGestureRecognizer(target: self, action: #selector(pickSurface(_:)))
         sceneView.addGestureRecognizer(tap)
         let planPan = UIPanGestureRecognizer(target: self, action: #selector(movePlan(_:)))
         planPan.maximumNumberOfTouches = 1
@@ -183,7 +183,7 @@ final class RoomWalkthroughViewController: UIViewController, UIGestureRecognizer
 
     // MARK: Corrections
 
-    @objc private func select(_ gesture: UITapGestureRecognizer) {
+    @objc private func pickSurface(_ gesture: UITapGestureRecognizer) {
         guard presentedViewController == nil, Mode(rawValue: mode.selectedSegmentIndex) != .inside else { return }
         let hits = sceneView.hitTest(gesture.location(in: sceneView), options: [.searchMode: SCNHitTestSearchMode.all.rawValue, .ignoreHiddenNodes: true])
         guard let name = hits.lazy.compactMap({ hit -> String? in
