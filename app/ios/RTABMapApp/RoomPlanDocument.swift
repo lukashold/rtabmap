@@ -75,6 +75,17 @@ struct RoomPlanDocument: Codable {
     var coordinateSystem = CoordinateSystem()
     let surfaces: [Surface]
     var building: Building? = nil
+    /// Detected furniture and fixtures (for example `stairs`, `refrigerator`) as
+    /// oriented boxes. Dimensions are the box extents in metres, not a shape.
+    var objects: [Object]? = nil
+
+    struct Object: Codable, Equatable {
+        let id: String
+        let category: String
+        let dimensions: [Double]
+        let transform: [Double]
+        let confidence: String
+    }
 
     enum ValidationError: Error { case invalidDocument, invalidSurface, tooComplex }
 
@@ -90,6 +101,14 @@ struct RoomPlanDocument: Codable {
             throw ValidationError.invalidDocument
         }
         var ids = Set<String>()
+        if let objects = objects {
+            guard objects.count <= 150, objects.allSatisfy({ object in
+                !object.id.isEmpty && object.category.range(of: "^[A-Za-z]{1,40}$", options: .regularExpression) != nil &&
+                    object.dimensions.count == 3 && object.dimensions.allSatisfy({ $0.isFinite && $0 >= 0 }) &&
+                    object.transform.count == 16 && object.transform.allSatisfy(\.isFinite) &&
+                    ["high", "medium", "low", "unknown"].contains(object.confidence)
+            }) else { throw ValidationError.invalidSurface }
+        }
         if let building = building {
             guard [building.name, building.floor, building.room].allSatisfy({ !$0.isEmpty && $0.count <= 200 }) else {
                 throw ValidationError.invalidDocument

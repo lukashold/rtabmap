@@ -24,7 +24,7 @@ for language in MeasurementGuide.languages {
     precondition(guide.objectCapture!.values.allSatisfy { !$0.isEmpty })
     precondition(guide.objectCapture!["photosCount"]!.contains("{count}") && guide.objectCapture!["photosCount"]!.contains("{max}"))
     precondition(guide.splat!.count == 9)
-    precondition(guide.home!.count == 53)
+    precondition(guide.home!.count == 100)
     precondition(Set(guide.home!.keys) == Set(guides["de"]!.home!.keys))
     precondition(guide.home!.values.allSatisfy { !$0.isEmpty })
     precondition(guide.home!["doorsWindows"]!.contains("{doors}") && guide.home!["doorsWindows"]!.contains("{windows}"))
@@ -386,3 +386,60 @@ lowWalls[1] = summarySurface("w2", "wall", [5, 0, 0], summaryFrame([2, 1.25, 0],
 let partial = RoomPlanSummary(RoomPlanDocument(name: "Test", createdAt: "2026-10-13T00:00:00Z", roomId: "r", surfaces: lowWalls + [summaryFloor]))
 precondition(partial.incomplete && near(partial.grossWallArea, 32.5))
 print("Room summary: floor, gross/net wall area, overlap and incomplete-wall checks passed")
+
+// Room photos: projection, best-photo choice and textured mesh coverage.
+let frontCamera = RoomPhotoSet.Photo(file: "photo-001.jpg", transform: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,1.5,0,1],
+    intrinsics: [1000,0,0, 0,1000,0, 960,720,1], width: 1920, height: 1440, timestamp: 1)
+let projected = RoomPhotoProjection.project((0, 1.25, -2.5), photo: frontCamera)!
+precondition(abs(projected.u - 960) < 1e-9 && abs(projected.v - 820) < 1e-9 && abs(projected.depth - 2.5) < 1e-9)
+precondition(RoomPhotoProjection.project((0, 1.5, 1), photo: frontCamera) == nil, "points behind the camera are not visible")
+// A camera looking along the wall (grazing) loses against one facing it.
+let grazing = RoomPhotoSet.Photo(file: "photo-002.jpg", transform: [0,0,-1,0, 0,1,0,0, 1,0,0,0, 3,1.5,-2.3,1],
+    intrinsics: [1000,0,0, 0,1000,0, 960,720,1], width: 1920, height: 1440, timestamp: 2)
+let tile: [RoomPhotoProjection.Vec3] = [(-0.2, 1.0, -2.5), (0.2, 1.0, -2.5), (0.2, 1.4, -2.5), (-0.2, 1.4, -2.5)]
+let choice = RoomPhotoProjection.bestPhoto(corners: tile, normal: (0, 0, 1), photos: [grazing, frontCamera])!
+precondition(choice.photoIndex == 1 && choice.uv.allSatisfy { $0.allSatisfy { (0...1).contains($0) } })
+precondition(RoomPhotoProjection.bestPhoto(corners: tile, normal: (0, 0, 1), photos: [grazing]) == nil)
+precondition(RoomPhotoProjection.tiles(width: 1, height: 0.7, size: 0.35).count == 6)
+precondition(!RoomPhotoProjection.isNewView(frontCamera.transform, kept: [frontCamera.transform]))
+precondition(RoomPhotoProjection.isNewView(grazing.transform, kept: [frontCamera.transform]))
+let photoSet = RoomPhotoSet(photos: [frontCamera, grazing])
+try photoSet.validate()
+precondition(try JSONDecoder().decode(RoomPhotoSet.self, from: JSONEncoder().encode(photoSet)) == photoSet)
+do { try RoomPhotoSet(photos: [RoomPhotoSet.Photo(file: "../x.jpg", transform: frontCamera.transform, intrinsics: frontCamera.intrinsics, width: 1, height: 1, timestamp: 0)]).validate(); preconditionFailure("unsafe file name") } catch RoomPhotoSet.ValidationError.invalid { }
+let photoMesh = RoomPhotoMesh.build(RoomPlanDocument(name: "Test", createdAt: "2026-10-13T00:00:00Z", roomId: "r", surfaces: summaryWalls + [summaryFloor]),
+    photos: [frontCamera], ceilingHeight: 2.5)
+precondition(photoMesh.totalTiles > 0 && photoMesh.coveredTiles > 0 && photoMesh.coveredTiles < photoMesh.totalTiles)
+precondition(abs(photoMesh.eye.y - 1.6) < 1e-9 && abs(photoMesh.eye.x) < 1e-9 && abs(photoMesh.eye.z) < 1e-9)
+precondition(photoMesh.buckets.allSatisfy { $0.positions.count / 3 * 2 == $0.uvs.count && $0.indices.count == $0.tiles * 6 })
+// Detected objects (for example stairs) round-trip and are validated.
+var withStairs = RoomPlanDocument(name: "Test", createdAt: "2026-10-13T00:00:00Z", roomId: "r", surfaces: summaryWalls)
+withStairs.objects = [.init(id: "s", category: "stairs", dimensions: [1.0, 2.8, 3.2], transform: summaryWalls[0].transform, confidence: "high")]
+try withStairs.validate()
+withStairs.objects = [.init(id: "s", category: "../x", dimensions: [1, 1, 1], transform: summaryWalls[0].transform, confidence: "high")]
+do { try withStairs.validate(); preconditionFailure("invalid object category") } catch RoomPlanDocument.ValidationError.invalidSurface { }
+print("Room photos: projection, best view, tiling, mesh coverage and detected objects checks passed")
+
+// Transport check: identical results to tools/scan-workspace/src/transport.js
+// (reference values computed with the JavaScript implementation).
+let fridge = TransportAssessment.Object(width: 0.6, depth: 0.66, height: 2.03)
+let wide = try TransportAssessment(object: fridge, route: .init(width: 0.9, ceiling: 2.1, landingWidth: 1.2, landingDepth: 1.2, rise: 0.18, run: 0.27, turnDegrees: 180), margin: 0.02, allowTilt: true)
+precondition(wide.verdict == .possible && wide.chosen.id == "upright" && abs(wide.chosen.minimumClearance - 0.03) < 1e-9)
+precondition(wide.reasons == ["upright_envelope_fits"] && wide.chosen.samples.count == 41)
+let tight = try TransportAssessment(object: fridge, route: .init(width: 0.8, ceiling: 2.4, landingWidth: 0.9, landingDepth: 0.9, rise: 0.18, run: 0.27, turnDegrees: 90), margin: 0.02)
+precondition(tight.verdict == .uncertain && tight.chosen.id == "upright" && abs(tight.chosen.minimumClearance + 0.031964125) < 1e-8)
+precondition(tight.reasons == ["no_tested_orientation_fits", "landing_requires_path_planning"] && tight.chosen.samples.count == 21)
+let narrow = try TransportAssessment(object: fridge, route: .init(width: 0.55, ceiling: 2.4, landingWidth: 2, landingDepth: 2, rise: 0, run: 1, turnDegrees: 0))
+precondition(narrow.verdict == .blocked && narrow.reasons == ["corridor_narrower_than_smallest_dimension"] && narrow.chosen.samples.count == 1)
+do { _ = try TransportAssessment(object: fridge, route: .init(width: .nan, ceiling: 2, landingWidth: 1, landingDepth: 1, rise: 0, run: 1, turnDegrees: 0)); preconditionFailure("NaN width") }
+catch TransportAssessment.InputError.invalid(let field) { precondition(field == "route.width") }
+func withStairsValid() -> RoomPlanDocument {
+    var document = RoomPlanDocument(name: "Stiegenhaus", createdAt: "2026-10-13T00:00:00Z", roomId: "r", surfaces: summaryWalls + [summaryDoor])
+    document.objects = [.init(id: "s", category: "stairs", dimensions: [1.0, 2.8, 3.2], transform: summaryWalls[0].transform, confidence: "high")]
+    return document
+}
+let scanSuggestions = TransportScanSuggestion.collect(from: [withStairsValid()])
+precondition(scanSuggestions.contains { $0.kind == .door && abs($0.width - 0.8) < 1e-9 })
+precondition(scanSuggestions.contains { $0.kind == .stairs && $0.width == 1.0 && $0.height == 2.8 && $0.length == 3.2 })
+precondition(scanSuggestions.contains { $0.kind == .roomHeight && abs($0.height - 2.5) < 1e-9 })
+print("Transport check: verdicts match the browser implementation; scan suggestions checks passed")

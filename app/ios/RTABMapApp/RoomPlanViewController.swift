@@ -59,6 +59,8 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
     private var captureFull: [NSLayoutConstraint] = []
     private var captureTop: [NSLayoutConstraint] = []
     private var document: RoomPlanDocument?
+    private let photoRecorder = RoomPhotoRecorder()
+    private let photoBadge = KanturaHintPill("")
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -177,7 +179,13 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
         finishButton.addTarget(self, action: #selector(finishCapture), for: .touchUpInside)
         spinner.color = .white
         spinner.hidesWhenStopped = true
-        for item in [closeButton, hint, finishButton, spinner] as [UIView] { item.translatesAutoresizingMaskIntoConstraints = false; overlay.addSubview(item) }
+        photoBadge.isHidden = true
+        photoBadge.isAccessibilityElement = true
+        for item in [closeButton, hint, finishButton, spinner, photoBadge] as [UIView] { item.translatesAutoresizingMaskIntoConstraints = false; overlay.addSubview(item) }
+        NSLayoutConstraint.activate([
+            photoBadge.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
+            photoBadge.centerYAnchor.constraint(equalTo: closeButton.centerYAnchor)
+        ])
         NSLayoutConstraint.activate([
             overlay.topAnchor.constraint(equalTo: view.topAnchor), overlay.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             overlay.leadingAnchor.constraint(equalTo: view.leadingAnchor), overlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -322,6 +330,10 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
         finishButton.isHidden = false
         setStage(capturing: true)
         capture.captureSession.run(configuration: configuration)
+        // Photos come from RoomPlan's own AR session, so they share the room's coordinates.
+        photoRecorder.start(session: capture.captureSession.arSession)
+        photoBadge.isHidden = false
+        refreshPhotoBadge()
         UIAccessibility.post(notification: .screenChanged, argument: hint)
     }
 
@@ -338,7 +350,16 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
         }
         timeout = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 120, execute: work)
+        photoRecorder.stop()
+        photoBadge.isHidden = true
         capture.captureSession.stop(pauseARSession: true)
+    }
+
+    private func refreshPhotoBadge() {
+        guard lifecycle.phase == .capturing else { return }
+        photoBadge.label.text = "📷 \(photoRecorder.count)"
+        photoBadge.accessibilityLabel = home("photosTaken").replacingOccurrences(of: "{count}", with: "\(photoRecorder.count)")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in self?.refreshPhotoBadge() }
     }
 
     func captureView(shouldPresent roomDataForProcessing: CapturedRoomData, error: Error?) -> Bool {
@@ -463,7 +484,23 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
             + room.windows.map { convert($0, kind: "window") }
             + room.openings.map { convert($0, kind: "opening") }
             + room.floors.map { convert($0, kind: "floor") }
-        return RoomPlanDocument(name: name, createdAt: ISO8601DateFormatter().string(from: Date()), roomId: room.identifier.uuidString, surfaces: surfaces)
+        var document = RoomPlanDocument(name: name, createdAt: ISO8601DateFormatter().string(from: Date()), roomId: room.identifier.uuidString, surfaces: surfaces)
+        let objects = room.objects.map { object -> RoomPlanDocument.Object in
+            let matrix = object.transform
+            let confidence: String
+            switch object.confidence {
+            case .high: confidence = "high"
+            case .medium: confidence = "medium"
+            case .low: confidence = "low"
+            @unknown default: confidence = "unknown"
+            }
+            let category = String(describing: object.category).filter(\.isLetter)
+            return RoomPlanDocument.Object(id: object.identifier.uuidString, category: category.isEmpty ? "unknown" : String(category.prefix(40)),
+                dimensions: [Double(object.dimensions.x), Double(object.dimensions.y), Double(object.dimensions.z)],
+                transform: (0..<4).flatMap { column in (0..<4).map { row in Double(matrix[column][row]) } }, confidence: confidence)
+        }
+        if !objects.isEmpty { document.objects = Array(objects.prefix(150)) }
+        return document
     }
 
     private func saveOrFinish() {
@@ -479,6 +516,7 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
         let exportDocument = document
         // Renaming after a save updates the same library entry instead of adding a copy.
         let previous = savedDirectory
+        let recorder = photoRecorder
         setReviewEnabled(false)
         saveButton.setTitle("  " + text("exporting"), for: .normal)
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -495,8 +533,10 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
                 let stale = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
                 try exportDocument.encoded().write(to: json, options: .atomic)
                 try room.export(to: usdz, exportOptions: .mesh)
-                // Only after both new files exist, remove the previous pair.
-                for file in stale where file != json && file != usdz { try? FileManager.default.removeItem(at: file) }
+                // Photos are optional: a failed copy must not lose the room itself.
+                try? recorder.write(to: directory)
+                // Only after both new files exist, remove the previous pair (photos stay).
+                for file in stale where file != json && file != usdz && file.lastPathComponent != "photos" { try? FileManager.default.removeItem(at: file) }
                 outcome = .success((directory, [json, usdz]))
             } catch { outcome = .failure(error) }
             DispatchQueue.main.async {
@@ -547,6 +587,7 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
         if wasCapturing { capture.captureSession.stop(pauseARSession: true) }
         capture.captureSession.arSession.pause()
         spinner.stopAnimating()
+        photoRecorder.stop()
         prepColumn.arrangedSubviews.forEach { $0.removeFromSuperview() }
         let icon = KanturaDesign.symbolTile("exclamationmark.triangle", size: 64)
         let wrapper = UIView()
@@ -582,6 +623,7 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
 
     private func closeNow(after next: (() -> Void)? = nil) {
         let wasCapturing = lifecycle.phase == .capturing
+        photoRecorder.discard()
         lifecycle.cancel()
         timeout?.cancel()
         capture.delegate = nil
@@ -718,7 +760,18 @@ final class SavedRoomViewController: UIViewController, QLPreviewControllerDataSo
         let summary = RoomPlanSummary(room.document)
         column.addArrangedSubview(KanturaMetricGrid(KanturaDesign.roomMetrics(summary)))
         column.addArrangedSubview(KanturaDesign.label(text("doorsWindows").replacingOccurrences(of: "{doors}", with: "\(summary.doors)").replacingOccurrences(of: "{windows}", with: "\(summary.windows)"), style: .subheadline, secondary: true))
-        column.addArrangedSubview(KanturaDesign.primaryButton(text("share"), icon: "square.and.arrow.up") { [weak self] in self?.share() })
+        column.addArrangedSubview(KanturaDesign.primaryButton(text("walkTitle"), icon: "figure.stand") { [weak self] in
+            guard let self = self else { return }
+            self.navigationController?.pushViewController(RoomWalkthroughViewController(room: self.room), animated: true)
+        })
+        if !RoomWalkthroughViewController.hasPhotos(room) {
+            column.addArrangedSubview(KanturaDesign.label(text("walkNoPhotos"), style: .footnote, secondary: true))
+        }
+        column.addArrangedSubview(KanturaDesign.secondaryButton(text("transportTitle"), icon: "shippingbox") { [weak self] in
+            guard let self = self else { return }
+            self.navigationController?.pushViewController(TransportCheckViewController(preselected: self.room), animated: true)
+        })
+        column.addArrangedSubview(KanturaDesign.secondaryButton(text("share"), icon: "square.and.arrow.up") { [weak self] in self?.share() })
         column.addArrangedSubview(KanturaDesign.secondaryButton(text("view3d"), icon: "arkit") { [weak self] in self?.preview() })
         column.addArrangedSubview(KanturaDesign.secondaryButton(text("allSurfaces"), icon: "list.bullet") { [weak self] in
             guard let self = self else { return }

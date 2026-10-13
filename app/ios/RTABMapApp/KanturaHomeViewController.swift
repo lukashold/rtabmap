@@ -6,7 +6,7 @@ import AVKit
 /// All scanning, saving and processing stays in the existing controllers; this
 /// screen only lists results and routes the user.
 final class KanturaHomeViewController: UIViewController {
-    enum Route { case roomScan, gateScan, lidarProjects, lidarWorkflow, photoObject, scenePhotos, splat, expert }
+    enum Route { case roomScan, gateScan, lidarProjects, lidarWorkflow, photoObject, scenePhotos, splat, expert, transport }
     var onRoute: ((Route) -> Void)?
     var onLanguageChange: (() -> Void)?
     /// RoomPlan needs a LiDAR iPhone/iPad with iOS 17; otherwise the main button
@@ -214,7 +214,11 @@ final class KanturaHomeViewController: UIViewController {
     private func showMore() {
         guard presentedViewController == nil else { return }
         let sheet = KanturaMoreCaptureViewController()
-        sheet.onRoute = { [weak self] route in self?.onRoute?(route) }
+        sheet.onRoute = { [weak self] route in
+            // The transport check needs no camera; it opens inside this navigation.
+            if route == .transport { self?.navigationController?.pushViewController(TransportCheckViewController(), animated: true) }
+            else { self?.onRoute?(route) }
+        }
         let navigation = UINavigationController(rootViewController: sheet)
         if #available(iOS 15.0, *), let presentation = navigation.sheetPresentationController {
             presentation.detents = [.medium(), .large()]
@@ -288,6 +292,7 @@ final class KanturaMoreCaptureViewController: UIViewController {
             (.photoObject, MeasurementGuide.objectText("title"), MeasurementGuide.objectText("detail"), "camera.aperture"),
             (.scenePhotos, MeasurementGuide.sceneText("title"), MeasurementGuide.sceneText("detail"), "camera.on.rectangle"),
             (.splat, MeasurementGuide.splatText("title"), MeasurementGuide.splatText("detail"), "sparkles"),
+            (.transport, MeasurementGuide.homeText("transportTitle"), MeasurementGuide.homeText("transportMore"), "shippingbox"),
             (.lidarProjects, MeasurementGuide.homeText("lidarProjects"), MeasurementGuide.homeText("lidarProjectsDetail"), "folder")
         ]
         for (route, title, detail, icon) in entries {

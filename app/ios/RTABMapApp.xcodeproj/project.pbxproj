@@ -18,6 +18,11 @@
 		A817AC060000000000000002 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = A817AC060000000000000001 /* InfoPlist.strings */; };
 		A817AC050000000000000002 /* videos in Resources */ = {isa = PBXBuildFile; fileRef = A817AC050000000000000001 /* videos */; };
 		A817AC040000000000000002 /* KanturaDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC040000000000000001 /* KanturaDesign.swift */; };
+		A817AC170000000000000002 /* TransportCheckViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC170000000000000001 /* TransportCheckViewController.swift */; };
+		A817AC160000000000000002 /* TransportAssessment.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC160000000000000001 /* TransportAssessment.swift */; };
+		A817AC150000000000000002 /* RoomWalkthroughViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC150000000000000001 /* RoomWalkthroughViewController.swift */; };
+		A817AC140000000000000002 /* RoomPhotoRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC140000000000000001 /* RoomPhotoRecorder.swift */; };
+		A817AC130000000000000002 /* RoomPhotoSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC130000000000000001 /* RoomPhotoSet.swift */; };
 		A817AC120000000000000002 /* RoomPlanSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC120000000000000001 /* RoomPlanSummary.swift */; };
 		A817AC110000000000000002 /* KanturaHomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC110000000000000001 /* KanturaHomeViewController.swift */; };
 		A817AC030000000000000002 /* RoomPlanDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = A817AC030000000000000001 /* RoomPlanDocument.swift */; };
@@ -172,6 +177,11 @@
 		A817AC06000000000000001E /* tr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "tr"; path = "RTABMapApp/Translations/tr.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 		A817AC050000000000000001 /* videos */ = {isa = PBXFileReference; lastKnownFileType = folder; name = videos; path = ../../tools/scan-workspace/public/videos; sourceTree = "<group>"; };
 		A817AC040000000000000001 /* KanturaDesign.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KanturaDesign.swift; path = RTABMapApp/KanturaDesign.swift; sourceTree = "<group>"; };
+		A817AC170000000000000001 /* TransportCheckViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TransportCheckViewController.swift; path = RTABMapApp/TransportCheckViewController.swift; sourceTree = "<group>"; };
+		A817AC160000000000000001 /* TransportAssessment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TransportAssessment.swift; path = RTABMapApp/TransportAssessment.swift; sourceTree = "<group>"; };
+		A817AC150000000000000001 /* RoomWalkthroughViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RoomWalkthroughViewController.swift; path = RTABMapApp/RoomWalkthroughViewController.swift; sourceTree = "<group>"; };
+		A817AC140000000000000001 /* RoomPhotoRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RoomPhotoRecorder.swift; path = RTABMapApp/RoomPhotoRecorder.swift; sourceTree = "<group>"; };
+		A817AC130000000000000001 /* RoomPhotoSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RoomPhotoSet.swift; path = RTABMapApp/RoomPhotoSet.swift; sourceTree = "<group>"; };
 		A817AC120000000000000001 /* RoomPlanSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RoomPlanSummary.swift; path = RTABMapApp/RoomPlanSummary.swift; sourceTree = "<group>"; };
 		A817AC110000000000000001 /* KanturaHomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KanturaHomeViewController.swift; path = RTABMapApp/KanturaHomeViewController.swift; sourceTree = "<group>"; };
 		A817AC030000000000000001 /* RoomPlanDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RoomPlanDocument.swift; path = RTABMapApp/RoomPlanDocument.swift; sourceTree = "<group>"; };
@@ -548,6 +558,11 @@
 				A817AC080000000000000005 /* SplatViewerAssets */,
 				A817AC070000000000000003 /* ObjectCaptureViewController.swift */,
 				A817AC040000000000000001 /* KanturaDesign.swift */,
+				A817AC170000000000000001 /* TransportCheckViewController.swift */,
+				A817AC160000000000000001 /* TransportAssessment.swift */,
+				A817AC150000000000000001 /* RoomWalkthroughViewController.swift */,
+				A817AC140000000000000001 /* RoomPhotoRecorder.swift */,
+				A817AC130000000000000001 /* RoomPhotoSet.swift */,
 				A817AC120000000000000001 /* RoomPlanSummary.swift */,
 				A817AC110000000000000001 /* KanturaHomeViewController.swift */,
 				A817AC030000000000000003 /* RoomPlanViewController.swift */,
@@ -959,6 +974,11 @@
 				A817AC080000000000000004 /* SplatViewController.swift in Sources */,
 				A817AC070000000000000004 /* ObjectCaptureViewController.swift in Sources */,
 				A817AC040000000000000002 /* KanturaDesign.swift in Sources */,
+				A817AC170000000000000002 /* TransportCheckViewController.swift in Sources */,
+				A817AC160000000000000002 /* TransportAssessment.swift in Sources */,
+				A817AC150000000000000002 /* RoomWalkthroughViewController.swift in Sources */,
+				A817AC140000000000000002 /* RoomPhotoRecorder.swift in Sources */,
+				A817AC130000000000000002 /* RoomPhotoSet.swift in Sources */,
 				A817AC120000000000000002 /* RoomPlanSummary.swift in Sources */,
 				A817AC110000000000000002 /* KanturaHomeViewController.swift in Sources */,
 				A817AC030000000000000004 /* RoomPlanViewController.swift in Sources */,

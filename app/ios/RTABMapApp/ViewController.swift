@@ -2300,6 +2300,7 @@ class ViewController: GLKViewController, ARSessionDelegate, RTABMapObserver, UIP
         case .lidarProjects: leaveHome { [weak self] in self?.openLibrary() }
         case .lidarWorkflow: leaveHome { [weak self] in self?.showLidarGuide() }
         case .expert: leaveHome {}
+        case .transport: break // handled inside the start screen
         }
     }
 
