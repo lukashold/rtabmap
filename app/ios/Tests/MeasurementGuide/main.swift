@@ -506,7 +506,7 @@ var blocking = table; blocking.x = 0.5; blocking.z = -2.0
 let doorConflict = FurnitureLayout.conflicts(of: blocking, in: layoutRoom, others: [])
 precondition(doorConflict.doors == 1 && doorConflict.walls == 0)
 // Rotated 90°: corners swap width and depth.
-var turned = table; turned.rotation = .pi / 2
+var turned = table; turned.id = "t2"; turned.rotation = .pi / 2
 let turnedCorners = FurnitureLayout.corners(turned)
 precondition(abs(turnedCorners.map { $0.x }.max()! - 0.25) < 1e-9 && abs(turnedCorners.map { $0.z }.max()! - 0.5) < 1e-9)
 precondition(FurnitureLayout.conflicts(of: table, in: layoutRoom, others: [turned]).furniture == 1)
