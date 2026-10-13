@@ -15,5 +15,16 @@ swiftc -O "$ios_dir/RTABMapApp/MeasurementGuide.swift" \
   "$ios_dir/RTABMapApp/PhotoQuality.swift" \
   "$ios_dir/RTABMapApp/SplatDocument.swift" \
   "$ios_dir/RTABMapApp/StairScan.swift" \
-  "$ios_dir/Tests/MeasurementGuide/main.swift" -o "$test_dir/guide-tests"
-"$test_dir/guide-tests" "$ios_dir/RTABMapApp/MeasurementGuide.json"
+  "$ios_dir/Tests/MeasurementGuide/main.swift" -o "$test_dir/guide-tests" 2> "$test_dir/compile.log" || {
+  # Surface compiler errors as workflow annotations (readable via the API).
+  grep -E "error:" "$test_dir/compile.log" | head -20 | sed 's/^/::error::/'
+  cat "$test_dir/compile.log"
+  exit 1
+}
+"$test_dir/guide-tests" "$ios_dir/RTABMapApp/MeasurementGuide.json" > "$test_dir/run.log" 2>&1 || {
+  status=$?
+  tail -5 "$test_dir/run.log" | sed 's/^/::error::/'
+  cat "$test_dir/run.log"
+  exit $status
+}
+cat "$test_dir/run.log"

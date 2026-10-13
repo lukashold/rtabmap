@@ -325,7 +325,10 @@ struct StairTransport {
         var seen = Set<Int64>(), pts: [StairVec] = []
         for i in 0..<mesh.vertexCount {
             let p = mesh.position(i)
-            let key = Int64(floor(p.x / 0.03)) & 0x1FFFFF | (Int64(floor(p.y / 0.03)) & 0x1FFFFF) << 21 | (Int64(floor(p.z / 0.03)) & 0x1FFFFF) << 42
+            let ix: Int64 = Int64(floor(p.x / 0.03)) & 0x1FFFFF
+            let iy: Int64 = Int64(floor(p.y / 0.03)) & 0x1FFFFF
+            let iz: Int64 = Int64(floor(p.z / 0.03)) & 0x1FFFFF
+            let key: Int64 = ix | (iy << 21) | (iz << 42)
             if seen.insert(key).inserted { pts.append(p) }
         }
         let grid = StairPointGrid(xs: pts.map(\.x), zs: pts.map(\.z), cell: 0.25)
@@ -465,7 +468,7 @@ struct SavedStairScan {
 
     static func load(from directory: URL) -> [SavedStairScan] {
         guard let folders = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) else { return [] }
-        return folders.compactMap { folder in
+        return folders.compactMap { folder -> SavedStairScan? in
             let json = folder.appendingPathComponent(StairScanDocument.fileName)
             guard let size = try? json.resourceValues(forKeys: [.fileSizeKey]).fileSize, size <= 20 * 1024 * 1024,
                   let data = try? Data(contentsOf: json),
@@ -502,7 +505,7 @@ enum LibraryLabels {
     static func building(room: String, apartment: String, floor: String) -> RoomPlanDocument.Building? {
         let a = apartment.trimmingCharacters(in: .whitespacesAndNewlines), f = floor.trimmingCharacters(in: .whitespacesAndNewlines)
         if a.isEmpty && f.isEmpty { return nil }
-        return .init(name: String((a.isEmpty ? placeholder : a).prefix(200)), floor: String((f.isEmpty ? placeholder : f).prefix(200)), room: String(room.prefix(200)))
+        return RoomPlanDocument.Building(name: String((a.isEmpty ? placeholder : a).prefix(200)), floor: String((f.isEmpty ? placeholder : f).prefix(200)), room: String(room.prefix(200)))
     }
     /// Group title on the start screen ("" = not assigned).
     static func group(_ building: RoomPlanDocument.Building?) -> String {

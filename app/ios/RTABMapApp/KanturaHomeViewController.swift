@@ -215,7 +215,7 @@ final class KanturaHomeViewController: UIViewController {
             places.append((b.name, b.floor))
         }
         var assign: [UIMenuElement] = places.sorted { ($0.apartment, $0.floor) < ($1.apartment, $1.floor) }.map { place in
-            let title = LibraryLabels.group(.init(name: place.apartment, floor: place.floor, room: ""))
+            let title = LibraryLabels.group(RoomPlanDocument.Building(name: place.apartment, floor: place.floor, room: ""))
             let action = UIAction(title: title, image: UIImage(systemName: "building.2")) { [weak self] _ in
                 self?.relabel(item, name: item.name, apartment: place.apartment, floor: place.floor)
             }
