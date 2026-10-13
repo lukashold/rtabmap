@@ -322,9 +322,19 @@ enum StairAnalyzer {
         }
         let widths = stations.compactMap { s in s.smoothedWidth.map { ($0, s.distance) } }
         let heads = stations.compactMap { s in s.headroom.map { ($0, s.distance) } }
-        let floorValues = stations.map(\.floor)
-        return StairProfile(stations: stations, length: distance, drop: floorValues.max()! - floorValues.min()!,
-                            risers: jumps.count, riser: median(jumps), going: median(goings), slopeDegrees: slope,
+        // Height difference between the first and last 50 cm (robust to single spikes);
+        // step count from that and the typical riser, so a missed or doubled edge
+        // does not change the result.
+        let startLevel = median(stations.filter { $0.distance <= 0.5 }.map(\.floor)) ?? stations[0].floor
+        let endLevel = median(stations.filter { $0.distance >= distance - 0.5 }.map(\.floor)) ?? stations[count - 1].floor
+        let drop = abs(endLevel - startLevel)
+        var risers = jumps.count, riser = median(jumps)
+        if let typical = riser, typical > 0.05, jumps.count >= 2 {
+            risers = max(1, Int((drop / typical).rounded()))
+            riser = drop / Double(risers)
+        }
+        return StairProfile(stations: stations, length: distance, drop: drop,
+                            risers: risers, riser: riser, going: median(goings), slopeDegrees: slope,
                             turnDegrees: turn, minWidth: widths.min { $0.0 < $1.0 }?.0, minWidthAt: widths.min { $0.0 < $1.0 }?.1,
                             minHeadroom: heads.min { $0.0 < $1.0 }?.0, minHeadroomAt: heads.min { $0.0 < $1.0 }?.1)
     }
