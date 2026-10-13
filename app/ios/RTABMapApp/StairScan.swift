@@ -421,7 +421,8 @@ struct StairTransport {
             let sd = outside + min(max(qx, qy, qz), 0)
             if sd < clearance {
                 clearance = sd
-                limit = (qx <= 0 && qy <= 0 && u > mid) || (qz > max(qx, qy)) ? .top : .side
+                // The face the point is closest to (inside) or furthest beyond (outside).
+                limit = qz >= qx && qz >= qy && u > mid ? .top : .side
             }
         }
         return (clearance, base, limit)

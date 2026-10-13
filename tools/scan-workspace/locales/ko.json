@@ -809,7 +809,10 @@
       "elementLength": "길이",
       "elementDrop": "내려온 깊이",
       "elementSize": "크기 변경",
-      "elementClear": "유효 높이"
+      "elementClear": "유효 높이",
+      "elementFound": "LiDAR가 건축 요소 후보 {count}개를 찾았습니다",
+      "elementFoundAccept": "추가",
+      "elementFoundIgnore": "추가 안 함"
     }
   },
   "video": {

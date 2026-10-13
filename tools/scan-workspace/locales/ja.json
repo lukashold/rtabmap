@@ -809,7 +809,10 @@
       "elementLength": "長さ",
       "elementDrop": "下がり",
       "elementSize": "サイズを変更",
-      "elementClear": "有効高さ"
+      "elementClear": "有効高さ",
+      "elementFound": "LiDAR が建築要素の候補を {count} 件検出しました",
+      "elementFoundAccept": "追加",
+      "elementFoundIgnore": "追加しない"
     }
   },
   "video": {

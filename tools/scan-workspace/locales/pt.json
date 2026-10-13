@@ -571,7 +571,10 @@
       "elementLength": "Comprimento",
       "elementDrop": "Rebaixo",
       "elementSize": "Alterar medidas",
-      "elementClear": "altura livre"
+      "elementClear": "altura livre",
+      "elementFound": "O LiDAR encontrou {count} possíveis elementos",
+      "elementFoundAccept": "Adicionar",
+      "elementFoundIgnore": "Não adicionar"
     },
     "name": "Português",
     "title": "Medir com confiança",

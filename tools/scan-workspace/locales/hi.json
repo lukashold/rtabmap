@@ -809,7 +809,10 @@
       "elementLength": "लंबाई",
       "elementDrop": "नीचे लटकाव",
       "elementSize": "माप बदलें",
-      "elementClear": "साफ़ ऊँचाई"
+      "elementClear": "साफ़ ऊँचाई",
+      "elementFound": "LiDAR को {count} संभावित निर्माण तत्व मिले",
+      "elementFoundAccept": "जोड़ें",
+      "elementFoundIgnore": "न जोड़ें"
     }
   },
   "video": {

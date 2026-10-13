@@ -809,7 +809,10 @@
       "elementLength": "দৈর্ঘ্য",
       "elementDrop": "নেমে আসা অংশ",
       "elementSize": "মাপ বদলান",
-      "elementClear": "খালি উচ্চতা"
+      "elementClear": "খালি উচ্চতা",
+      "elementFound": "LiDAR {count}টি সম্ভাব্য নির্মাণ উপাদান পেয়েছে",
+      "elementFoundAccept": "যোগ করুন",
+      "elementFoundIgnore": "যোগ করবেন না"
     }
   },
   "video": {

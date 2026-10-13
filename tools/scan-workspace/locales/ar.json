@@ -809,7 +809,10 @@
       "elementLength": "الطول",
       "elementDrop": "النزول",
       "elementSize": "تغيير الأبعاد",
-      "elementClear": "الارتفاع الحر"
+      "elementClear": "الارتفاع الحر",
+      "elementFound": "وجد LiDAR {count} عناصر إنشائية محتملة",
+      "elementFoundAccept": "إضافة",
+      "elementFoundIgnore": "عدم الإضافة"
     }
   },
   "video": {

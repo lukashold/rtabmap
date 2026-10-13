@@ -21,6 +21,11 @@ final class RoomPhotoRecorder {
     private var forceNext = false
     /// Camera pose of the latest frame (for guidance), column-major camera-to-world.
     private(set) var latestTransform: [Double]?
+    /// Where the phone was during the scan, every ~10 cm (to crop the LiDAR mesh).
+    private var walk: [StairVec] = []
+    /// LiDAR mesh of RoomPlan's own session, if ARKit provides one (used to suggest
+    /// beams and bulkheads RoomPlan does not model).
+    private(set) var mesh: StairMesh?
     var onPhoto: (() -> Void)?
 
     /// Take the next steady frame even if it shows an already photographed view.
@@ -42,6 +47,10 @@ final class RoomPhotoRecorder {
     func stop() {
         timer?.invalidate()
         timer = nil
+        if mesh == nil, let anchors = session?.currentFrame?.anchors.compactMap({ $0 as? ARMeshAnchor }), !anchors.isEmpty {
+            let full = StairScanViewController.worldMesh(anchors)
+            mesh = walk.isEmpty ? full : full.cropped(near: walk, radius: 4)
+        }
         // Let an in-flight encode finish before callers read `photos`.
         queue.sync {}
     }
@@ -52,6 +61,8 @@ final class RoomPhotoRecorder {
         let m = frame.camera.transform
         let transform = (0..<4).flatMap { c in (0..<4).map { r in Double(m[c][r]) } }
         latestTransform = transform
+        let here = StairVec(transform[12], transform[13], transform[14])
+        if walk.last.map({ ($0 - here).length >= 0.1 }) ?? true, walk.count < 20000 { walk.append(here) }
         // Only steady frames: moving < 3 cm and turning < 4° since the last check
         // (0.3 s) keeps motion blur out of the photos that are joined onto walls.
         defer { previous = transform }
@@ -95,6 +106,9 @@ final class RoomPhotoRecorder {
     /// timer was already stopped on the main thread when capture finished).
     func write(to destination: URL) throws {
         queue.sync {}
+        if let mesh = mesh, mesh.vertexCount > 0 {
+            try? mesh.encoded().write(to: destination.appendingPathComponent(StairMesh.fileName), options: .atomic)
+        }
         lock.lock()
         let set = RoomPhotoSet(photos: photos)
         lock.unlock()

@@ -159,6 +159,7 @@ final class RoomWalkthroughViewController: UIViewController, UIGestureRecognizer
         [solid, plainCeiling, photoTiles, photoCeiling, planMarks, modelLabels, insideLabels, markerPins, furnitureNodes].forEach { world.addChildNode($0) }
         extras = RoomExtras.load(from: folder)
         buildExtras()
+        offerLidarElements()
         alignToLongestWall()
         addLights()
         applyMode()
@@ -373,6 +374,33 @@ final class RoomWalkthroughViewController: UIViewController, UIGestureRecognizer
             status.isHidden = false
             status.alpha = 1
             status.label.text = blocked.isEmpty ? text("furnitureMoveHint") : blocked.joined(separator: "\n")
+        }
+    }
+
+    /// Beams and bulkheads found in the LiDAR mesh of the scan, offered once.
+    private func offerLidarElements() {
+        let meshURL = folder.appendingPathComponent(StairMesh.fileName)
+        guard extras.suggestionsReviewed != true, FileManager.default.fileExists(atPath: meshURL.path) else { return }
+        let document = room.document, floor = floorY, ceiling = height
+        let names = Dictionary(uniqueKeysWithValues: RoomExtras.structuralKinds.map { ($0, text("element_" + $0)) })
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            guard let mesh = try? StairMesh(data: Data(contentsOf: meshURL)) else { return }
+            let found = StructuralDetection.suggest(mesh: mesh, document: document, floorY: floor, ceiling: ceiling, names: names)
+            DispatchQueue.main.async {
+                guard let self = self, !found.isEmpty, self.presentedViewController == nil else { return }
+                let lines = found.map { $0.name + " · ↓ " + self.length($0.height) + " · " + self.length($0.width) }
+                let alert = UIAlertController(title: MeasurementGuide.homeText("elementFound", ["count": found.count]), message: lines.joined(separator: "\n"), preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: self.text("elementFoundIgnore"), style: .cancel) { [weak self] _ in
+                    self?.extras.suggestionsReviewed = true; self?.saveExtras()
+                })
+                alert.addAction(UIAlertAction(title: self.text("elementFoundAccept"), style: .default) { [weak self] _ in
+                    guard let self = self else { return }
+                    self.extras.furniture += found
+                    self.extras.suggestionsReviewed = true
+                    self.saveExtras(); self.buildFurniture()
+                })
+                self.present(alert, animated: true)
+            }
         }
     }
 

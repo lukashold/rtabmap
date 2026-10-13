@@ -809,7 +809,10 @@
       "elementLength": "Длина",
       "elementDrop": "Опуск",
       "elementSize": "Изменить размеры",
-      "elementClear": "высота в свету"
+      "elementClear": "высота в свету",
+      "elementFound": "LiDAR нашёл возможных элементов: {count}",
+      "elementFoundAccept": "Добавить",
+      "elementFoundIgnore": "Не добавлять"
     }
   },
   "video": {

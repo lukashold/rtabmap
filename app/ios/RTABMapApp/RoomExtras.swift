@@ -42,6 +42,8 @@ struct RoomExtras: Codable, Equatable {
     var version = 1
     var markers: [Marker] = []
     var furniture: [Furniture] = []
+    /// LiDAR suggestions (beams, bulkheads) were shown once and accepted or dismissed.
+    var suggestionsReviewed: Bool? = nil
 
     static let fileName = "extras.json"
     static let markerKinds = ["defect", "question", "idea", "measure"]
@@ -326,5 +328,69 @@ enum StructuralPlacement {
             f.elevation = 0
         }
         return f
+    }
+}
+
+/// Finds beams and bulkheads in the LiDAR mesh recorded during a RoomPlan scan:
+/// downward-facing surfaces clearly below the ceiling (RoomPlan only models
+/// walls, doors, windows and the floor, so these are missing from the plan).
+enum StructuralDetection {
+    /// - Parameters:
+    ///   - floorY: world height of the floor
+    ///   - ceiling: room height above the floor
+    static func suggest(mesh: StairMesh, document: RoomPlanDocument, floorY: Double, ceiling: Double, names: [String: String] = [:]) -> [RoomExtras.Furniture] {
+        let walls = StructuralPlacement.walls(document)
+        guard !walls.isEmpty, ceiling > 1.8 else { return [] }
+        let xs = walls.flatMap { [$0.a.x, $0.b.x] }, zs = walls.flatMap { [$0.a.z, $0.b.z] }
+        let (minX, maxX, minZ, maxZ) = (xs.min()! + 0.05, xs.max()! - 0.05, zs.min()! + 0.05, zs.max()! - 0.05)
+        let cell = 0.1
+        var drops: [Int64: [Double]] = [:]
+        func key(_ i: Int, _ j: Int) -> Int64 { Int64(i) << 32 | Int64(UInt32(bitPattern: Int32(truncatingIfNeeded: j))) }
+        let top = floorY + ceiling
+        for v in 0..<mesh.vertexCount where mesh.normalY(v) < -0.7 {
+            let p = mesh.position(v)
+            // Undersides at least 8 cm below the ceiling and above head height.
+            guard p.y < top - 0.08, p.y > floorY + 1.6, p.x > minX, p.x < maxX, p.z > minZ, p.z < maxZ else { continue }
+            drops[key(Int(Foundation.floor(p.x / cell)), Int(Foundation.floor(p.z / cell))), default: []].append(top - p.y)
+        }
+        // Cells with a consistent underside (≥ 3 points), then 4-connected regions.
+        var cells: [Int64: Double] = [:]
+        for (k, values) in drops where values.count >= 3 { cells[k] = values.sorted()[values.count / 2] }
+        var seen = Set<Int64>(), result: [RoomExtras.Furniture] = []
+        for start in cells.keys.sorted() where !seen.contains(start) {
+            var stack = [start], region: [(Int, Int, Double)] = []
+            seen.insert(start)
+            while let k = stack.popLast() {
+                let i = Int(k >> 32), j = Int(Int32(truncatingIfNeeded: k))
+                region.append((i, j, cells[k]!))
+                for (di, dj) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+                    let n = key(i + di, j + dj)
+                    if cells[n] != nil, !seen.contains(n), abs(cells[n]! - cells[k]!) < 0.08 { seen.insert(n); stack.append(n) }
+                }
+            }
+            guard region.count >= 15 else { continue }  // ≥ 0.15 m²
+            // Principal axis of the region in plan.
+            let pts = region.map { (x: (Double($0.0) + 0.5) * cell, z: (Double($0.1) + 0.5) * cell) }
+            let cx = pts.map(\.x).reduce(0, +) / Double(pts.count), cz = pts.map(\.z).reduce(0, +) / Double(pts.count)
+            var sxx = 0.0, szz = 0.0, sxz = 0.0
+            for p in pts { sxx += (p.x - cx) * (p.x - cx); szz += (p.z - cz) * (p.z - cz); sxz += (p.x - cx) * (p.z - cz) }
+            let angle = 0.5 * atan2(2 * sxz, sxx - szz)
+            let axis = (x: cos(angle), z: sin(angle)), side = (x: -sin(angle), z: cos(angle))
+            let along = pts.map { ($0.x - cx) * axis.x + ($0.z - cz) * axis.z }, across = pts.map { ($0.x - cx) * side.x + ($0.z - cz) * side.z }
+            let length = along.max()! - along.min()! + cell, width = across.max()! - across.min()! + cell
+            let mid = (along.max()! + along.min()!) / 2, midAcross = (across.max()! + across.min()!) / 2
+            let centre = (x: cx + axis.x * mid + side.x * midAcross, z: cz + axis.z * mid + side.z * midAcross)
+            let drop = region.map(\.2).sorted()[region.count / 2]
+            // Along a wall (parallel and touching) → bulkhead, otherwise a beam.
+            let touching = StructuralPlacement.nearest(centre, walls: walls).map { near -> Bool in
+                let wallAxis = (x: (near.wall.b.x - near.wall.a.x) / max(1e-9, near.wall.length), z: (near.wall.b.z - near.wall.a.z) / max(1e-9, near.wall.length))
+                return abs(wallAxis.x * axis.x + wallAxis.z * axis.z) > 0.9 && near.distance < width / 2 + 0.15
+            } ?? false
+            let kind = touching ? "bulkhead" : "beam"
+            result.append(RoomExtras.Furniture(id: RoomExtras.newID(), name: names[kind] ?? kind, manufacturer: "", category: "structure",
+                                               width: length, depth: width, height: drop, x: centre.x, z: centre.z, rotation: atan2(-axis.z, axis.x),
+                                               catalog: "LiDAR", url: nil, model: nil, structural: kind, elevation: max(0, ceiling - drop)))
+        }
+        return result.sorted { $0.width * $0.depth > $1.width * $1.depth }.prefix(8).map { $0 }
     }
 }

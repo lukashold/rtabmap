@@ -24,7 +24,7 @@ for language in MeasurementGuide.languages {
     precondition(guide.objectCapture!.values.allSatisfy { !$0.isEmpty })
     precondition(guide.objectCapture!["photosCount"]!.contains("{count}") && guide.objectCapture!["photosCount"]!.contains("{max}"))
     precondition(guide.splat!.count == 9)
-    precondition(guide.home!.count == 242)
+    precondition(guide.home!.count == 245)
     precondition(guide.home!["stairProgress"]!.contains("{distance}") && guide.home!["stairProgress"]!.contains("{height}"))
     for key in ["stairNarrowest", "stairCollision"] {
         precondition(["{distance}", "{cm}", "{where}"].allSatisfy { guide.home![key]!.contains($0) })
@@ -645,3 +645,21 @@ do { try withElements.validate(); preconditionFailure("unknown element kind") } 
 let elementDXF = RoomExport.dxf(layoutRoom, labels: .init(), extras: RoomExtras(markers: [], furniture: [beam]))
 check(elementDXF.contains("KANTURA_STRUCTURE") && elementDXF.contains("UK +2.2000"))
 print("Building elements: placement, clearance and conflicts checks passed")
+
+// LiDAR suggestions: a 30 cm deep beam across the 4 × 5 m room, ceiling 2.5 m.
+var beamMesh = StairMesh()
+for xi in stride(from: -1.95, through: 1.95, by: 0.05) {
+    for zi in stride(from: -2.45, through: 2.45, by: 0.05) {
+        let underBeam = xi >= 0.4 && xi <= 0.65
+        beamMesh.positions += [Float(xi), Float(underBeam ? 2.2 : 2.5), Float(zi)]
+        beamMesh.normals += [0, -1, 0]
+        beamMesh.positions += [Float(xi), 0, Float(zi)]
+        beamMesh.normals += [0, 1, 0]
+    }
+}
+let found = StructuralDetection.suggest(mesh: beamMesh, document: layoutRoom, floorY: 0, ceiling: 2.5)
+check(found.count == 1, "suggestions \(found.count)")
+check(found[0].structural == "beam" && abs(found[0].height - 0.3) < 0.02 && abs(found[0].bottom - 2.2) < 0.02, "beam \(found[0])")
+check(found[0].width > 4.5 && found[0].depth > 0.2 && found[0].depth < 0.45 && abs(found[0].x - 0.525) < 0.08, "beam size \(found[0])")
+check(StructuralDetection.suggest(mesh: StairMesh(), document: layoutRoom, floorY: 0, ceiling: 2.5).isEmpty)
+print("LiDAR element suggestions checks passed")

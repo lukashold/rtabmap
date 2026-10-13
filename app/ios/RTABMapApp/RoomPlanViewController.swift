@@ -583,7 +583,8 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
                 // Photos are optional: a failed copy must not lose the room itself.
                 try? recorder.write(to: directory)
                 // Only after both new files exist, remove the previous pair (photos stay).
-                for file in stale where file != json && file != usdz && file.lastPathComponent != "photos" { try? FileManager.default.removeItem(at: file) }
+                let keep: Set<String> = ["photos", "markers", RoomExtras.fileName, StairMesh.fileName]
+                for file in stale where file != json && file != usdz && !keep.contains(file.lastPathComponent) { try? FileManager.default.removeItem(at: file) }
                 outcome = .success((directory, [json, usdz]))
             } catch { outcome = .failure(error) }
             DispatchQueue.main.async {

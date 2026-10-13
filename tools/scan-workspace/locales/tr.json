@@ -571,7 +571,10 @@
       "elementLength": "Uzunluk",
       "elementDrop": "Sarkma",
       "elementSize": "Ölçüleri değiştir",
-      "elementClear": "net yükseklik"
+      "elementClear": "net yükseklik",
+      "elementFound": "LiDAR {count} olası yapı elemanı buldu",
+      "elementFoundAccept": "Ekle",
+      "elementFoundIgnore": "Ekleme"
     },
     "name": "Türkçe",
     "title": "Güvenle ölçün",

@@ -571,7 +571,10 @@
       "elementLength": "Panjang",
       "elementDrop": "Turunan",
       "elementSize": "Ubah ukuran",
-      "elementClear": "tinggi bebas"
+      "elementClear": "tinggi bebas",
+      "elementFound": "LiDAR menemukan {count} kemungkinan elemen bangunan",
+      "elementFoundAccept": "Tambahkan",
+      "elementFoundIgnore": "Jangan tambahkan"
     },
     "name": "Bahasa Indonesia",
     "title": "Mengukur dengan yakin",
