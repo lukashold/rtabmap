@@ -532,11 +532,16 @@ precondition(RoomPhotoCoverage.direction(to: (x: 3, y: 1, z: 0), camera: frontCa
 precondition(RoomPhotoCoverage.direction(to: (x: -3, y: 1, z: 0), camera: frontCamera.transform) == .left)
 print("Photo round: coverage and direction checks passed")
 
+// Release (-O) builds drop precondition messages; print them before trapping.
+setvbuf(stdout, nil, _IOLBF, 0)
+func check(_ condition: Bool, _ message: @autoclosure () -> String = "", file: StaticString = #file, line: UInt = #line) {
+    if !condition { print("FAILED line \(line): \(message())"); fflush(stdout); preconditionFailure(message(), file: file, line: line) }
+}
 // Library labels: rename and assign to an apartment/floor.
-precondition(LibraryLabels.building(room: "Büro", apartment: " ", floor: "") == nil)
+check(LibraryLabels.building(room: "Büro", apartment: " ", floor: "") == nil)
 let labelled = LibraryLabels.building(room: "Büro", apartment: "Top 4", floor: "")!
-precondition(labelled.name == "Top 4" && labelled.floor == LibraryLabels.placeholder && labelled.room == "Büro")
-precondition(LibraryLabels.group(labelled) == "Top 4" && LibraryLabels.group(nil) == "")
+check(labelled.name == "Top 4" && labelled.floor == LibraryLabels.placeholder && labelled.room == "Büro")
+check(LibraryLabels.group(labelled) == "Top 4" && LibraryLabels.group(nil) == "")
 print("Library labels checks passed")
 
 // Stair scans: synthetic straight flight (12 risers 0.18/0.27) between two landings,
@@ -587,29 +592,29 @@ func syntheticStair(width: Double, soffit: Double, spacing sp: Double = 0.04) ->
 }
 let (stairMesh, stairPath) = syntheticStair(width: 0.9, soffit: 2.2)
 let stairProfile = try StairAnalyzer.analyze(mesh: stairMesh, path: stairPath)
-precondition(stairProfile.risers == 12, "risers \(stairProfile.risers)")
-precondition(abs(stairProfile.riser! - 0.18) < 0.025 && abs(stairProfile.going! - 0.27) < 0.035, "riser \(stairProfile.riser!) going \(stairProfile.going!)")
-precondition(abs(stairProfile.drop - 2.16) < 0.06, "drop \(stairProfile.drop)")
-precondition(abs(stairProfile.minWidth! - 0.9) < 0.07, "width \(stairProfile.minWidth!)")
-precondition(abs(stairProfile.turnDegrees) < 12 && abs(stairProfile.slopeDegrees! - 33.7) < 6, "turn \(stairProfile.turnDegrees) slope \(stairProfile.slopeDegrees!)")
-precondition(stairProfile.minHeadroom! > 1.9 && stairProfile.minHeadroom! < 2.45, "headroom \(stairProfile.minHeadroom!)")
+check(stairProfile.risers == 12, "risers \(stairProfile.risers)")
+check(abs(stairProfile.riser! - 0.18) < 0.025 && abs(stairProfile.going! - 0.27) < 0.035, "riser \(stairProfile.riser!) going \(stairProfile.going!)")
+check(abs(stairProfile.drop - 2.16) < 0.06, "drop \(stairProfile.drop)")
+check(abs(stairProfile.minWidth! - 0.9) < 0.07, "width \(stairProfile.minWidth!)")
+check(abs(stairProfile.turnDegrees) < 12 && abs(stairProfile.slopeDegrees! - 33.7) < 6, "turn \(stairProfile.turnDegrees) slope \(stairProfile.slopeDegrees!)")
+check(stairProfile.minHeadroom! > 1.9 && stairProfile.minHeadroom! < 2.45, "headroom \(stairProfile.minHeadroom!)")
 // Mesh file round trip and cropping.
 let reread = try StairMesh(data: stairMesh.encoded())
-precondition(reread == stairMesh)
+check(reread == stairMesh)
 let tri = StairMesh(positions: [0, 0, 0, 1, 0, 0, 0, 0, 1, 9, 0, 9], normals: [Float](repeating: 0, count: 12), faces: [0, 1, 2, 1, 2, 3])
 let croppedTri = tri.cropped(near: [StairVec(0, 1.5, 0)], radius: 2)
-precondition(croppedTri.vertexCount == 3 && croppedTri.faces == [0, 1, 2])
-precondition(tri.obj().contains("f 1//1 2//2 3//3"))
+check(croppedTri.vertexCount == 3 && croppedTri.faces == [0, 1, 2])
+check(tri.obj().contains("f 1//1 2//2 3//3"))
 // A 0.60 × 0.66 × 2.03 m fridge goes down the 0.9 m flight tilted, not upright.
 let fridgeCheck = StairTransport(profile: stairProfile, mesh: stairMesh, object: .init(width: 0.60, depth: 0.66, height: 2.03), stride: 4)!
-precondition(fridgeCheck.verdict != .blocked, "fridge \(fridgeCheck.verdict) \(fridgeCheck.worst.clearance) at \(fridgeCheck.worst.distance)")
-precondition(fridgeCheck.handlings.contains(.tilted) || fridgeCheck.handlings.contains(.tiltedSideways))
+check(fridgeCheck.verdict != .blocked, "fridge \(fridgeCheck.verdict) \(fridgeCheck.worst.clearance) at \(fridgeCheck.worst.distance)")
+check(fridgeCheck.handlings.contains(.tilted) || fridgeCheck.handlings.contains(.tiltedSideways))
 // Same fridge, 0.55 m wide staircase: blocked by the side walls.
 let (narrowMesh, narrowPath) = syntheticStair(width: 0.55, soffit: 2.2)
 let narrowProfile = try StairAnalyzer.analyze(mesh: narrowMesh, path: narrowPath)
-precondition(abs(narrowProfile.minWidth! - 0.55) < 0.07, "narrow width \(narrowProfile.minWidth!)")
+check(abs(narrowProfile.minWidth! - 0.55) < 0.07, "narrow width \(narrowProfile.minWidth!)")
 let narrowCheck = StairTransport(profile: narrowProfile, mesh: narrowMesh, object: .init(width: 0.60, depth: 0.66, height: 2.03), stride: 4)!
-precondition(narrowCheck.verdict == .blocked && narrowCheck.worst.limit == .side, "narrow \(narrowCheck.verdict) \(narrowCheck.worst.limit)")
+check(narrowCheck.verdict == .blocked && narrowCheck.worst.limit == .side, "narrow \(narrowCheck.verdict) \(narrowCheck.worst.limit)")
 // Document validation.
 var stairDocument = StairScanDocument(name: "Treppe", createdAt: "2026-10-13T00:00:00Z", id: "s1", building: labelled, path: stairPath.map(\.array), profile: stairProfile)
 try stairDocument.validate()
@@ -619,25 +624,25 @@ print("Stair scan: profile, mesh file and appliance path checks passed")
 
 // Building elements snap to walls (room x −2…2, z −2.5…2.5, 2.5 m high).
 let beam = StructuralPlacement.make("beam", at: (0.5, -1.8), document: layoutRoom, ceiling: 2.5, name: "Beam")!
-precondition(abs(beam.width - 5) < 1e-6 && abs(beam.x - 0.5) < 1e-6 && abs(beam.z) < 1e-6 && abs(beam.bottom - 2.2) < 1e-9, "beam \(beam)")
+check(abs(beam.width - 5) < 1e-6 && abs(beam.x - 0.5) < 1e-6 && abs(beam.z) < 1e-6 && abs(beam.bottom - 2.2) < 1e-9, "beam \(beam)")
 let beamCorners = FurnitureLayout.corners(beam)
-precondition(abs(beamCorners.map { $0.z }.max()! - 2.5) < 1e-6 && abs(beamCorners.map { $0.x }.max()! - 0.625) < 1e-6)
+check(abs(beamCorners.map { $0.z }.max()! - 2.5) < 1e-6 && abs(beamCorners.map { $0.x }.max()! - 0.625) < 1e-6)
 let bulkhead = StructuralPlacement.make("bulkhead", at: (1.7, 0.3), document: layoutRoom, ceiling: 2.5, name: "Bulkhead")!
-precondition(abs(bulkhead.width - 5) < 1e-6 && abs(bulkhead.x - 1.85) < 1e-6 && abs(bulkhead.z) < 1e-6 && abs(bulkhead.bottom - 2.25) < 1e-9, "bulkhead \(bulkhead)")
+check(abs(bulkhead.width - 5) < 1e-6 && abs(bulkhead.x - 1.85) < 1e-6 && abs(bulkhead.z) < 1e-6 && abs(bulkhead.bottom - 2.25) < 1e-9, "bulkhead \(bulkhead)")
 let pillar = StructuralPlacement.make("column", at: (-1.8, 1.0), document: layoutRoom, ceiling: 2.5, name: "Column")!
-precondition(abs(pillar.x + 1.85) < 1e-6 && abs(pillar.z - 1) < 1e-6 && pillar.bottom == 0 && pillar.height == 2.5)
-precondition(FurnitureLayout.conflicts(of: beam, in: layoutRoom, others: []).isEmpty)
-precondition(FurnitureLayout.conflicts(of: pillar, in: layoutRoom, others: []).isEmpty)
+check(abs(pillar.x + 1.85) < 1e-6 && abs(pillar.z - 1) < 1e-6 && pillar.bottom == 0 && pillar.height == 2.5)
+check(FurnitureLayout.conflicts(of: beam, in: layoutRoom, others: []).isEmpty)
+check(FurnitureLayout.conflicts(of: pillar, in: layoutRoom, others: []).isEmpty)
 var underBeam = table; underBeam.x = 0.5
-precondition(FurnitureLayout.conflicts(of: underBeam, in: layoutRoom, others: [beam]).furniture == 0)
+check(FurnitureLayout.conflicts(of: underBeam, in: layoutRoom, others: [beam]).furniture == 0)
 var wardrobe = table; wardrobe.id = "w9"; wardrobe.x = 0.5; wardrobe.height = 2.3
-precondition(FurnitureLayout.conflicts(of: wardrobe, in: layoutRoom, others: [beam]).furniture == 1)
-precondition(FurnitureLayout.conflicts(of: beam, in: layoutRoom, others: [wardrobe]).furniture == 1)
+check(FurnitureLayout.conflicts(of: wardrobe, in: layoutRoom, others: [beam]).furniture == 1)
+check(FurnitureLayout.conflicts(of: beam, in: layoutRoom, others: [wardrobe]).furniture == 1)
 var withElements = RoomExtras()
 withElements.furniture = [beam, pillar]
 try withElements.validate()
 withElements.furniture[0].structural = "wall"
 do { try withElements.validate(); preconditionFailure("unknown element kind") } catch RoomExtras.ValidationError.invalid { }
 let elementDXF = RoomExport.dxf(layoutRoom, labels: .init(), extras: RoomExtras(markers: [], furniture: [beam]))
-precondition(elementDXF.contains("KANTURA_STRUCTURE") && elementDXF.contains("UK +2.2000"))
+check(elementDXF.contains("KANTURA_STRUCTURE") && elementDXF.contains("UK +2.2000"))
 print("Building elements: placement, clearance and conflicts checks passed")
