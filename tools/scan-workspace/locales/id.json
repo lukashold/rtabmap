@@ -384,11 +384,11 @@
       "lidarProjects": "Proyek LiDAR",
       "lidarProjectsDetail": "Buka pindaian gerbang dan objek yang tersimpan",
       "photosTaken": "{count} foto diambil",
-      "walkTitle": "Melihat sekeliling ruangan",
+      "walkTitle": "Lihat ruangan",
       "walkHint": "Geser untuk melihat sekeliling, cubit untuk memperbesar.",
       "walkOutsideHint": "Seret untuk memutar, dua jari untuk memperbesar dan menggeser.",
       "walkInside": "Dalam",
-      "walkOutside": "Luar",
+      "walkOutside": "3D",
       "walkMeasures": "Ukuran",
       "walkLoading": "Membangun ruangan …",
       "walkCoverage": "{percent} % permukaan memiliki foto. Perabot di depan dinding tampak terproyeksi ke dinding.",
@@ -429,7 +429,8 @@
       "scanDoor": "Pintu {width} × {height} · {room}",
       "scanStairs": "Tangga lebar {width} · {room}",
       "scanRoomHeight": "Tinggi ruangan {height} · {room}",
-      "animate": "Animasi putaran yang diperiksa"
+      "animate": "Animasi putaran yang diperiksa",
+      "walkPlan": "Denah"
     },
     "name": "Bahasa Indonesia",
     "title": "Mengukur dengan yakin",

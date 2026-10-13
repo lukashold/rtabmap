@@ -229,3 +229,53 @@ struct RoomPhotoMesh {
         return RoomPhotoMesh(buckets: buckets, coveredTiles: covered, totalTiles: total, eye: eye, floorY: floorY)
     }
 }
+
+/// Shared RoomPlan geometry helpers (Foundation only, testable).
+enum RoomPlanGeometry {
+    typealias Point = (x: Double, y: Double, z: Double)
+    struct Opening: Equatable { let id: String; let kind: String; let x0: Double; let y0: Double; let x1: Double; let y1: Double }
+
+    static func world(_ p: [Double], _ m: [Double]) -> Point {
+        (x: m[0] * p[0] + m[4] * p[1] + m[8] * p[2] + m[12], y: m[1] * p[0] + m[5] * p[1] + m[9] * p[2] + m[13], z: m[2] * p[0] + m[6] * p[1] + m[10] * p[2] + m[14])
+    }
+    static func local(_ p: Point, _ m: [Double]) -> Point {
+        let d = (p.x - m[12], p.y - m[13], p.z - m[14])
+        return (x: d.0 * m[0] + d.1 * m[1] + d.2 * m[2], y: d.0 * m[4] + d.1 * m[5] + d.2 * m[6], z: d.0 * m[8] + d.1 * m[9] + d.2 * m[10])
+    }
+    /// 2D outline of a surface in its own local x/y plane.
+    static func outline(_ s: RoomPlanDocument.Surface) -> [(Double, Double)] {
+        if let corners = s.polygonCorners { return corners.map { ($0[0], $0[1]) } }
+        let w = s.dimensions[0] / 2, h = s.dimensions[1] / 2
+        return [(-w, -h), (w, -h), (w, h), (-w, h)]
+    }
+    /// Doors, windows and openings per wall id, in that wall's local 2D
+    /// coordinates and clipped to it. Same assignment rules as the area summary:
+    /// parallel, within 0.2 m of the wall plane, centre inside the wall extent;
+    /// the nearest wall wins.
+    static func openingsByWall(_ surfaces: [RoomPlanDocument.Surface]) -> [String: [Opening]] {
+        let walls = surfaces.filter { $0.kind == "wall" && $0.transform.count == 16 && $0.dimensions.count == 3 }
+        var result: [String: [Opening]] = [:]
+        for s in surfaces where ["door", "window", "opening"].contains(s.kind) && s.transform.count == 16 && s.dimensions.count == 3 {
+            let centre = world([0, 0, 0], s.transform)
+            let n = (s.transform[8], s.transform[9], s.transform[10])
+            var best: (wall: RoomPlanDocument.Surface, distance: Double)?
+            for wall in walls {
+                let wn = (wall.transform[8], wall.transform[9], wall.transform[10])
+                guard abs(n.0 * wn.0 + n.1 * wn.1 + n.2 * wn.2) >= 0.9 else { continue }
+                let p = local(centre, wall.transform)
+                let o = outline(wall), xs = o.map { $0.0 }, ys = o.map { $0.1 }
+                guard abs(p.z) <= 0.2, p.x >= xs.min()! - 0.05, p.x <= xs.max()! + 0.05, p.y >= ys.min()! - 0.05, p.y <= ys.max()! + 0.05 else { continue }
+                if best == nil || abs(p.z) < best!.distance { best = (wall, abs(p.z)) }
+            }
+            guard let wall = best?.wall else { continue }
+            let w = s.dimensions[0] / 2, h = s.dimensions[1] / 2
+            let corners = [[-w, -h, 0.0], [w, -h, 0], [w, h, 0], [-w, h, 0]].map { local(world($0, s.transform), wall.transform) }
+            let o = outline(wall), xs = o.map { $0.0 }, ys = o.map { $0.1 }
+            let x0 = max(corners.map { $0.x }.min()!, xs.min()!), x1 = min(corners.map { $0.x }.max()!, xs.max()!)
+            let y0 = max(corners.map { $0.y }.min()!, ys.min()!), y1 = min(corners.map { $0.y }.max()!, ys.max()!)
+            guard x1 - x0 > 0.05, y1 - y0 > 0.05 else { continue }
+            result[wall.id, default: []].append(Opening(id: s.id, kind: s.kind, x0: x0, y0: y0, x1: x1, y1: y1))
+        }
+        return result
+    }
+}

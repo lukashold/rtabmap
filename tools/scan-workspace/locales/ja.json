@@ -622,11 +622,11 @@
       "lidarProjects": "LiDAR プロジェクト",
       "lidarProjectsDetail": "保存した門や物体のスキャンを開く",
       "photosTaken": "写真 {count} 枚撮影済み",
-      "walkTitle": "部屋を見回す",
+      "walkTitle": "部屋を見る",
       "walkHint": "スワイプで見回し、ピンチでズームします。",
       "walkOutsideHint": "ドラッグで回転、2本指でズームと移動。",
       "walkInside": "室内",
-      "walkOutside": "外から",
+      "walkOutside": "3D",
       "walkMeasures": "寸法",
       "walkLoading": "部屋を作成中…",
       "walkCoverage": "表面の {percent} % に写真があります。壁の前の家具は壁に投影されて見えます。",
@@ -667,7 +667,8 @@
       "scanDoor": "ドア {width} × {height} · {room}",
       "scanStairs": "階段 幅 {width} · {room}",
       "scanRoomHeight": "天井高 {height} · {room}",
-      "animate": "確認した回転のアニメーション"
+      "animate": "確認した回転のアニメーション",
+      "walkPlan": "間取り図"
     }
   },
   "video": {

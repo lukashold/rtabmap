@@ -293,11 +293,11 @@
       "lidarProjects": "LiDAR-Projekte",
       "lidarProjectsDetail": "Gespeicherte Tor- und Objektscans öffnen",
       "photosTaken": "{count} Fotos aufgenommen",
-      "walkTitle": "Im Raum umsehen",
+      "walkTitle": "Raum ansehen",
       "walkHint": "Wischen zum Umsehen, mit zwei Fingern zoomen.",
       "walkOutsideHint": "Ziehen zum Drehen, mit zwei Fingern zoomen und verschieben.",
       "walkInside": "Innen",
-      "walkOutside": "Außen",
+      "walkOutside": "3D",
       "walkMeasures": "Maße",
       "walkLoading": "Raum wird aufgebaut …",
       "walkCoverage": "{percent} % der Flächen mit Fotos. Möbel vor Wänden erscheinen auf die Wand projiziert.",
@@ -338,7 +338,8 @@
       "scanDoor": "Tür {width} × {height} · {room}",
       "scanStairs": "Stiege {width} breit · {room}",
       "scanRoomHeight": "Raumhöhe {height} · {room}",
-      "animate": "Animation der geprüften Drehung"
+      "animate": "Animation der geprüften Drehung",
+      "walkPlan": "Grundriss"
     }
   },
   "en": {
@@ -635,11 +636,11 @@
       "lidarProjects": "LiDAR projects",
       "lidarProjectsDetail": "Open saved gate and object scans",
       "photosTaken": "{count} photos taken",
-      "walkTitle": "Look around the room",
+      "walkTitle": "View room",
       "walkHint": "Swipe to look around, pinch to zoom.",
       "walkOutsideHint": "Drag to rotate, use two fingers to zoom and pan.",
       "walkInside": "Inside",
-      "walkOutside": "Outside",
+      "walkOutside": "3D",
       "walkMeasures": "Dimensions",
       "walkLoading": "Building the room …",
       "walkCoverage": "{percent} % of the surfaces have photos. Furniture in front of walls appears projected onto the wall.",
@@ -680,7 +681,8 @@
       "scanDoor": "Door {width} × {height} · {room}",
       "scanStairs": "Stairs {width} wide · {room}",
       "scanRoomHeight": "Room height {height} · {room}",
-      "animate": "Animation of the checked turn"
+      "animate": "Animation of the checked turn",
+      "walkPlan": "Floor plan"
     }
   },
   "fr": {
@@ -977,11 +979,11 @@
       "lidarProjects": "Projets LiDAR",
       "lidarProjectsDetail": "Ouvrir les scans de portails et d’objets enregistrés",
       "photosTaken": "{count} photos prises",
-      "walkTitle": "Regarder la pièce",
+      "walkTitle": "Voir la pièce",
       "walkHint": "Balayez pour regarder autour, pincez pour zoomer.",
       "walkOutsideHint": "Faites glisser pour tourner, deux doigts pour zoomer et déplacer.",
       "walkInside": "Intérieur",
-      "walkOutside": "Extérieur",
+      "walkOutside": "3D",
       "walkMeasures": "Cotes",
       "walkLoading": "Construction de la pièce …",
       "walkCoverage": "{percent} % des surfaces ont des photos. Les meubles devant les murs apparaissent projetés sur le mur.",
@@ -1022,7 +1024,8 @@
       "scanDoor": "Porte {width} × {height} · {room}",
       "scanStairs": "Escalier {width} de large · {room}",
       "scanRoomHeight": "Hauteur de pièce {height} · {room}",
-      "animate": "Animation de la rotation vérifiée"
+      "animate": "Animation de la rotation vérifiée",
+      "walkPlan": "Plan"
     }
   },
   "es": {
@@ -1319,11 +1322,11 @@
       "lidarProjects": "Proyectos LiDAR",
       "lidarProjectsDetail": "Abrir escaneos guardados de portones y objetos",
       "photosTaken": "{count} fotos tomadas",
-      "walkTitle": "Mirar la habitación",
+      "walkTitle": "Ver habitación",
       "walkHint": "Desliza para mirar alrededor, pellizca para ampliar.",
       "walkOutsideHint": "Arrastra para girar, usa dos dedos para ampliar y mover.",
       "walkInside": "Dentro",
-      "walkOutside": "Fuera",
+      "walkOutside": "3D",
       "walkMeasures": "Medidas",
       "walkLoading": "Construyendo la habitación …",
       "walkCoverage": "El {percent} % de las superficies tiene fotos. Los muebles delante de las paredes aparecen proyectados sobre la pared.",
@@ -1364,7 +1367,8 @@
       "scanDoor": "Puerta {width} × {height} · {room}",
       "scanStairs": "Escalera {width} de ancho · {room}",
       "scanRoomHeight": "Altura {height} · {room}",
-      "animate": "Animación del giro comprobado"
+      "animate": "Animación del giro comprobado",
+      "walkPlan": "Plano"
     }
   },
   "it": {
@@ -1661,11 +1665,11 @@
       "lidarProjects": "Progetti LiDAR",
       "lidarProjectsDetail": "Apri le scansioni salvate di cancelli e oggetti",
       "photosTaken": "{count} foto scattate",
-      "walkTitle": "Guarda la stanza",
+      "walkTitle": "Vedi stanza",
       "walkHint": "Scorri per guardarti intorno, pizzica per ingrandire.",
       "walkOutsideHint": "Trascina per ruotare, due dita per ingrandire e spostare.",
       "walkInside": "Dentro",
-      "walkOutside": "Fuori",
+      "walkOutside": "3D",
       "walkMeasures": "Misure",
       "walkLoading": "Costruzione della stanza …",
       "walkCoverage": "Il {percent} % delle superfici ha foto. I mobili davanti alle pareti appaiono proiettati sulla parete.",
@@ -1706,7 +1710,8 @@
       "scanDoor": "Porta {width} × {height} · {room}",
       "scanStairs": "Scala larga {width} · {room}",
       "scanRoomHeight": "Altezza stanza {height} · {room}",
-      "animate": "Animazione della rotazione verificata"
+      "animate": "Animazione della rotazione verificata",
+      "walkPlan": "Pianta"
     }
   },
   "zh-Hans": {
@@ -2003,11 +2008,11 @@
       "lidarProjects": "LiDAR 项目",
       "lidarProjectsDetail": "打开已保存的大门和物体扫描",
       "photosTaken": "已拍摄 {count} 张照片",
-      "walkTitle": "在房间里环视",
+      "walkTitle": "查看房间",
       "walkHint": "滑动环视，双指缩放。",
       "walkOutsideHint": "拖动旋转，双指缩放和平移。",
       "walkInside": "室内",
-      "walkOutside": "室外",
+      "walkOutside": "3D",
       "walkMeasures": "尺寸",
       "walkLoading": "正在生成房间…",
       "walkCoverage": "{percent}% 的表面有照片。墙前的家具会显示为投影在墙上。",
@@ -2048,7 +2053,8 @@
       "scanDoor": "门 {width} × {height} · {room}",
       "scanStairs": "楼梯宽 {width} · {room}",
       "scanRoomHeight": "房间高度 {height} · {room}",
-      "animate": "已检查转向的动画"
+      "animate": "已检查转向的动画",
+      "walkPlan": "平面图"
     }
   },
   "pt": {
@@ -2107,11 +2113,11 @@
       "lidarProjects": "Projetos LiDAR",
       "lidarProjectsDetail": "Abrir digitalizações guardadas de portões e objetos",
       "photosTaken": "{count} fotos tiradas",
-      "walkTitle": "Olhar à volta na divisão",
+      "walkTitle": "Ver divisão",
       "walkHint": "Deslize para olhar à volta, aperte para ampliar.",
       "walkOutsideHint": "Arraste para rodar, use dois dedos para ampliar e mover.",
       "walkInside": "Dentro",
-      "walkOutside": "Fora",
+      "walkOutside": "3D",
       "walkMeasures": "Medidas",
       "walkLoading": "A construir a divisão …",
       "walkCoverage": "{percent} % das superfícies têm fotos. Móveis à frente das paredes aparecem projetados na parede.",
@@ -2152,7 +2158,8 @@
       "scanDoor": "Porta {width} × {height} · {room}",
       "scanStairs": "Escada com {width} · {room}",
       "scanRoomHeight": "Altura {height} · {room}",
-      "animate": "Animação da rotação verificada"
+      "animate": "Animação da rotação verificada",
+      "walkPlan": "Planta"
     },
     "name": "Português",
     "title": "Medir com confiança",
@@ -2687,11 +2694,11 @@
       "lidarProjects": "مشاريع LiDAR",
       "lidarProjectsDetail": "فتح عمليات مسح البوابات والأجسام المحفوظة",
       "photosTaken": "تم التقاط {count} صورة",
-      "walkTitle": "التجوّل بالنظر في الغرفة",
+      "walkTitle": "عرض الغرفة",
       "walkHint": "اسحب للنظر حولك، وقرّب بإصبعين.",
       "walkOutsideHint": "اسحب للتدوير، واستخدم إصبعين للتكبير والتحريك.",
       "walkInside": "من الداخل",
-      "walkOutside": "من الخارج",
+      "walkOutside": "3D",
       "walkMeasures": "الأبعاد",
       "walkLoading": "جارٍ بناء الغرفة …",
       "walkCoverage": "{percent} ٪ من الأسطح لها صور. يظهر الأثاث أمام الجدران مُسقطًا على الجدار.",
@@ -2732,7 +2739,8 @@
       "scanDoor": "باب {width} × {height} · {room}",
       "scanStairs": "درج بعرض {width} · {room}",
       "scanRoomHeight": "ارتفاع الغرفة {height} · {room}",
-      "animate": "رسم متحرك للدوران المفحوص"
+      "animate": "رسم متحرك للدوران المفحوص",
+      "walkPlan": "المخطط"
     }
   },
   "hi": {
@@ -3029,11 +3037,11 @@
       "lidarProjects": "LiDAR प्रोजेक्ट",
       "lidarProjectsDetail": "सहेजे गए गेट और वस्तु स्कैन खोलें",
       "photosTaken": "{count} फ़ोटो लिए गए",
-      "walkTitle": "कमरे में चारों ओर देखें",
+      "walkTitle": "कमरा देखें",
       "walkHint": "चारों ओर देखने के लिए स्वाइप करें, ज़ूम के लिए पिंच करें।",
       "walkOutsideHint": "घुमाने के लिए खींचें, ज़ूम और खिसकाने के लिए दो उंगलियाँ।",
       "walkInside": "अंदर",
-      "walkOutside": "बाहर",
+      "walkOutside": "3D",
       "walkMeasures": "माप",
       "walkLoading": "कमरा बनाया जा रहा है …",
       "walkCoverage": "{percent} % सतहों पर फ़ोटो हैं। दीवारों के सामने का फ़र्नीचर दीवार पर प्रक्षेपित दिखता है।",
@@ -3074,7 +3082,8 @@
       "scanDoor": "दरवाज़ा {width} × {height} · {room}",
       "scanStairs": "सीढ़ी {width} चौड़ी · {room}",
       "scanRoomHeight": "कमरे की ऊँचाई {height} · {room}",
-      "animate": "जाँचे गए घुमाव का एनिमेशन"
+      "animate": "जाँचे गए घुमाव का एनिमेशन",
+      "walkPlan": "नक्शा"
     }
   },
   "bn": {
@@ -3371,11 +3380,11 @@
       "lidarProjects": "LiDAR প্রকল্প",
       "lidarProjectsDetail": "সংরক্ষিত গেট ও বস্তুর স্ক্যান খুলুন",
       "photosTaken": "{count}টি ছবি তোলা হয়েছে",
-      "walkTitle": "ঘরের চারপাশ দেখুন",
+      "walkTitle": "ঘর দেখুন",
       "walkHint": "চারপাশ দেখতে সোয়াইপ করুন, জুম করতে পিঞ্চ করুন।",
       "walkOutsideHint": "ঘোরাতে টানুন, জুম ও সরাতে দুই আঙুল ব্যবহার করুন।",
       "walkInside": "ভেতরে",
-      "walkOutside": "বাইরে",
+      "walkOutside": "3D",
       "walkMeasures": "মাপ",
       "walkLoading": "ঘর তৈরি হচ্ছে …",
       "walkCoverage": "{percent} % পৃষ্ঠে ছবি আছে। দেয়ালের সামনের আসবাব দেয়ালে প্রক্ষিপ্ত দেখায়।",
@@ -3416,7 +3425,8 @@
       "scanDoor": "দরজা {width} × {height} · {room}",
       "scanStairs": "সিঁড়ি {width} প্রস্থ · {room}",
       "scanRoomHeight": "ঘরের উচ্চতা {height} · {room}",
-      "animate": "যাচাই করা ঘোরানোর অ্যানিমেশন"
+      "animate": "যাচাই করা ঘোরানোর অ্যানিমেশন",
+      "walkPlan": "নকশা"
     }
   },
   "ru": {
@@ -3713,11 +3723,11 @@
       "lidarProjects": "LiDAR-проекты",
       "lidarProjectsDetail": "Открыть сохранённые сканы ворот и объектов",
       "photosTaken": "Снято фото: {count}",
-      "walkTitle": "Осмотреться в помещении",
+      "walkTitle": "Посмотреть помещение",
       "walkHint": "Проведите, чтобы осмотреться; сведите пальцы для масштаба.",
       "walkOutsideHint": "Перетащите для поворота, двумя пальцами — масштаб и сдвиг.",
       "walkInside": "Внутри",
-      "walkOutside": "Снаружи",
+      "walkOutside": "3D",
       "walkMeasures": "Размеры",
       "walkLoading": "Помещение строится …",
       "walkCoverage": "Фото есть на {percent} % поверхностей. Мебель у стен выглядит спроецированной на стену.",
@@ -3758,7 +3768,8 @@
       "scanDoor": "Дверь {width} × {height} · {room}",
       "scanStairs": "Лестница шириной {width} · {room}",
       "scanRoomHeight": "Высота помещения {height} · {room}",
-      "animate": "Анимация проверенного поворота"
+      "animate": "Анимация проверенного поворота",
+      "walkPlan": "План"
     }
   },
   "ja": {
@@ -4055,11 +4066,11 @@
       "lidarProjects": "LiDAR プロジェクト",
       "lidarProjectsDetail": "保存した門や物体のスキャンを開く",
       "photosTaken": "写真 {count} 枚撮影済み",
-      "walkTitle": "部屋を見回す",
+      "walkTitle": "部屋を見る",
       "walkHint": "スワイプで見回し、ピンチでズームします。",
       "walkOutsideHint": "ドラッグで回転、2本指でズームと移動。",
       "walkInside": "室内",
-      "walkOutside": "外から",
+      "walkOutside": "3D",
       "walkMeasures": "寸法",
       "walkLoading": "部屋を作成中…",
       "walkCoverage": "表面の {percent} % に写真があります。壁の前の家具は壁に投影されて見えます。",
@@ -4100,7 +4111,8 @@
       "scanDoor": "ドア {width} × {height} · {room}",
       "scanStairs": "階段 幅 {width} · {room}",
       "scanRoomHeight": "天井高 {height} · {room}",
-      "animate": "確認した回転のアニメーション"
+      "animate": "確認した回転のアニメーション",
+      "walkPlan": "間取り図"
     }
   },
   "ko": {
@@ -4397,11 +4409,11 @@
       "lidarProjects": "LiDAR 프로젝트",
       "lidarProjectsDetail": "저장된 대문 및 물체 스캔 열기",
       "photosTaken": "사진 {count}장 촬영",
-      "walkTitle": "방 둘러보기",
+      "walkTitle": "방 보기",
       "walkHint": "밀어서 둘러보고, 손가락을 모아 확대하세요.",
       "walkOutsideHint": "드래그해 회전하고, 두 손가락으로 확대·이동하세요.",
       "walkInside": "안에서",
-      "walkOutside": "밖에서",
+      "walkOutside": "3D",
       "walkMeasures": "치수",
       "walkLoading": "방을 만드는 중…",
       "walkCoverage": "표면의 {percent}%에 사진이 있습니다. 벽 앞의 가구는 벽에 투영되어 보입니다.",
@@ -4442,7 +4454,8 @@
       "scanDoor": "문 {width} × {height} · {room}",
       "scanStairs": "계단 너비 {width} · {room}",
       "scanRoomHeight": "방 높이 {height} · {room}",
-      "animate": "확인한 회전 애니메이션"
+      "animate": "확인한 회전 애니메이션",
+      "walkPlan": "평면도"
     }
   },
   "id": {
@@ -4501,11 +4514,11 @@
       "lidarProjects": "Proyek LiDAR",
       "lidarProjectsDetail": "Buka pindaian gerbang dan objek yang tersimpan",
       "photosTaken": "{count} foto diambil",
-      "walkTitle": "Melihat sekeliling ruangan",
+      "walkTitle": "Lihat ruangan",
       "walkHint": "Geser untuk melihat sekeliling, cubit untuk memperbesar.",
       "walkOutsideHint": "Seret untuk memutar, dua jari untuk memperbesar dan menggeser.",
       "walkInside": "Dalam",
-      "walkOutside": "Luar",
+      "walkOutside": "3D",
       "walkMeasures": "Ukuran",
       "walkLoading": "Membangun ruangan …",
       "walkCoverage": "{percent} % permukaan memiliki foto. Perabot di depan dinding tampak terproyeksi ke dinding.",
@@ -4546,7 +4559,8 @@
       "scanDoor": "Pintu {width} × {height} · {room}",
       "scanStairs": "Tangga lebar {width} · {room}",
       "scanRoomHeight": "Tinggi ruangan {height} · {room}",
-      "animate": "Animasi putaran yang diperiksa"
+      "animate": "Animasi putaran yang diperiksa",
+      "walkPlan": "Denah"
     },
     "name": "Bahasa Indonesia",
     "title": "Mengukur dengan yakin",
@@ -4843,11 +4857,11 @@
       "lidarProjects": "LiDAR projeleri",
       "lidarProjectsDetail": "Kaydedilen kapı ve nesne taramalarını aç",
       "photosTaken": "{count} fotoğraf çekildi",
-      "walkTitle": "Odada etrafa bak",
+      "walkTitle": "Odayı görüntüle",
       "walkHint": "Etrafa bakmak için kaydırın, yakınlaştırmak için kıstırın.",
       "walkOutsideHint": "Döndürmek için sürükleyin, iki parmakla yakınlaştırın ve kaydırın.",
       "walkInside": "İçeriden",
-      "walkOutside": "Dışarıdan",
+      "walkOutside": "3D",
       "walkMeasures": "Ölçüler",
       "walkLoading": "Oda oluşturuluyor …",
       "walkCoverage": "Yüzeylerin %{percent} kadarında fotoğraf var. Duvar önündeki mobilyalar duvara yansıtılmış görünür.",
@@ -4888,7 +4902,8 @@
       "scanDoor": "Kapı {width} × {height} · {room}",
       "scanStairs": "Merdiven {width} geniş · {room}",
       "scanRoomHeight": "Oda yüksekliği {height} · {room}",
-      "animate": "Kontrol edilen dönüşün animasyonu"
+      "animate": "Kontrol edilen dönüşün animasyonu",
+      "walkPlan": "Kat planı"
     },
     "name": "Türkçe",
     "title": "Güvenle ölçün",

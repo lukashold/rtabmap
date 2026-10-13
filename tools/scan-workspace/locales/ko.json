@@ -622,11 +622,11 @@
       "lidarProjects": "LiDAR 프로젝트",
       "lidarProjectsDetail": "저장된 대문 및 물체 스캔 열기",
       "photosTaken": "사진 {count}장 촬영",
-      "walkTitle": "방 둘러보기",
+      "walkTitle": "방 보기",
       "walkHint": "밀어서 둘러보고, 손가락을 모아 확대하세요.",
       "walkOutsideHint": "드래그해 회전하고, 두 손가락으로 확대·이동하세요.",
       "walkInside": "안에서",
-      "walkOutside": "밖에서",
+      "walkOutside": "3D",
       "walkMeasures": "치수",
       "walkLoading": "방을 만드는 중…",
       "walkCoverage": "표면의 {percent}%에 사진이 있습니다. 벽 앞의 가구는 벽에 투영되어 보입니다.",
@@ -667,7 +667,8 @@
       "scanDoor": "문 {width} × {height} · {room}",
       "scanStairs": "계단 너비 {width} · {room}",
       "scanRoomHeight": "방 높이 {height} · {room}",
-      "animate": "확인한 회전 애니메이션"
+      "animate": "확인한 회전 애니메이션",
+      "walkPlan": "평면도"
     }
   },
   "video": {

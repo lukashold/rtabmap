@@ -384,11 +384,11 @@
       "lidarProjects": "Projetos LiDAR",
       "lidarProjectsDetail": "Abrir digitalizações guardadas de portões e objetos",
       "photosTaken": "{count} fotos tiradas",
-      "walkTitle": "Olhar à volta na divisão",
+      "walkTitle": "Ver divisão",
       "walkHint": "Deslize para olhar à volta, aperte para ampliar.",
       "walkOutsideHint": "Arraste para rodar, use dois dedos para ampliar e mover.",
       "walkInside": "Dentro",
-      "walkOutside": "Fora",
+      "walkOutside": "3D",
       "walkMeasures": "Medidas",
       "walkLoading": "A construir a divisão …",
       "walkCoverage": "{percent} % das superfícies têm fotos. Móveis à frente das paredes aparecem projetados na parede.",
@@ -429,7 +429,8 @@
       "scanDoor": "Porta {width} × {height} · {room}",
       "scanStairs": "Escada com {width} · {room}",
       "scanRoomHeight": "Altura {height} · {room}",
-      "animate": "Animação da rotação verificada"
+      "animate": "Animação da rotação verificada",
+      "walkPlan": "Planta"
     },
     "name": "Português",
     "title": "Medir com confiança",

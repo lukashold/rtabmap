@@ -622,11 +622,11 @@
       "lidarProjects": "LiDAR প্রকল্প",
       "lidarProjectsDetail": "সংরক্ষিত গেট ও বস্তুর স্ক্যান খুলুন",
       "photosTaken": "{count}টি ছবি তোলা হয়েছে",
-      "walkTitle": "ঘরের চারপাশ দেখুন",
+      "walkTitle": "ঘর দেখুন",
       "walkHint": "চারপাশ দেখতে সোয়াইপ করুন, জুম করতে পিঞ্চ করুন।",
       "walkOutsideHint": "ঘোরাতে টানুন, জুম ও সরাতে দুই আঙুল ব্যবহার করুন।",
       "walkInside": "ভেতরে",
-      "walkOutside": "বাইরে",
+      "walkOutside": "3D",
       "walkMeasures": "মাপ",
       "walkLoading": "ঘর তৈরি হচ্ছে …",
       "walkCoverage": "{percent} % পৃষ্ঠে ছবি আছে। দেয়ালের সামনের আসবাব দেয়ালে প্রক্ষিপ্ত দেখায়।",
@@ -667,7 +667,8 @@
       "scanDoor": "দরজা {width} × {height} · {room}",
       "scanStairs": "সিঁড়ি {width} প্রস্থ · {room}",
       "scanRoomHeight": "ঘরের উচ্চতা {height} · {room}",
-      "animate": "যাচাই করা ঘোরানোর অ্যানিমেশন"
+      "animate": "যাচাই করা ঘোরানোর অ্যানিমেশন",
+      "walkPlan": "নকশা"
     }
   },
   "video": {

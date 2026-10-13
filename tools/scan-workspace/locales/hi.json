@@ -622,11 +622,11 @@
       "lidarProjects": "LiDAR प्रोजेक्ट",
       "lidarProjectsDetail": "सहेजे गए गेट और वस्तु स्कैन खोलें",
       "photosTaken": "{count} फ़ोटो लिए गए",
-      "walkTitle": "कमरे में चारों ओर देखें",
+      "walkTitle": "कमरा देखें",
       "walkHint": "चारों ओर देखने के लिए स्वाइप करें, ज़ूम के लिए पिंच करें।",
       "walkOutsideHint": "घुमाने के लिए खींचें, ज़ूम और खिसकाने के लिए दो उंगलियाँ।",
       "walkInside": "अंदर",
-      "walkOutside": "बाहर",
+      "walkOutside": "3D",
       "walkMeasures": "माप",
       "walkLoading": "कमरा बनाया जा रहा है …",
       "walkCoverage": "{percent} % सतहों पर फ़ोटो हैं। दीवारों के सामने का फ़र्नीचर दीवार पर प्रक्षेपित दिखता है।",
@@ -667,7 +667,8 @@
       "scanDoor": "दरवाज़ा {width} × {height} · {room}",
       "scanStairs": "सीढ़ी {width} चौड़ी · {room}",
       "scanRoomHeight": "कमरे की ऊँचाई {height} · {room}",
-      "animate": "जाँचे गए घुमाव का एनिमेशन"
+      "animate": "जाँचे गए घुमाव का एनिमेशन",
+      "walkPlan": "नक्शा"
     }
   },
   "video": {

@@ -622,11 +622,11 @@
       "lidarProjects": "مشاريع LiDAR",
       "lidarProjectsDetail": "فتح عمليات مسح البوابات والأجسام المحفوظة",
       "photosTaken": "تم التقاط {count} صورة",
-      "walkTitle": "التجوّل بالنظر في الغرفة",
+      "walkTitle": "عرض الغرفة",
       "walkHint": "اسحب للنظر حولك، وقرّب بإصبعين.",
       "walkOutsideHint": "اسحب للتدوير، واستخدم إصبعين للتكبير والتحريك.",
       "walkInside": "من الداخل",
-      "walkOutside": "من الخارج",
+      "walkOutside": "3D",
       "walkMeasures": "الأبعاد",
       "walkLoading": "جارٍ بناء الغرفة …",
       "walkCoverage": "{percent} ٪ من الأسطح لها صور. يظهر الأثاث أمام الجدران مُسقطًا على الجدار.",
@@ -667,7 +667,8 @@
       "scanDoor": "باب {width} × {height} · {room}",
       "scanStairs": "درج بعرض {width} · {room}",
       "scanRoomHeight": "ارتفاع الغرفة {height} · {room}",
-      "animate": "رسم متحرك للدوران المفحوص"
+      "animate": "رسم متحرك للدوران المفحوص",
+      "walkPlan": "المخطط"
     }
   },
   "video": {

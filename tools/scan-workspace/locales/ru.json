@@ -622,11 +622,11 @@
       "lidarProjects": "LiDAR-проекты",
       "lidarProjectsDetail": "Открыть сохранённые сканы ворот и объектов",
       "photosTaken": "Снято фото: {count}",
-      "walkTitle": "Осмотреться в помещении",
+      "walkTitle": "Посмотреть помещение",
       "walkHint": "Проведите, чтобы осмотреться; сведите пальцы для масштаба.",
       "walkOutsideHint": "Перетащите для поворота, двумя пальцами — масштаб и сдвиг.",
       "walkInside": "Внутри",
-      "walkOutside": "Снаружи",
+      "walkOutside": "3D",
       "walkMeasures": "Размеры",
       "walkLoading": "Помещение строится …",
       "walkCoverage": "Фото есть на {percent} % поверхностей. Мебель у стен выглядит спроецированной на стену.",
@@ -667,7 +667,8 @@
       "scanDoor": "Дверь {width} × {height} · {room}",
       "scanStairs": "Лестница шириной {width} · {room}",
       "scanRoomHeight": "Высота помещения {height} · {room}",
-      "animate": "Анимация проверенного поворота"
+      "animate": "Анимация проверенного поворота",
+      "walkPlan": "План"
     }
   },
   "video": {

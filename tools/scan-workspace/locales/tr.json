@@ -384,11 +384,11 @@
       "lidarProjects": "LiDAR projeleri",
       "lidarProjectsDetail": "Kaydedilen kapı ve nesne taramalarını aç",
       "photosTaken": "{count} fotoğraf çekildi",
-      "walkTitle": "Odada etrafa bak",
+      "walkTitle": "Odayı görüntüle",
       "walkHint": "Etrafa bakmak için kaydırın, yakınlaştırmak için kıstırın.",
       "walkOutsideHint": "Döndürmek için sürükleyin, iki parmakla yakınlaştırın ve kaydırın.",
       "walkInside": "İçeriden",
-      "walkOutside": "Dışarıdan",
+      "walkOutside": "3D",
       "walkMeasures": "Ölçüler",
       "walkLoading": "Oda oluşturuluyor …",
       "walkCoverage": "Yüzeylerin %{percent} kadarında fotoğraf var. Duvar önündeki mobilyalar duvara yansıtılmış görünür.",
@@ -429,7 +429,8 @@
       "scanDoor": "Kapı {width} × {height} · {room}",
       "scanStairs": "Merdiven {width} geniş · {room}",
       "scanRoomHeight": "Oda yüksekliği {height} · {room}",
-      "animate": "Kontrol edilen dönüşün animasyonu"
+      "animate": "Kontrol edilen dönüşün animasyonu",
+      "walkPlan": "Kat planı"
     },
     "name": "Türkçe",
     "title": "Güvenle ölçün",

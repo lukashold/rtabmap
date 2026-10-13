@@ -24,7 +24,7 @@ for language in MeasurementGuide.languages {
     precondition(guide.objectCapture!.values.allSatisfy { !$0.isEmpty })
     precondition(guide.objectCapture!["photosCount"]!.contains("{count}") && guide.objectCapture!["photosCount"]!.contains("{max}"))
     precondition(guide.splat!.count == 9)
-    precondition(guide.home!.count == 100)
+    precondition(guide.home!.count == 101)
     precondition(Set(guide.home!.keys) == Set(guides["de"]!.home!.keys))
     precondition(guide.home!.values.allSatisfy { !$0.isEmpty })
     precondition(guide.home!["doorsWindows"]!.contains("{doors}") && guide.home!["doorsWindows"]!.contains("{windows}"))
@@ -444,3 +444,10 @@ precondition(scanSuggestions.contains { $0.kind == .door && abs($0.width - 0.8) 
 precondition(scanSuggestions.contains { $0.kind == .stairs && $0.width == 1.0 && $0.height == 2.8 && $0.length == 3.2 })
 precondition(scanSuggestions.contains { $0.kind == .roomHeight && abs($0.height - 2.5) < 1e-9 })
 print("Transport check: verdicts match the browser implementation; scan suggestions checks passed")
+
+// Openings are placed in the wall they belong to (wall-local coordinates).
+let placed = RoomPlanGeometry.openingsByWall(summaryWalls + [summaryFloor, summaryDoor, summaryWindow])
+precondition(placed[summaryWalls[0].id]?.count == 1 && placed[summaryWalls[1].id]?.count == 1 && placed[summaryWalls[2].id] == nil)
+let placedDoor = placed[summaryWalls[0].id]![0]
+precondition(placedDoor.kind == "door" && abs((placedDoor.x1 - placedDoor.x0) - 0.8) < 1e-6 && abs(placedDoor.y0 + 1.25) < 1e-6)
+print("Room geometry: opening placement checks passed")
