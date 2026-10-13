@@ -127,6 +127,7 @@ struct StairProfile: Codable, Equatable {
         var ceiling: Double?          // lowest overhead surface
         var left: Double?, right: Double?  // free distance to the side walls (or handrail)
         var heading: Double           // walking direction, radians (atan2(x, -z))
+        var smoothedWidth: Double? = nil  // median width over ±15 cm
         var width: Double? { left != nil && right != nil ? left! + right! : nil }
         var headroom: Double? { ceiling.map { $0 - floor } }
     }
@@ -142,9 +143,12 @@ struct StairProfile: Codable, Equatable {
     var minWidthAt: Double?
     var minHeadroom: Double?
     var minHeadroomAt: Double?
+    /// 2: path cleaning and robust steps/turn/width (older scans are re-analysed).
+    var analysis: Int? = StairAnalyzer.version
 }
 
 enum StairAnalyzer {
+    static let version = 2
     enum AnalysisError: Error { case tooShort, noFloor }
 
     /// Resample the camera path every `step` metres (3D arc length) and smooth it.
@@ -171,6 +175,39 @@ enum StairAnalyzer {
         return out
     }
 
+    /// Real walks are messy: looking around at the top, swinging the phone to the
+    /// walls, a step back. Keep the stretch around the height change and pull the
+    /// path tight so only forward progress remains.
+    static func cleanPath(_ path: [StairVec]) -> [StairVec] {
+        guard path.count >= 3 else { return path }
+        func flat(_ a: StairVec, _ b: StairVec) -> Double { hypot(a.x - b.x, a.z - b.z) }
+        let n = path.count, k = max(1, n / 10)
+        let ys = path.map(\.y)
+        let top = ys.prefix(k).sorted()[k / 2], bottom = ys.suffix(k).sorted()[k / 2]
+        var first = 0, last = n - 1
+        if abs(top - bottom) >= 0.3 {
+            let down = bottom < top
+            if let f = ys.firstIndex(where: { down ? $0 < top - 0.12 : $0 > top + 0.12 }),
+               let l = ys.lastIndex(where: { down ? $0 > bottom + 0.12 : $0 < bottom - 0.12 }), l > f { first = f; last = l }
+        }
+        var s = first, e = last
+        while s > 0 && flat(path[s - 1], path[first]) <= 1.3 { s -= 1 }
+        while e < n - 1 && flat(path[e + 1], path[last]) <= 1.3 { e += 1 }
+        var kept = [path[s]]
+        for p in path[(s + 1)...e] {
+            if flat(p, kept.last!) < 0.15 { continue }
+            // Going back: retract instead of adding a U-turn.
+            while kept.count >= 2 {
+                let a = kept[kept.count - 2], b = kept[kept.count - 1]
+                let v1 = (b.x - a.x, b.z - a.z), v2 = (p.x - b.x, p.z - b.z)
+                let c = (v1.0 * v2.0 + v1.1 * v2.1) / (hypot(v1.0, v1.1) * hypot(v2.0, v2.1) + 1e-9)
+                if c < -0.2 { kept.removeLast() } else { break }
+            }
+            if flat(p, kept.last!) >= 0.15 { kept.append(p) }
+        }
+        return kept
+    }
+
     private static func kthLowest(_ v: [Double], _ k: Int) -> Double? { v.isEmpty ? nil : v.sorted()[min(k, v.count - 1)] }
     private static func kthHighest(_ v: [Double], _ k: Int) -> Double? { v.isEmpty ? nil : v.sorted(by: >)[min(k, v.count - 1)] }
 
@@ -178,7 +215,7 @@ enum StairAnalyzer {
     ///   - mesh: vertices and normals (faces are not needed)
     ///   - path: camera positions in walking order
     static func analyze(mesh: StairMesh, path: [StairVec]) throws -> StairProfile {
-        let cams = resample(path)
+        let cams = resample(cleanPath(path))
         guard cams.count >= 8 else { throw AnalysisError.tooShort }
         let n = mesh.vertexCount
         let xs = (0..<n).map { Double(mesh.positions[3 * $0]) }, zs = (0..<n).map { Double(mesh.positions[3 * $0 + 2]) }
@@ -240,41 +277,50 @@ enum StairAnalyzer {
             stations.append(.init(distance: distance, x: c.x, z: c.z, floor: floor, ceiling: ceiling, left: lefts[i], right: rights[i], heading: atan2(t.x, -t.z)))
         }
 
-        // 4. Steps: runs of floor changes ≥ 8 cm between flat stretches.
-        var jumps: [Double] = [], centresOfJumps: [Double] = []
-        var firstJump: Int?, lastJump: Int?
+        // 4. Steps: runs of floor changes, merged when closer than 12 cm, that go the
+        // overall way (down or up) and have a plausible height (8–30 cm).
+        var runs: [(total: Double, at: Double, from: Int, to: Int)] = []
         var i = 1
         while i < count {
             if abs(stations[i].floor - stations[i - 1].floor) < 0.02 { i += 1; continue }
             var j = i, total = 0.0
             while j < count && abs(stations[j].floor - stations[j - 1].floor) >= 0.02 { total += stations[j].floor - stations[j - 1].floor; j += 1 }
-            if abs(total) >= 0.08 {
-                jumps.append(abs(total))
-                centresOfJumps.append((stations[i - 1].distance + stations[j - 1].distance) / 2)
-                if firstJump == nil { firstJump = i - 1 }
-                lastJump = j - 1
-            }
+            let at = (stations[i - 1].distance + stations[j - 1].distance) / 2
+            if let last = runs.last, at - last.at < 0.12 {
+                runs[runs.count - 1] = (last.total + total, (last.at + at) / 2, last.from, j - 1)
+            } else { runs.append((total, at, i - 1, j - 1)) }
             i = j
         }
+        let sign: Double = stations[count - 1].floor >= stations[0].floor ? 1 : -1
+        let steps = runs.filter { $0.total * sign >= 0.08 && abs($0.total) <= 0.30 }
+        let jumps = steps.map { abs($0.total) }
         let median: ([Double]) -> Double? = { v in v.isEmpty ? nil : v.sorted()[v.count / 2] }
-        let goings = zip(centresOfJumps, centresOfJumps.dropFirst()).map { $1 - $0 }
+        // Going: straight distance between neighbouring risers on the centre line.
+        let mids = steps.map { r in ((stations[r.from].x + stations[r.to].x) / 2, (stations[r.from].z + stations[r.to].z) / 2) }
+        let goings = zip(mids, mids.dropFirst()).map { hypot($1.0 - $0.0, $1.1 - $0.1) }
         var slope: Double?
-        if jumps.count >= 2, let a = firstJump, let b = lastJump, stations[b].distance > stations[a].distance {
-            slope = atan(abs(stations[b].floor - stations[a].floor) / (stations[b].distance - stations[a].distance)) * 180 / .pi
-        }
-
-        // 5. Turn (unwrapped heading change, averaged over the first/last 30 cm).
-        var unwrapped = [stations[0].heading]
-        for s in stations.dropFirst() {
-            var d = s.heading - unwrapped.last!
+        var turn = 0.0
+        if steps.count >= 2 {
+            let a = steps.first!.from, b = steps.last!.to
+            if stations[b].distance > stations[a].distance {
+                slope = atan(abs(stations[b].floor - stations[a].floor) / (stations[b].distance - stations[a].distance)) * 180 / .pi
+            }
+            // 5. Turn: direction of the first and last 60 cm of the flight.
+            func at(_ d: Double) -> StairProfile.Station { stations.min { abs($0.distance - d) < abs($1.distance - d) }! }
+            func heading(_ p: StairProfile.Station, _ q: StairProfile.Station) -> Double { atan2(q.x - p.x, -(q.z - p.z)) }
+            let d0 = stations[a].distance, d1 = stations[b].distance
+            var d = heading(at(d1 - 0.6), at(d1)) - heading(at(d0), at(d0 + 0.6))
             while d > .pi { d -= 2 * .pi }
             while d < -.pi { d += 2 * .pi }
-            unwrapped.append(unwrapped.last! + d)
+            turn = d * 180 / .pi
         }
-        let edge = min(6, count / 3)
-        let turn = (unwrapped.suffix(edge).reduce(0, +) - unwrapped.prefix(edge).reduce(0, +)) / Double(edge) * 180 / .pi
 
-        let widths = stations.compactMap { s in s.width.map { ($0, s.distance) } }
+        // Clear width: median over ±15 cm so one swing of the phone does not count.
+        for k in 0..<count {
+            let near = stations.filter { abs($0.distance - stations[k].distance) <= 0.15 }.compactMap(\.width)
+            stations[k].smoothedWidth = median(near)
+        }
+        let widths = stations.compactMap { s in s.smoothedWidth.map { ($0, s.distance) } }
         let heads = stations.compactMap { s in s.headroom.map { ($0, s.distance) } }
         let floorValues = stations.map(\.floor)
         return StairProfile(stations: stations, length: distance, drop: floorValues.max()! - floorValues.min()!,
@@ -489,6 +535,15 @@ struct SavedStairScan {
     }
 
     func loadMesh() throws -> StairMesh { try StairMesh(data: Data(contentsOf: meshURL)) }
+
+    /// Run the current analysis again on the stored walk and mesh, and save it.
+    func reanalyzed(mesh: StairMesh) throws -> SavedStairScan {
+        var updated = document
+        updated.profile = try StairAnalyzer.analyze(mesh: mesh, path: document.path.map { StairVec($0[0], $0[1], $0[2]) })
+        try updated.validate()
+        try updated.encoded().write(to: jsonURL, options: .atomic)
+        return SavedStairScan(document: updated, folder: folder)
+    }
 
     func relabeled(name: String, apartment: String, floor: String) throws -> SavedStairScan {
         var updated = document

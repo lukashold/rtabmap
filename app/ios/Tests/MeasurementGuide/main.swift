@@ -665,3 +665,24 @@ check(found[0].structural == "beam" && abs(found[0].height - 0.3) < 0.02 && abs(
 check(found[0].width > 4.5 && found[0].depth > 0.2 && found[0].depth < 0.45 && abs(found[0].x - 0.525) < 0.08, "beam size \(found[0])")
 check(StructuralDetection.suggest(mesh: StairMesh(), document: layoutRoom, floorY: 0, ceiling: 2.5).isEmpty)
 print("LiDAR element suggestions checks passed")
+
+// A messy real-world walk: looking around at the top and bottom, swinging the phone
+// sideways, stepping back now and then. The result must still be the clean stair.
+var messyPath: [StairVec] = []
+let topPoint = stairPath[0], bottomPoint = stairPath[stairPath.count - 1]
+for t in 0..<60 { messyPath.append(StairVec(topPoint.x + 0.8 * sin(Double(t) / 6), topPoint.y, topPoint.z + 0.6 * sin(Double(t) / 9))) }
+for (index, p) in stairPath.enumerated() {
+    messyPath.append(StairVec(p.x + 0.15 * sin(Double(index) / 3), p.y + 0.05 * sin(Double(index) / 2), p.z))
+    if index % 40 == 20 {
+        for b in 0..<6 { messyPath.append(StairVec(p.x, p.y, p.z + 0.05 * Double(b))) }
+        for b in 0..<6 { messyPath.append(StairVec(p.x, p.y, p.z + 0.05 * Double(5 - b))) }
+    }
+}
+for t in 0..<80 { messyPath.append(StairVec(bottomPoint.x + sin(Double(t) / 7), bottomPoint.y, bottomPoint.z - 0.8 * abs(sin(Double(t) / 11)))) }
+let messyProfile = try StairAnalyzer.analyze(mesh: stairMesh, path: messyPath)
+check(messyProfile.risers == 12, "messy risers \(messyProfile.risers)")
+check(abs(messyProfile.turnDegrees) < 10, "messy turn \(messyProfile.turnDegrees)")
+check(abs(messyProfile.minWidth! - 0.9) < 0.07, "messy width \(messyProfile.minWidth!)")
+check(abs(messyProfile.going! - 0.27) < 0.04 && messyProfile.length < 9, "messy going \(messyProfile.going!) length \(messyProfile.length)")
+check(messyProfile.analysis == StairAnalyzer.version)
+print("Stair scan: messy walk checks passed")

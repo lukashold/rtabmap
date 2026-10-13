@@ -225,9 +225,18 @@ final class StairResultViewController: UIViewController, UITextFieldDelegate {
         let scan = self.scan
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let mesh = try? scan.loadMesh()
+            // Scans analysed with an older version are re-analysed from the stored walk.
+            var updated: SavedStairScan?
+            if let mesh = mesh, (scan.document.profile.analysis ?? 1) < StairAnalyzer.version {
+                updated = try? scan.reanalyzed(mesh: mesh)
+            }
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 self.mesh = mesh
+                if let updated = updated {
+                    self.scan = updated
+                    self.renderMetrics()
+                }
                 self.buildScene(mesh)
             }
         }
