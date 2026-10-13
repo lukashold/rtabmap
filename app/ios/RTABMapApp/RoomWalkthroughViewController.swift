@@ -1,0 +1,961 @@
+import UIKit
+import SceneKit
+import ImageIO
+
+/// A saved room in three readable views:
+/// - Floor plan: top-down, dark walls, dimension lines outside every wall,
+///   doors/windows marked, area in the room.
+/// - 3D: dollhouse without ceiling, walls with thickness and lighting, real
+///   cut-outs for doors and windows, wall lengths and room height.
+/// - Inside: stand in the middle of the room at eye height (drag to look,
+///   pinch to zoom); walls show the scan photos when there are any.
+///
+/// Photos are projected onto RoomPlan's flat surfaces: furniture in front of a
+/// wall appears painted onto that wall, and areas no photo saw stay plain.
+final class RoomWalkthroughViewController: UIViewController, UIGestureRecognizerDelegate {
+    private enum Mode: Int { case plan, model, inside }
+
+    private var room: SavedRoomPlan
+    private let photoDirectory: URL
+    private let photos: RoomPhotoSet?
+    private var summary: RoomPlanSummary
+    private let scene = SCNScene()
+    private let sceneView = SCNView()
+    private let planCamera = SCNNode(), modelCamera = SCNNode(), eyeCamera = SCNNode()
+    // Content groups switched per mode.
+    private let solid = SCNNode(), photoTiles = SCNNode(), plainCeiling = SCNNode()
+    private let planMarks = SCNNode(), modelLabels = SCNNode(), insideLabels = SCNNode()
+    private let photoCeiling = SCNNode(), markerPins = SCNNode(), furnitureNodes = SCNNode()
+    private var extras = RoomExtras()
+    private var folder: URL { room.jsonURL.deletingLastPathComponent() }
+    private enum Placing: Equatable { case none, marker, element(String) }
+    private var placing = Placing.none
+    private var movingFurniture: String?
+    private var startFurniture = (x: 0.0, z: 0.0)
+    private let photosButton = UIButton(type: .system)
+    private var photosOn = true
+    /// Everything that turns with the two-finger rotation, pivoting on the room centre.
+    private let world = SCNNode()
+    private var startRotation: Float = 0
+    private var startPan = SCNVector3Zero
+    private var wallMaterial = SCNMaterial()
+    private let mode = UISegmentedControl()
+    private let measures = UIButton(type: .system)
+    private let status = KanturaHintPill("")
+    private var yaw: Float = 0, pitch: Float = 0, startYaw: Float = 0, startPitch: Float = 0
+    private var lookGestures: [UIGestureRecognizer] = []
+    private var planGestures: [UIGestureRecognizer] = []
+    private var hintShown = false
+    private var centre = (x: 0.0, z: 0.0), floorY = 0.0, extent = 5.0
+    private func text(_ key: String) -> String { MeasurementGuide.homeText(key) }
+
+    init(room: SavedRoomPlan) {
+        self.room = room
+        photoDirectory = room.jsonURL.deletingLastPathComponent().appendingPathComponent("photos", isDirectory: true)
+        photos = RoomPhotoSet.load(from: photoDirectory)
+        summary = RoomPlanSummary(room.document)
+        super.init(nibName: nil, bundle: nil)
+    }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    static func hasPhotos(_ room: SavedRoomPlan) -> Bool {
+        RoomPhotoSet.load(from: room.jsonURL.deletingLastPathComponent().appendingPathComponent("photos", isDirectory: true)) != nil
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = KanturaDesign.background
+        KanturaDesign.navigation(self)
+        navigationItem.largeTitleDisplayMode = .never
+        title = room.document.building?.room ?? room.document.name
+        sceneView.scene = scene
+        sceneView.backgroundColor = UIColor { $0.userInterfaceStyle == .dark ? UIColor(white: 0.1, alpha: 1) : UIColor(red: 0.95, green: 0.95, blue: 0.94, alpha: 1) }
+        sceneView.antialiasingMode = .multisampling4X
+        sceneView.translatesAutoresizingMaskIntoConstraints = false
+        sceneView.isAccessibilityElement = true
+        sceneView.accessibilityLabel = text("walkTitle")
+        view.addSubview(sceneView)
+
+        for (index, key) in ["walkPlan", "walkOutside", "walkInside"].enumerated() { mode.insertSegment(withTitle: text(key), at: index, animated: false) }
+        mode.selectedSegmentIndex = Mode.model.rawValue
+        mode.selectedSegmentTintColor = KanturaDesign.mint
+        mode.setTitleTextAttributes([.foregroundColor: KanturaDesign.ink], for: .selected)
+        mode.addAction(UIAction { [weak self] _ in self?.applyMode() }, for: .valueChanged)
+        measures.setImage(UIImage(systemName: "ruler"), for: .normal)
+        measures.setTitle("  " + text("walkMeasures"), for: .normal)
+        measures.tintColor = KanturaDesign.ink
+        measures.backgroundColor = KanturaDesign.mint
+        measures.layer.cornerRadius = 16
+        measures.contentEdgeInsets = UIEdgeInsets(top: 8, left: 12, bottom: 8, right: 14)
+        measures.accessibilityTraits.insert(.selected)
+        measures.addAction(UIAction { [weak self] _ in self?.toggleMeasures() }, for: .touchUpInside)
+        photosButton.setImage(UIImage(systemName: "photo"), for: .normal)
+        photosButton.tintColor = KanturaDesign.ink
+        photosButton.backgroundColor = KanturaDesign.mint
+        photosButton.layer.cornerRadius = 16
+        photosButton.contentEdgeInsets = UIEdgeInsets(top: 8, left: 12, bottom: 8, right: 12)
+        photosButton.accessibilityLabel = text("photosToggle")
+        photosButton.isHidden = photos == nil
+        photosButton.addAction(UIAction { [weak self] _ in
+            guard let self = self else { return }
+            self.photosOn.toggle()
+            self.photosButton.backgroundColor = self.photosOn ? KanturaDesign.mint : KanturaDesign.surface
+            self.applyMode()
+        }, for: .touchUpInside)
+        let controls = UIStackView(arrangedSubviews: [mode, measures, photosButton])
+        controls.spacing = 10
+        controls.translatesAutoresizingMaskIntoConstraints = false
+        status.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(controls)
+        view.addSubview(status)
+        NSLayoutConstraint.activate([
+            sceneView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor), sceneView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            sceneView.leadingAnchor.constraint(equalTo: view.leadingAnchor), sceneView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            controls.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            controls.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
+            controls.leadingAnchor.constraint(greaterThanOrEqualTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 12),
+            status.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            status.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 12),
+            status.widthAnchor.constraint(lessThanOrEqualTo: view.widthAnchor, constant: -40)
+        ])
+        let pan = UIPanGestureRecognizer(target: self, action: #selector(look(_:)))
+        let pinch = UIPinchGestureRecognizer(target: self, action: #selector(zoom(_:)))
+        sceneView.addGestureRecognizer(pan)
+        sceneView.addGestureRecognizer(pinch)
+        lookGestures = [pan, pinch]
+        // Two fingers turn the room (plan, 3D and inside); one tap corrects a surface.
+        let rotate = UIRotationGestureRecognizer(target: self, action: #selector(turn(_:)))
+        rotate.delegate = self
+        sceneView.addGestureRecognizer(rotate)
+        let tap = UITapGestureRecognizer(target: self, action: #selector(pickSurface(_:)))
+        sceneView.addGestureRecognizer(tap)
+        let planPan = UIPanGestureRecognizer(target: self, action: #selector(movePlan(_:)))
+        planPan.maximumNumberOfTouches = 1
+        let planPinch = UIPinchGestureRecognizer(target: self, action: #selector(zoomPlan(_:)))
+        planPinch.delegate = self
+        sceneView.addGestureRecognizer(planPan)
+        sceneView.addGestureRecognizer(planPinch)
+        planGestures = [planPan, planPinch]
+        let export = UIBarButtonItem(image: UIImage(systemName: "square.and.arrow.up"), style: .plain, target: self, action: #selector(openExport))
+        export.accessibilityLabel = text("export")
+        let add = UIBarButtonItem(title: nil, image: UIImage(systemName: "plus.circle"), primaryAction: nil, menu: UIMenu(children: [
+            UIAction(title: text("markerAdd"), image: UIImage(systemName: "mappin.and.ellipse")) { [weak self] _ in self?.startMarker() },
+            UIAction(title: text("furnitureAdd"), image: UIImage(systemName: "sofa")) { [weak self] _ in self?.chooseFurniture() },
+            UIMenu(title: text("elementAdd"), image: UIImage(systemName: "square.stack.3d.down.right"), children: RoomExtras.structuralKinds.map { kind in
+                UIAction(title: text("element_" + kind), image: UIImage(systemName: kind == "column" ? "rectangle.portrait" : kind == "chase" ? "rectangle.lefthalf.inset.filled" : "rectangle.topthird.inset.filled")) { [weak self] _ in self?.startElement(kind) }
+            }),
+            UIAction(title: text("markers"), image: UIImage(systemName: "list.bullet")) { [weak self] _ in self?.showMarkerList() }
+        ]))
+        add.accessibilityLabel = text("markerAdd")
+        navigationItem.rightBarButtonItems = [export, add]
+        // Press and hold: the original photo that shows that spot.
+        let hold = UILongPressGestureRecognizer(target: self, action: #selector(showOriginalPhoto(_:)))
+        sceneView.addGestureRecognizer(hold)
+        status.isHidden = true
+
+        buildContent()
+        buildCameras()
+        scene.rootNode.addChildNode(world)
+        [solid, plainCeiling, photoTiles, photoCeiling, planMarks, modelLabels, insideLabels, markerPins, furnitureNodes].forEach { world.addChildNode($0) }
+        extras = RoomExtras.load(from: folder)
+        buildExtras()
+        offerLidarElements()
+        alignToLongestWall()
+        addLights()
+        applyMode()
+        buildPhotoTiles()
+    }
+
+    private func buildContent() {
+        [solid, plainCeiling, planMarks, modelLabels, insideLabels].forEach { group in group.childNodes.forEach { $0.removeFromParentNode() } }
+        buildSolid()
+        buildPlanMarks()
+        buildModelLabels()
+        world.pivot = SCNMatrix4MakeTranslation(Float(centre.x), 0, Float(centre.z))
+        world.position = SCNVector3(Float(centre.x), 0, Float(centre.z))
+    }
+
+    /// Start with the longest wall horizontal, like a drawn floor plan.
+    private func alignToLongestWall() {
+        guard let wall = walls.max(by: { $0.dimensions[0] < $1.dimensions[0] }) else { return }
+        let x = (wall.transform[0], wall.transform[2])
+        world.eulerAngles.y = Float(atan2(x.1, x.0))
+        orientPlanLabels()
+    }
+
+    /// Keep the lengths along the walls readable (never upside down) after turning.
+    private func orientPlanLabels() {
+        for holder in planMarks.childNodes where holder.name == "length" {
+            let total = holder.eulerAngles.y + world.eulerAngles.y
+            if cos(total) < 0 { holder.eulerAngles.y += .pi }
+        }
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool { true }
+
+    @objc private func turn(_ gesture: UIRotationGestureRecognizer) {
+        if gesture.state == .began { startRotation = world.eulerAngles.y }
+        // Screen-clockwise fingers turn the room clockwise as seen from above.
+        world.eulerAngles.y = startRotation - Float(gesture.rotation)
+        if gesture.state == .ended || gesture.state == .changed { orientPlanLabels() }
+    }
+
+    @objc private func movePlan(_ gesture: UIPanGestureRecognizer) {
+        guard let camera = planCamera.camera else { return }
+        let t = gesture.translation(in: sceneView)
+        let metresPerPoint = Float(camera.orthographicScale * 2) / Float(max(1, sceneView.bounds.height))
+        if let id = movingFurniture, let index = extras.furniture.firstIndex(where: { $0.id == id }) {
+            // Screen motion → room coordinates (the room may be turned).
+            if gesture.state == .began { startFurniture = (extras.furniture[index].x, extras.furniture[index].z) }
+            let delta = world.convertVector(SCNVector3(Float(t.x) * metresPerPoint, 0, Float(t.y) * metresPerPoint), from: nil)
+            extras.furniture[index].x = startFurniture.x + Double(delta.x)
+            extras.furniture[index].z = startFurniture.z + Double(delta.z)
+            buildFurniture()
+            if gesture.state == .ended { saveExtras() }
+            return
+        }
+        if gesture.state == .began { startPan = planCamera.position }
+        planCamera.position = SCNVector3(startPan.x - Float(t.x) * metresPerPoint, startPan.y, startPan.z - Float(t.y) * metresPerPoint)
+    }
+
+    @objc private func zoomPlan(_ gesture: UIPinchGestureRecognizer) {
+        guard let camera = planCamera.camera else { return }
+        camera.orthographicScale = max(0.8, min(60, camera.orthographicScale / Double(gesture.scale)))
+        gesture.scale = 1
+    }
+
+    @objc private func openExport() {
+        navigationController?.pushViewController(RoomShareViewController(room: room), animated: true)
+    }
+
+    // MARK: Corrections
+
+    @objc private func pickSurface(_ gesture: UITapGestureRecognizer) {
+        guard presentedViewController == nil else { return }
+        let hits = sceneView.hitTest(gesture.location(in: sceneView), options: [.searchMode: SCNHitTestSearchMode.all.rawValue, .ignoreHiddenNodes: true])
+        if case .element(let kind) = placing {
+            guard let hit = hits.first(where: { hit in
+                var node: SCNNode? = hit.node
+                while let current = node { if current === solid || current === photoTiles || current === photoCeiling || current === plainCeiling { return true }; node = current.parent }
+                return false
+            }) else { return }
+            placing = .none
+            status.isHidden = true
+            let p = world.convertPosition(hit.worldCoordinates, from: nil)
+            guard let element = StructuralPlacement.make(kind, at: (Double(p.x), Double(p.z)), document: room.document, ceiling: height, name: text("element_" + kind)) else { return }
+            extras.furniture.append(element)
+            saveExtras(); buildFurniture()
+            editSize(element.id)
+            return
+        }
+        if placing == .marker {
+            // First real surface under the finger (labels and pins are skipped).
+            guard let hit = hits.first(where: { hit in
+                var node: SCNNode? = hit.node
+                while let current = node { if current === solid || current === photoTiles || current === photoCeiling || current === plainCeiling { return true }; node = current.parent }
+                return false
+            }) else { return }
+            placing = .none
+            status.isHidden = true
+            let p = world.convertPosition(hit.worldCoordinates, from: nil)
+            editMarker(RoomExtras.Marker(id: RoomExtras.newID(), kind: "defect", title: "", detail: "", status: "open", assignee: "",
+                                         position: [Double(p.x), Double(p.y), Double(p.z)], photo: nil, createdAt: RoomExtras.now(), updatedAt: RoomExtras.now()), isNew: true)
+            return
+        }
+        func named(_ prefix: String) -> String? {
+            hits.lazy.compactMap({ hit -> String? in
+                var node: SCNNode? = hit.node
+                while let current = node { if let n = current.name, n.hasPrefix(prefix) { return String(n.dropFirst(prefix.count)) }; node = current.parent }
+                return nil
+            }).first
+        }
+        if let id = named("marker:"), let marker = extras.markers.first(where: { $0.id == id }) { editMarker(marker, isNew: false); return }
+        if let id = named("furniture:") { furnitureActions(id, at: gesture.location(in: sceneView)); return }
+        guard Mode(rawValue: mode.selectedSegmentIndex) != .inside, let surfaceID = named("surface:") else { return }
+        let name = "surface:" + surfaceID
+        let id = String(name.dropFirst("surface:".count))
+        guard let surface = room.original.surfaces.first(where: { $0.id == id }) else { return }
+        let current = room.original.corrections?[id] ?? surface.kind
+        let sheet = UIAlertController(title: text("editTitle"), message: MeasurementGuide.roomText(surface.kind) + " · " + length(surface.dimensions[0]) + " × " + length(surface.dimensions[1]), preferredStyle: .actionSheet)
+        let options: [(String, String)] = surface.kind == "wall" ? [] : [("wall", "asWall"), ("door", "asDoor"), ("window", "asWindow"), ("opening", "asOpening")]
+        for (kind, key) in options where kind != current {
+            sheet.addAction(UIAlertAction(title: text(key), style: .default) { [weak self] _ in self?.correct(id, kind) })
+        }
+        if current != "deleted" { sheet.addAction(UIAlertAction(title: text("removeSurface"), style: .destructive) { [weak self] _ in self?.correct(id, "deleted") }) }
+        if room.original.corrections?[id] != nil { sheet.addAction(UIAlertAction(title: text("resetEdit"), style: .default) { [weak self] _ in self?.correct(id, nil) }) }
+        sheet.addAction(UIAlertAction(title: text("cancel"), style: .cancel))
+        sheet.popoverPresentationController?.sourceView = sceneView
+        sheet.popoverPresentationController?.sourceRect = CGRect(origin: gesture.location(in: sceneView), size: CGSize(width: 1, height: 1))
+        present(sheet, animated: true)
+    }
+
+    private func correct(_ id: String, _ kind: String?) {
+        do {
+            room = try room.correcting(id, to: kind)
+            summary = RoomPlanSummary(room.document)
+            let rotation = world.eulerAngles.y
+            buildContent()
+            buildExtras()
+            world.eulerAngles.y = rotation
+            orientPlanLabels()
+            applyMode()
+            NotificationCenter.default.post(name: SavedRoomViewController.changed, object: room)
+            UIAccessibility.post(notification: .announcement, argument: text("edited"))
+        } catch {
+            let alert = UIAlertController(title: MeasurementGuide.roomText("exportFailed"), message: nil, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: MeasurementGuide.roomText("close"), style: .default))
+            present(alert, animated: true)
+        }
+    }
+
+    // MARK: Markers and furniture
+
+    private func saveExtras() {
+        do { try extras.write(to: folder) } catch {
+            let alert = UIAlertController(title: MeasurementGuide.roomText("exportFailed"), message: nil, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: MeasurementGuide.roomText("close"), style: .default))
+            present(alert, animated: true)
+        }
+        NotificationCenter.default.post(name: SavedRoomViewController.changed, object: room)
+    }
+
+    private func buildExtras() { buildMarkers(); buildFurniture() }
+
+    private func buildMarkers() {
+        markerPins.childNodes.forEach { $0.removeFromParentNode() }
+        for (index, m) in extras.markers.enumerated() {
+            let symbol = m.kind == "defect" ? "⚠︎" : m.kind == "question" ? "?" : m.kind == "idea" ? "✦" : "↔"
+            let pin = pill("\(symbol) \(index + 1) " + String(m.title.prefix(24)) + (m.status == "done" ? " ✓" : ""), color: MarkerStyle.color(m.kind).withAlphaComponent(m.status == "done" ? 0.55 : 1),
+                           size: max(0.12, CGFloat(extent) * 0.026))
+            pin.position = SCNVector3(Float(m.position[0]), Float(m.position[1]), Float(m.position[2]))
+            pin.name = "marker:" + m.id
+            markerPins.addChildNode(billboard(pin))
+        }
+    }
+
+    private func buildFurniture() {
+        furnitureNodes.childNodes.forEach { $0.removeFromParentNode() }
+        var blocked: [String] = []
+        for f in extras.furniture {
+            let conflicts = FurnitureLayout.conflicts(of: f, in: room.document, others: extras.furniture)
+            let structureColor = UIColor(white: 0.62, alpha: 1)
+            let color: UIColor = conflicts.isEmpty ? (f.id == movingFurniture ? KanturaDesign.mint : f.isStructural ? structureColor : UIColor(red: 0.55, green: 0.47, blue: 0.75, alpha: 1)) : .systemRed
+            let box = SCNBox(width: CGFloat(f.width), height: CGFloat(f.height), length: CGFloat(f.depth), chamferRadius: f.isStructural ? 0.005 : 0.02)
+            box.materials = [material(color.withAlphaComponent(f.isStructural ? 0.95 : 0.85))]
+            let node = SCNNode(geometry: box)
+            node.name = "furniture:" + f.id
+            node.position = SCNVector3(Float(f.x), Float(floorY + f.bottom + f.height / 2), Float(f.z))
+            node.eulerAngles.y = Float(f.rotation)
+            if !f.isStructural {
+                // Front marker: a thin strip on the front face.
+                let front = SCNNode(geometry: SCNBox(width: CGFloat(f.width) * 0.8, height: 0.03, length: 0.01, chamferRadius: 0))
+                front.geometry?.materials = [material(.white, lit: false)]
+                front.position = SCNVector3(0, Float(f.height / 2) - 0.05, Float(f.depth / 2) + 0.006)
+                node.addChildNode(front)
+            }
+            var caption = f.name + " · " + length(f.width) + " × " + length(f.depth)
+            if f.structural == "beam" || f.structural == "bulkhead" {
+                // What matters under a beam: how much it hangs down and the clear height left.
+                caption = f.name + " · ↓ " + length(f.height) + " · " + text("elementClear") + " " + length(f.bottom)
+            }
+            let label = pill(caption, color: color, size: max(0.09, CGFloat(extent) * 0.02))
+            label.position = SCNVector3(0, f.bottom > 0.5 ? -Float(f.height / 2) - 0.12 : Float(f.height / 2) + 0.12, 0)
+            node.addChildNode(billboard(label))
+            furnitureNodes.addChildNode(node)
+            if !conflicts.isEmpty {
+                var parts: [String] = []
+                if conflicts.walls > 0 { parts.append(text("conflictWall")) }
+                if conflicts.doors > 0 { parts.append(text("conflictDoor")) }
+                if conflicts.furniture > 0 { parts.append(text("conflictFurniture")) }
+                blocked.append(f.name + ": " + parts.joined(separator: ", "))
+            }
+        }
+        if movingFurniture != nil || !blocked.isEmpty {
+            status.isHidden = false
+            status.alpha = 1
+            status.label.text = blocked.isEmpty ? text("furnitureMoveHint") : blocked.joined(separator: "\n")
+        }
+    }
+
+    /// Beams and bulkheads found in the LiDAR mesh of the scan, offered once.
+    private func offerLidarElements() {
+        let meshURL = folder.appendingPathComponent(StairMesh.fileName)
+        guard extras.suggestionsReviewed != true, FileManager.default.fileExists(atPath: meshURL.path) else { return }
+        let document = room.document, floor = floorY, ceiling = height
+        let names = Dictionary(uniqueKeysWithValues: RoomExtras.structuralKinds.map { ($0, text("element_" + $0)) })
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            guard let mesh = try? StairMesh(data: Data(contentsOf: meshURL)) else { return }
+            let found = StructuralDetection.suggest(mesh: mesh, document: document, floorY: floor, ceiling: ceiling, names: names)
+            DispatchQueue.main.async {
+                guard let self = self, !found.isEmpty, self.presentedViewController == nil else { return }
+                let lines = found.map { $0.name + " · ↓ " + self.length($0.height) + " · " + self.length($0.width) }
+                let alert = UIAlertController(title: MeasurementGuide.homeText("elementFound", ["count": found.count]), message: lines.joined(separator: "\n"), preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: self.text("elementFoundIgnore"), style: .cancel) { [weak self] _ in
+                    self?.extras.suggestionsReviewed = true; self?.saveExtras()
+                })
+                alert.addAction(UIAlertAction(title: self.text("elementFoundAccept"), style: .default) { [weak self] _ in
+                    guard let self = self else { return }
+                    self.extras.furniture += found
+                    self.extras.suggestionsReviewed = true
+                    self.saveExtras(); self.buildFurniture()
+                })
+                self.present(alert, animated: true)
+            }
+        }
+    }
+
+    private func startElement(_ kind: String) {
+        placing = .element(kind)
+        status.isHidden = false
+        status.alpha = 1
+        status.label.text = text("elementPlaceHint")
+    }
+
+    /// Width (length along the element), depth and height in one dialog.
+    /// Elements that hang from the ceiling keep their top at the ceiling.
+    private func editSize(_ id: String) {
+        guard let f = extras.furniture.first(where: { $0.id == id }), presentedViewController == nil else { return }
+        let alert = UIAlertController(title: f.name, message: f.isStructural ? text("elementSizeHelp") : nil, preferredStyle: .alert)
+        let hanging = f.structural == "beam" || f.structural == "bulkhead"
+        let entries = [(text("elementLength"), f.width), (text("depth"), f.depth), (hanging ? text("elementDrop") : text("heightField"), f.height)]
+        let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: MeasurementGuide.selectedLanguage)
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 3
+        formatter.usesGroupingSeparator = false
+        for (title, value) in entries {
+            alert.addTextField { field in
+                field.placeholder = title
+                field.accessibilityLabel = title
+                field.keyboardType = .decimalPad
+                field.text = formatter.string(from: NSNumber(value: value))
+                let unit = UILabel()
+                unit.text = " " + title + " (m) "
+                unit.font = .preferredFont(forTextStyle: .caption1)
+                unit.textColor = .secondaryLabel
+                field.leftView = unit
+                field.leftViewMode = .always
+            }
+        }
+        alert.addAction(UIAlertAction(title: text("cancel"), style: .cancel))
+        alert.addAction(UIAlertAction(title: text("done"), style: .default) { [weak self, weak alert] _ in
+            guard let self = self, let fields = alert?.textFields, fields.count == 3,
+                  let i = self.extras.furniture.firstIndex(where: { $0.id == id }) else { return }
+            let values = fields.map { Double(($0.text ?? "").replacingOccurrences(of: ",", with: ".").trimmingCharacters(in: .whitespaces)) }
+            guard values.allSatisfy({ $0 != nil && $0! > 0.01 && $0! <= 20 }) else { return }
+            var piece = self.extras.furniture[i]
+            piece.width = values[0]!; piece.depth = values[1]!; piece.height = values[2]!
+            if hanging { piece.elevation = max(0, self.height - piece.height) }
+            self.extras.furniture[i] = piece
+            self.saveExtras(); self.buildFurniture()
+        })
+        present(alert, animated: true)
+    }
+
+    private func startMarker() {
+        placing = .marker
+        status.isHidden = false
+        status.alpha = 1
+        status.label.text = text("markerPlaceHint")
+    }
+
+    private func editMarker(_ marker: RoomExtras.Marker, isNew: Bool) {
+        let editor = MarkerEditorViewController(marker: marker, folder: folder, isNew: isNew)
+        editor.onSave = { [weak self] saved in
+            guard let self = self else { return }
+            if let i = self.extras.markers.firstIndex(where: { $0.id == saved.id }) { self.extras.markers[i] = saved } else { self.extras.markers.append(saved) }
+            self.saveExtras(); self.buildMarkers()
+        }
+        editor.onDelete = { [weak self] in
+            guard let self = self else { return }
+            self.extras.markers.removeAll { $0.id == marker.id }
+            self.saveExtras(); self.buildMarkers()
+        }
+        present(UINavigationController(rootViewController: editor), animated: true)
+    }
+
+    private func showMarkerList() {
+        let list = MarkerListViewController(folder: folder)
+        list.onChange = { [weak self] updated in self?.extras = updated; self?.buildMarkers() }
+        navigationController?.pushViewController(list, animated: true)
+    }
+
+    private func chooseFurniture() {
+        let catalog = FurnitureCatalogViewController(style: .insetGrouped)
+        catalog.onPick = { [weak self] item, catalogName in
+            guard let self = self else { return }
+            let piece = RoomExtras.Furniture(id: RoomExtras.newID(), name: item.manufacturer.isEmpty ? item.name : item.manufacturer + " " + item.name,
+                                             manufacturer: item.manufacturer, category: item.category, width: item.width, depth: item.depth, height: item.height,
+                                             x: self.centre.x, z: self.centre.z, rotation: Double(-self.world.eulerAngles.y), catalog: catalogName, url: item.url, model: item.model)
+            self.extras.furniture.append(piece)
+            self.saveExtras()
+            // Place in the plan and let the user drag it into position.
+            self.mode.selectedSegmentIndex = Mode.plan.rawValue
+            self.movingFurniture = piece.id
+            self.applyMode()
+            self.buildFurniture()
+            self.showDoneMoving()
+        }
+        present(UINavigationController(rootViewController: catalog), animated: true)
+    }
+
+    private func showDoneMoving() {
+        let done = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(finishMoving))
+        navigationItem.leftBarButtonItem = done
+    }
+
+    @objc private func finishMoving() {
+        movingFurniture = nil
+        navigationItem.leftBarButtonItem = nil
+        saveExtras()
+        buildFurniture()
+        if status.label.text == text("furnitureMoveHint") { status.isHidden = true }
+    }
+
+    private func furnitureActions(_ id: String, at point: CGPoint) {
+        guard let index = extras.furniture.firstIndex(where: { $0.id == id }) else { return }
+        let f = extras.furniture[index]
+        let sheet = UIAlertController(title: f.name, message: length(f.width) + " × " + length(f.depth) + " × " + length(f.height) + (f.catalog.map { " · " + $0 } ?? ""), preferredStyle: .actionSheet)
+        sheet.addAction(UIAlertAction(title: text("elementSize"), style: .default) { [weak self] _ in self?.editSize(id) })
+        sheet.addAction(UIAlertAction(title: text("furnitureMove"), style: .default) { [weak self] _ in
+            guard let self = self else { return }
+            self.mode.selectedSegmentIndex = Mode.plan.rawValue
+            self.movingFurniture = id
+            self.applyMode(); self.buildFurniture(); self.showDoneMoving()
+        })
+        for (key, angle) in [("furnitureTurn90", Double.pi / 2), ("furnitureTurn15", Double.pi / 12)] {
+            sheet.addAction(UIAlertAction(title: text(key), style: .default) { [weak self] _ in
+                guard let self = self, let i = self.extras.furniture.firstIndex(where: { $0.id == id }) else { return }
+                self.extras.furniture[i].rotation += angle
+                self.saveExtras(); self.buildFurniture()
+            })
+        }
+        if let link = f.url, let url = URL(string: link), url.scheme == "https" {
+            sheet.addAction(UIAlertAction(title: text("furnitureProduct"), style: .default) { _ in UIApplication.shared.open(url) })
+        }
+        sheet.addAction(UIAlertAction(title: text("removeSurface"), style: .destructive) { [weak self] _ in
+            guard let self = self else { return }
+            self.extras.furniture.removeAll { $0.id == id }
+            if self.movingFurniture == id { self.finishMoving() }
+            self.saveExtras(); self.buildFurniture()
+        })
+        sheet.addAction(UIAlertAction(title: text("cancel"), style: .cancel))
+        sheet.popoverPresentationController?.sourceView = sceneView
+        sheet.popoverPresentationController?.sourceRect = CGRect(origin: point, size: CGSize(width: 1, height: 1))
+        present(sheet, animated: true)
+    }
+
+    @objc private func showOriginalPhoto(_ gesture: UILongPressGestureRecognizer) {
+        guard gesture.state == .began, presentedViewController == nil, let set = photos?.photos else { return }
+        let hits = sceneView.hitTest(gesture.location(in: sceneView), options: [.searchMode: SCNHitTestSearchMode.closest.rawValue, .ignoreHiddenNodes: true])
+        guard let hit = hits.first else { return }
+        let p = world.convertPosition(hit.worldCoordinates, from: nil)
+        guard let best = RoomPhotoProjection.bestPhoto(showing: (Double(p.x), Double(p.y), Double(p.z)), photos: set) else {
+            status.isHidden = false; status.alpha = 1; status.label.text = text("photoNone"); return
+        }
+        let viewer = RoomPhotoViewController(url: photoDirectory.appendingPathComponent(set[best.index].file), u: best.u, v: best.v)
+        let nav = UINavigationController(rootViewController: viewer)
+        nav.modalPresentationStyle = .fullScreen
+        present(nav, animated: true)
+    }
+
+    // MARK: Geometry helpers
+
+    private func matrix(_ m: [Double]) -> SCNMatrix4 {
+        SCNMatrix4(m11: Float(m[0]), m12: Float(m[1]), m13: Float(m[2]), m14: Float(m[3]),
+                   m21: Float(m[4]), m22: Float(m[5]), m23: Float(m[6]), m24: Float(m[7]),
+                   m31: Float(m[8]), m32: Float(m[9]), m33: Float(m[10]), m34: Float(m[11]),
+                   m41: Float(m[12]), m42: Float(m[13]), m43: Float(m[14]), m44: Float(m[15]))
+    }
+    private func vector(_ p: RoomPlanGeometry.Point) -> SCNVector3 { SCNVector3(Float(p.x), Float(p.y), Float(p.z)) }
+    private func path(_ outline: [(Double, Double)]) -> UIBezierPath {
+        let path = UIBezierPath()
+        for (i, p) in outline.enumerated() { i == 0 ? path.move(to: CGPoint(x: p.0, y: p.1)) : path.addLine(to: CGPoint(x: p.0, y: p.1)) }
+        path.close()
+        return path
+    }
+    private func material(_ color: UIColor, lit: Bool = true) -> SCNMaterial {
+        let m = SCNMaterial()
+        m.diffuse.contents = color
+        m.lightingModel = lit ? .blinn : .constant
+        m.isDoubleSided = true
+        return m
+    }
+    private var walls: [RoomPlanDocument.Surface] { room.document.surfaces.filter { $0.kind == "wall" && $0.transform.count == 16 && $0.dimensions.count == 3 } }
+    private var floors: [RoomPlanDocument.Surface] { room.document.surfaces.filter { $0.kind == "floor" && $0.polygonCorners != nil && $0.transform.count == 16 } }
+    private var height: Double { summary.wallHeight ?? 2.5 }
+    /// Horizontal unit vector from a point towards the room centre.
+    private func inward(from p: RoomPlanGeometry.Point) -> (x: Double, z: Double) {
+        let dx = centre.x - p.x, dz = centre.z - p.z, d = max(1e-6, hypot(dx, dz))
+        return (dx / d, dz / d)
+    }
+
+    // MARK: Solid model (walls with cut-outs, floor, windows)
+
+    private func buildSolid() {
+        // Room centre, floor level and size for cameras and label placement.
+        let floorPoints = floors.flatMap { f in f.polygonCorners!.map { RoomPlanGeometry.world($0, f.transform) } }
+        let wallPoints = walls.map { RoomPlanGeometry.world([0, 0, 0], $0.transform) }
+        let points = floorPoints.isEmpty ? wallPoints : floorPoints
+        if !points.isEmpty {
+            centre = (points.map { $0.x }.reduce(0, +) / Double(points.count), points.map { $0.z }.reduce(0, +) / Double(points.count))
+            let xs = points.map { $0.x }, zs = points.map { $0.z }
+            extent = max(2, xs.max()! - xs.min()!, zs.max()! - zs.min()!)
+        }
+        floorY = floorPoints.isEmpty ? (walls.map { RoomPlanGeometry.world([0, -$0.dimensions[1] / 2, 0], $0.transform).y }.min() ?? 0) : floorPoints.map { $0.y }.reduce(0, +) / Double(floorPoints.count)
+
+        wallMaterial = material(UIColor(white: 0.96, alpha: 1))
+        let openings = RoomPlanGeometry.openingsByWall(room.document.surfaces)
+        for wall in walls {
+            let shape = path(RoomPlanGeometry.outline(wall))
+            for o in openings[wall.id] ?? [] {
+                // Doors and openings reach the floor; cut them as holes in the wall.
+                shape.append(UIBezierPath(rect: CGRect(x: o.x0, y: o.y0, width: o.x1 - o.x0, height: o.y1 - o.y0)))
+            }
+            shape.usesEvenOddFillRule = true
+            shape.flatness = 0.001
+            let geometry = SCNShape(path: shape, extrusionDepth: 0.1)
+            geometry.materials = [wallMaterial]
+            let node = SCNNode(geometry: geometry)
+            node.name = "surface:" + wall.id
+            node.transform = matrix(wall.transform)
+            for o in openings[wall.id] ?? [] where o.kind != "window" {
+                // A faint tappable pane, so doors and openings can be corrected.
+                let pane = SCNNode(geometry: SCNPlane(width: CGFloat(o.x1 - o.x0), height: CGFloat(o.y1 - o.y0)))
+                pane.geometry?.materials = [material(KanturaDesign.mint.withAlphaComponent(0.18))]
+                pane.position = SCNVector3(Float((o.x0 + o.x1) / 2), Float((o.y0 + o.y1) / 2), 0)
+                pane.name = "surface:" + o.id
+                node.addChildNode(pane)
+            }
+            for o in openings[wall.id] ?? [] where o.kind == "window" {
+                let glass = SCNPlane(width: CGFloat(o.x1 - o.x0), height: CGFloat(o.y1 - o.y0))
+                glass.materials = [material(UIColor.systemTeal.withAlphaComponent(0.35))]
+                let pane = SCNNode(geometry: glass)
+                pane.name = "surface:" + o.id
+                pane.position = SCNVector3(Float((o.x0 + o.x1) / 2), Float((o.y0 + o.y1) / 2), 0)
+                node.addChildNode(pane)
+            }
+            solid.addChildNode(node)
+        }
+        // Openings not inside any wall are shown on their own (and can be corrected).
+        let hosted = Set(openings.values.flatMap { $0.map(\.id) })
+        for s in room.document.surfaces where ["door", "window", "opening"].contains(s.kind) && !hosted.contains(s.id) && s.transform.count == 16 && s.dimensions.count == 3 {
+            let box = SCNBox(width: CGFloat(s.dimensions[0]), height: CGFloat(s.dimensions[1]), length: 0.04, chamferRadius: 0)
+            box.materials = [material((s.kind == "window" ? UIColor.systemTeal : KanturaDesign.mint).withAlphaComponent(0.45))]
+            let node = SCNNode(geometry: box)
+            node.transform = matrix(s.transform)
+            node.name = "surface:" + s.id
+            solid.addChildNode(node)
+        }
+        let floorMaterial = material(UIColor(red: 0.86, green: 0.78, blue: 0.66, alpha: 1))
+        for floor in floors {
+            let geometry = SCNShape(path: path(RoomPlanGeometry.outline(floor)), extrusionDepth: 0.02)
+            geometry.materials = [floorMaterial]
+            let node = SCNNode(geometry: geometry)
+            node.transform = matrix(floor.transform)
+            solid.addChildNode(node)
+            // Plain ceiling for the inside view when there are no photos.
+            let ceiling = SCNNode(geometry: SCNShape(path: path(RoomPlanGeometry.outline(floor)), extrusionDepth: 0.01))
+            ceiling.geometry?.materials = [material(UIColor(white: 0.98, alpha: 1))]
+            ceiling.transform = matrix(floor.transform)
+            ceiling.position.y += Float(height)
+            plainCeiling.addChildNode(ceiling)
+        }
+    }
+
+    private func addLights() {
+        let ambient = SCNNode()
+        ambient.light = SCNLight()
+        ambient.light?.type = .ambient
+        ambient.light?.intensity = 550
+        scene.rootNode.addChildNode(ambient)
+        let sun = SCNNode()
+        sun.light = SCNLight()
+        sun.light?.type = .directional
+        sun.light?.intensity = 700
+        sun.eulerAngles = SCNVector3(-Float.pi / 3, Float.pi / 5, 0)
+        scene.rootNode.addChildNode(sun)
+    }
+
+    // MARK: Labels
+
+    private func pill(_ string: String, accent: Bool = false, color: UIColor? = nil, size: CGFloat) -> SCNNode {
+        let font = UIFont.monospacedDigitSystemFont(ofSize: 48, weight: .semibold)
+        let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: accent && color == nil ? KanturaDesign.ink : UIColor.white]
+        let textSize = (string as NSString).size(withAttributes: attributes)
+        let canvas = CGSize(width: ceil(textSize.width) + 44, height: ceil(textSize.height) + 22)
+        let image = UIGraphicsImageRenderer(size: canvas).image { _ in
+            (color ?? (accent ? KanturaDesign.mint : KanturaDesign.ink)).setFill()
+            UIBezierPath(roundedRect: CGRect(origin: .zero, size: canvas), cornerRadius: canvas.height / 2).fill()
+            (string as NSString).draw(at: CGPoint(x: 22, y: 11), withAttributes: attributes)
+        }
+        let plane = SCNPlane(width: size * canvas.width / canvas.height, height: size)
+        let m = SCNMaterial()
+        m.diffuse.contents = image
+        m.lightingModel = .constant
+        m.readsFromDepthBuffer = false
+        m.writesToDepthBuffer = false
+        plane.materials = [m]
+        let node = SCNNode(geometry: plane)
+        node.renderingOrder = 100
+        return node
+    }
+    private func billboard(_ node: SCNNode) -> SCNNode {
+        let constraint = SCNBillboardConstraint()
+        constraint.freeAxes = .all
+        node.constraints = [constraint]
+        return node
+    }
+    private func length(_ value: Double) -> String { KanturaDesign.metric(value, unit: "m", decimals: 2) }
+    private func bar(from a: SCNVector3, to b: SCNVector3, thickness: CGFloat, color: UIColor) -> SCNNode {
+        let dx = b.x - a.x, dz = b.z - a.z, dy = b.y - a.y
+        let box = SCNBox(width: CGFloat(sqrt(dx * dx + dz * dz + dy * dy)), height: thickness, length: thickness, chamferRadius: 0)
+        box.materials = [material(color, lit: false)]
+        let node = SCNNode(geometry: box)
+        node.position = SCNVector3((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2)
+        node.eulerAngles.y = -atan2(dz, dx)
+        return node
+    }
+
+    /// Floor plan: dimension line outside every wall with ticks and value,
+    /// door/window markers on the wall line, area and name in the room.
+    private func buildPlanMarks() {
+        let top = Float(floorY + height + 0.05)
+        let ink = UIColor(white: 0.55, alpha: 1)
+        for wall in walls {
+            let w = wall.dimensions[0], h = wall.dimensions[1]
+            let a = RoomPlanGeometry.world([-w / 2, -h / 2, 0], wall.transform), b = RoomPlanGeometry.world([w / 2, -h / 2, 0], wall.transform)
+            let mid = RoomPlanGeometry.world([0, -h / 2, 0], wall.transform)
+            let towardsCentre = inward(from: mid)
+            let off = 0.45, outX = -towardsCentre.x * off, outZ = -towardsCentre.z * off
+            let p = SCNVector3(Float(a.x + outX), top, Float(a.z + outZ)), q = SCNVector3(Float(b.x + outX), top, Float(b.z + outZ))
+            planMarks.addChildNode(bar(from: p, to: q, thickness: 0.025, color: ink))
+            for end in [a, b] {
+                planMarks.addChildNode(bar(from: SCNVector3(Float(end.x + outX * 0.55), top, Float(end.z + outZ * 0.55)),
+                                           to: SCNVector3(Float(end.x + outX * 1.3), top, Float(end.z + outZ * 1.3)), thickness: 0.025, color: ink))
+            }
+            // Text runs along the wall and is never upside down in the plan.
+            let label = pill(length(w), size: max(0.22, CGFloat(extent) * 0.045))
+            label.eulerAngles.x = -.pi / 2
+            let holder = SCNNode()
+            holder.name = "length"
+            holder.position = SCNVector3(Float(mid.x + outX * 1.65), top + 0.01, Float(mid.z + outZ * 1.65))
+            var angle = -atan2(Float(b.z - a.z), Float(b.x - a.x))
+            if angle > .pi / 2 { angle -= .pi } else if angle < -.pi / 2 { angle += .pi }
+            holder.eulerAngles.y = angle
+            holder.addChildNode(label)
+            planMarks.addChildNode(holder)
+        }
+        // Doors and windows: coloured bar on the wall and their width inside the room.
+        let openings = RoomPlanGeometry.openingsByWall(room.document.surfaces)
+        for wall in walls {
+            for o in openings[wall.id] ?? [] {
+                let a = RoomPlanGeometry.world([o.x0, -wall.dimensions[1] / 2, 0], wall.transform), b = RoomPlanGeometry.world([o.x1, -wall.dimensions[1] / 2, 0], wall.transform)
+                let color = o.kind == "window" ? UIColor.systemTeal : KanturaDesign.mint
+                let marker = bar(from: SCNVector3(Float(a.x), top + 0.02, Float(a.z)), to: SCNVector3(Float(b.x), top + 0.02, Float(b.z)), thickness: 0.14, color: color)
+                marker.name = "surface:" + o.id
+                planMarks.addChildNode(marker)
+                let mid = RoomPlanGeometry.world([(o.x0 + o.x1) / 2, -wall.dimensions[1] / 2, 0], wall.transform), towards = inward(from: mid)
+                let label = pill(MeasurementGuide.roomText(o.kind) + " " + length(o.x1 - o.x0), accent: true, size: max(0.17, CGFloat(extent) * 0.034))
+                label.position = SCNVector3(Float(mid.x + towards.x * 0.4), top + 0.03, Float(mid.z + towards.z * 0.4))
+                planMarks.addChildNode(billboard(label))
+            }
+        }
+        let name = room.document.building?.room ?? room.document.name
+        let area = pill(name + " · " + KanturaDesign.metric(summary.floorArea, unit: "m²", decimals: 1), accent: true, size: max(0.25, CGFloat(extent) * 0.05))
+        area.position = SCNVector3(Float(centre.x), top + 0.04, Float(centre.z))
+        planMarks.addChildNode(billboard(area))
+    }
+
+    /// 3D: one length label per wall above its top edge, the room height once,
+    /// door/window sizes in their opening, area on the floor.
+    private func buildModelLabels() {
+        let size = max(0.13, CGFloat(extent) * 0.028)
+        var tallest: RoomPlanDocument.Surface?
+        for wall in walls {
+            let h = wall.dimensions[1]
+            let top = RoomPlanGeometry.world([0, h / 2, 0], wall.transform), out = inward(from: top)
+            modelLabels.addChildNode(billboard({ let n = pill("↔ " + length(wall.dimensions[0]), size: size)
+                n.position = SCNVector3(Float(top.x - out.x * 0.1), Float(top.y + 0.18), Float(top.z - out.z * 0.1)); return n }()))
+            if tallest == nil || wall.dimensions[0] > tallest!.dimensions[0] { tallest = wall }
+        }
+        if let wall = tallest {
+            // Room height once, at the end of the longest wall.
+            let w = wall.dimensions[0]
+            let p = RoomPlanGeometry.world([w / 2 - 0.15, 0, 0], wall.transform), towards = inward(from: p)
+            modelLabels.addChildNode(billboard({ let n = pill("↕ " + length(height), size: size)
+                n.position = SCNVector3(Float(p.x + towards.x * 0.15), Float(p.y), Float(p.z + towards.z * 0.15)); return n }()))
+        }
+        for s in room.document.surfaces where ["door", "window", "opening"].contains(s.kind) && s.transform.count == 16 && s.dimensions.count == 3 {
+            let p = RoomPlanGeometry.world([0, 0, 0], s.transform)
+            let label = pill(MeasurementGuide.roomText(s.kind) + " " + length(s.dimensions[0]) + " × " + length(s.dimensions[1]), accent: true, size: size * 0.85)
+            label.position = vector(p)
+            modelLabels.addChildNode(billboard(label))
+            let inside = pill(MeasurementGuide.roomText(s.kind) + " " + length(s.dimensions[0]) + " × " + length(s.dimensions[1]), accent: true, size: 0.09)
+            inside.position = vector(p)
+            insideLabels.addChildNode(billboard(inside))
+        }
+        let area = pill(text("floorArea") + " " + KanturaDesign.metric(summary.floorArea, unit: "m²", decimals: 1), accent: true, size: size * 1.1)
+        area.position = SCNVector3(Float(centre.x), Float(floorY + 0.05), Float(centre.z))
+        area.eulerAngles.x = -.pi / 2
+        modelLabels.addChildNode(area)
+        for object in room.document.objects ?? [] where object.category == "stairs" && object.transform.count == 16 {
+            let d = object.dimensions
+            let label = pill(text("stairs") + " " + length(d[0]) + " × " + length(d[2]) + " · ↕ " + length(d[1]), accent: true, size: size)
+            label.position = vector(RoomPlanGeometry.world([0, d[1] / 2 + 0.2, 0], object.transform))
+            modelLabels.addChildNode(billboard(label))
+        }
+        // Inside: each wall's length at knee height, just in front of the wall.
+        for wall in walls {
+            let p = RoomPlanGeometry.world([0, -wall.dimensions[1] / 2 + 0.5, 0], wall.transform), towards = inward(from: p)
+            let label = pill("↔ " + length(wall.dimensions[0]) + "   ↕ " + length(wall.dimensions[1]), size: 0.1)
+            label.position = SCNVector3(Float(p.x + towards.x * 0.08), Float(p.y), Float(p.z + towards.z * 0.08))
+            insideLabels.addChildNode(billboard(label))
+        }
+    }
+
+    // MARK: Photos (inside view)
+
+    private func buildPhotoTiles() {
+        guard let set = photos?.photos, !set.isEmpty else { return }
+        status.label.text = text("walkLoading")
+        let document = room.document, ceilingHeight = summary.wallHeight
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let mesh = RoomPhotoMesh.build(document, photos: set, ceilingHeight: nil)
+            let ceiling = RoomPhotoMesh.build(document, photos: set, ceilingHeight: ceilingHeight, ceilingOnly: true)
+            var images: [Int: UIImage] = [:]
+            for bucket in mesh.buckets + ceiling.buckets where bucket.photoIndex.map({ images[$0] == nil }) ?? false {
+                guard let index = bucket.photoIndex, let self = self else { continue }
+                images[index] = Self.thumbnail(self.photoDirectory.appendingPathComponent(set[index].file), maxPixel: 1280)
+            }
+            DispatchQueue.main.async { self?.install(mesh, images: images, into: self?.photoTiles); self?.install(ceiling, images: images, into: self?.photoCeiling) }
+        }
+    }
+
+    static func thumbnail(_ url: URL, maxPixel: Int) -> UIImage? {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [
+                kCGImageSourceCreateThumbnailFromImageAlways: true,
+                kCGImageSourceThumbnailMaxPixelSize: maxPixel,
+                kCGImageSourceCreateThumbnailWithTransform: false
+              ] as CFDictionary) else { return nil }
+        return UIImage(cgImage: image)
+    }
+
+    private func install(_ mesh: RoomPhotoMesh, images: [Int: UIImage], into group: SCNNode?) {
+        guard let group = group else { return }
+        for bucket in mesh.buckets {
+            let vertices = stride(from: 0, to: bucket.positions.count, by: 3).map {
+                SCNVector3(Float(bucket.positions[$0]), Float(bucket.positions[$0 + 1]), Float(bucket.positions[$0 + 2]))
+            }
+            let coordinates = stride(from: 0, to: bucket.uvs.count, by: 2).map { CGPoint(x: bucket.uvs[$0], y: bucket.uvs[$0 + 1]) }
+            let geometry = SCNGeometry(sources: [SCNGeometrySource(vertices: vertices), SCNGeometrySource(textureCoordinates: coordinates)],
+                                       elements: [SCNGeometryElement(indices: bucket.indices, primitiveType: .triangles)])
+            let m = material(UIColor(white: 0.9, alpha: 1), lit: false)
+            if let index = bucket.photoIndex, let image = images[index] {
+                m.diffuse.contents = image
+                m.diffuse.wrapS = .clamp
+                m.diffuse.wrapT = .clamp
+            }
+            geometry.materials = [m]
+            group.addChildNode(SCNNode(geometry: geometry))
+        }
+        guard group === photoTiles else { applyMode(); return }
+        let percent = mesh.totalTiles > 0 ? Int((Double(mesh.coveredTiles) / Double(mesh.totalTiles) * 100).rounded()) : 0
+        status.label.text = text("walkCoverage").replacingOccurrences(of: "{percent}", with: "\(percent)")
+        applyMode()
+    }
+
+    // MARK: Cameras and modes
+
+    private func buildCameras() {
+        let span = Float(extent)
+        let plan = SCNCamera()
+        plan.usesOrthographicProjection = true
+        plan.orthographicScale = Double(span) * 0.8
+        plan.zFar = 200
+        planCamera.camera = plan
+        planCamera.position = SCNVector3(Float(centre.x), Float(floorY) + 30, Float(centre.z))
+        planCamera.eulerAngles = SCNVector3(-Float.pi / 2, 0, 0)
+        let model = SCNCamera()
+        model.fieldOfView = 50
+        model.zFar = 200
+        modelCamera.camera = model
+        modelCamera.position = SCNVector3(Float(centre.x) + span * 0.9, Float(floorY) + span * 1.25, Float(centre.z) + span * 1.15)
+        modelCamera.look(at: SCNVector3(Float(centre.x), Float(floorY), Float(centre.z)))
+        let eye = SCNCamera()
+        eye.fieldOfView = 72
+        eye.zNear = 0.05
+        eye.zFar = 100
+        eyeCamera.camera = eye
+        eyeCamera.position = SCNVector3(Float(centre.x), Float(floorY + 1.6), Float(centre.z))
+        [planCamera, modelCamera, eyeCamera].forEach { scene.rootNode.addChildNode($0) }
+    }
+
+    private var measuresOn = true
+    private func toggleMeasures() {
+        measuresOn.toggle()
+        measures.backgroundColor = measuresOn ? KanturaDesign.mint : KanturaDesign.surface
+        if measuresOn { measures.accessibilityTraits.insert(.selected) } else { measures.accessibilityTraits.remove(.selected) }
+        applyMode()
+    }
+
+    private func applyMode() {
+        let current = Mode(rawValue: mode.selectedSegmentIndex) ?? .model
+        let hasTiles = !photoTiles.childNodes.isEmpty
+        planMarks.isHidden = current != .plan || !measuresOn
+        modelLabels.isHidden = current != .model || !measuresOn
+        insideLabels.isHidden = current != .inside || !measuresOn
+        // With photos (and the photo switch on), inside and 3D show the real walls.
+        let showPhotos = hasTiles && photosOn && current != .plan
+        photoTiles.isHidden = !showPhotos
+        photoCeiling.isHidden = !(showPhotos && current == .inside)
+        solid.isHidden = showPhotos
+        plainCeiling.isHidden = current != .inside || showPhotos
+        furnitureNodes.isHidden = false
+        wallMaterial.diffuse.contents = current == .plan ? UIColor(white: 0.18, alpha: 1) : UIColor(white: 0.96, alpha: 1)
+        switch current {
+        case .plan: sceneView.pointOfView = planCamera
+        case .model: sceneView.pointOfView = modelCamera
+        case .inside: sceneView.pointOfView = eyeCamera
+        }
+        // Inside: own look-around gestures. Plan/3D: SceneKit's orbit/zoom control.
+        // Plan: own pan/zoom (two fingers turn). 3D: SceneKit orbit. Inside: look around.
+        sceneView.allowsCameraControl = current == .model
+        sceneView.defaultCameraController.interactionMode = .orbitTurntable
+        lookGestures.forEach { $0.isEnabled = current == .inside }
+        planGestures.forEach { $0.isEnabled = current == .plan }
+        if current != .inside && !hintShown {
+            hintShown = true
+            status.isHidden = false
+            status.alpha = 1
+            status.label.text = text("editHint")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
+                guard let self = self, self.status.label.text == self.text("editHint") else { return }
+                UIView.animate(withDuration: 0.4, animations: { self.status.alpha = 0 }) { _ in self.status.isHidden = true; self.status.alpha = 1 }
+            }
+            return
+        }
+        sceneView.accessibilityHint = text(current == .inside ? "walkHint" : "walkOutsideHint")
+        status.isHidden = current != .inside || photos == nil
+        if current == .inside && photos == nil {
+            status.isHidden = false
+            status.label.text = text("walkNoPhotos")
+        }
+    }
+
+    @objc private func look(_ gesture: UIPanGestureRecognizer) {
+        if gesture.state == .began { startYaw = yaw; startPitch = pitch }
+        let t = gesture.translation(in: sceneView)
+        // Drag the room like a photo sphere: moving the finger right turns the view left.
+        yaw = startYaw + Float(t.x) * 0.005
+        pitch = max(-1.3, min(1.3, startPitch + Float(t.y) * 0.005))
+        eyeCamera.eulerAngles = SCNVector3(pitch, yaw, 0)
+    }
+
+    @objc private func zoom(_ gesture: UIPinchGestureRecognizer) {
+        guard let camera = eyeCamera.camera else { return }
+        camera.fieldOfView = max(35, min(100, camera.fieldOfView / gesture.scale))
+        gesture.scale = 1
+    }
+}

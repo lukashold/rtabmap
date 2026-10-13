@@ -53,7 +53,7 @@ optional build (`ENABLE_GENERATION=0` by default), adding about 1.68 GB of weigh
 and a separate Torch runtime; budget 12 GiB of runtime memory. The configured
 engines run locally after installation, without runtime model downloads.
 
-RTAB-Map attribution and the repository license remain intact. Dependencies and
+KANTURA is open source under the BSD 3-Clause License, like RTAB-Map; see [LICENSING.md](LICENSING.md) for what it covers. RTAB-Map attribution and the repository license remain intact. Dependencies and
 model weights have their own licenses: the complete server/native bundle is not
 uniformly BSD-licensed or a cleared App Store release. The upstream contribution
 remains separate from this branded fork.

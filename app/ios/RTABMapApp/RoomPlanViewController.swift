@@ -2,158 +2,333 @@ import UIKit
 import AVFoundation
 import RoomPlan
 import QuickLook
+import SceneKit
 
 /// A separate indoor, parametric capture path. It never starts RTAB-Map's AR
 /// session and never represents RoomPlan's schematic surfaces as photo textures.
+///
+/// Flow: prepare (four short tips) → full-screen capture with one finish control
+/// → result with the 3D model and headline numbers → save into the local room
+/// library (no file dialog) → share separately when needed.
 @available(iOS 17.0, *)
 final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, RoomCaptureSessionDelegate, UITextFieldDelegate {
     static var isSupported: Bool { RoomCaptureSession.isSupported }
     var onClose: (() -> Void)?
+    /// Start another capture right after this one (skips the tips).
     var onNewRoom: (() -> Void)?
+    /// A room was written to (or updated in) the local library.
+    var onSaved: (() -> Void)?
+    var skipPreparation = false
+
     private let capture = RoomCaptureView(frame: .zero)
     private var lifecycle = RoomPlanLifecycle()
     private var result: CapturedRoom?
     private var savedFiles: [URL] = []
     private var savedNames: [String]?
-    private let status = UILabel()
-    private let statusCard = KanturaSurface(frame: .zero)
-    private let primary = KanturaButton(type: .system)
-    private let anotherRoom = KanturaButton(type: .system)
-    private let spinner = UIActivityIndicatorView(style: .medium)
-    private let resultsScroll = UIScrollView()
-    private let results = UIStackView()
-    private let body = UIStackView()
+    private var savedDirectory: URL?
+    private var interruptionObserver: NSObjectProtocol?
+    private var timeout: DispatchWorkItem?
+    private func text(_ key: String) -> String { MeasurementGuide.roomText(key) }
+    private func home(_ key: String) -> String { MeasurementGuide.homeText(key) }
+
+    // Preparation / failure
+    private let prepScroll = UIScrollView()
+    private let prepColumn = UIStackView()
+    private var prepBar: UIView!
+    private var prepButton: KanturaButton!
+    // Capture overlay
+    private let overlay = UIView()
+    private let hint = KanturaHintPill(MeasurementGuide.homeText("scanHint"))
+    private let finishButton = KanturaCaptureButton(title: MeasurementGuide.homeText("done"))
+    private let closeButton = UIButton(type: .system)
+    private let spinner = UIActivityIndicatorView(style: .large)
+    // Review
+    private let reviewScroll = UIScrollView()
+    private let reviewColumn = UIStackView()
+    private var reviewBar: UIView!
+    private var saveButton: KanturaButton!
+    private var againButton: KanturaButton!
+    private let metrics = KanturaMetricGrid([])
+    private let counts = KanturaDesign.label("", style: .subheadline, secondary: true)
+    private let notes = UIStackView()
     private let nameField = UITextField()
     private let buildingField = UITextField()
     private let floorField = UITextField()
-    private var interruptionObserver: NSObjectProtocol?
-    private var keyboardObserver: NSObjectProtocol?
-    private var timeout: DispatchWorkItem?
-    private var captureHeight: NSLayoutConstraint?
-    private func text(_ key: String) -> String { MeasurementGuide.roomText(key) }
+    private let locationFields = UIStackView()
+    private let locationToggle = UIButton(type: .system)
+    private var captureFull: [NSLayoutConstraint] = []
+    private var captureTop: [NSLayoutConstraint] = []
+    private var document: RoomPlanDocument?
+    private let photoRecorder = RoomPhotoRecorder()
+    private let photoBadge = KanturaHintPill("")
+    private let shutter = UIButton(type: .system)
+    private var lastCoverageCheck = Date.distantPast
+    private var coverageText = ""
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = text("title")
         view.backgroundColor = KanturaDesign.background
         view.tintColor = KanturaDesign.tint
         KanturaDesign.navigation(self)
+        navigationItem.largeTitleDisplayMode = .never
         isModalInPresentation = true
         navigationItem.leftBarButtonItem = UIBarButtonItem(title: text("close"), style: .plain, target: self, action: #selector(close))
         capture.delegate = self
         capture.captureSession.delegate = self
         capture.translatesAutoresizingMaskIntoConstraints = false
-        capture.layer.cornerRadius = 26
-        capture.layer.cornerCurve = .continuous
         capture.clipsToBounds = true
         capture.isHidden = true
-        status.numberOfLines = 0
-        status.font = .preferredFont(forTextStyle: .headline)
-        status.adjustsFontForContentSizeCategory = true
-        status.textColor = KanturaDesign.text
-        status.translatesAutoresizingMaskIntoConstraints = false
-        statusCard.translatesAutoresizingMaskIntoConstraints = false
-        statusCard.addSubview(status)
-        KanturaDesign.button(primary, primary: true)
-        primary.addTarget(self, action: #selector(primaryAction), for: .touchUpInside)
-        primary.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(primary)
-        KanturaDesign.button(anotherRoom, primary: false)
-        anotherRoom.setTitle(text("newRoom"), for: .normal)
-        anotherRoom.addTarget(self, action: #selector(newRoom), for: .touchUpInside)
-        spinner.hidesWhenStopped = true
-        spinner.color = KanturaDesign.tint
-        spinner.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(spinner)
-        resultsScroll.translatesAutoresizingMaskIntoConstraints = false
-        resultsScroll.keyboardDismissMode = .interactive
-        resultsScroll.alwaysBounceVertical = true
-        view.addSubview(resultsScroll)
-        results.axis = .vertical
-        results.spacing = 16
-        results.translatesAutoresizingMaskIntoConstraints = false
-        body.axis = .vertical
-        body.spacing = 16
-        body.translatesAutoresizingMaskIntoConstraints = false
-        resultsScroll.addSubview(body)
-        let sections: [UIView] = [statusCard, capture, results]
-        sections.forEach { body.addArrangedSubview($0) }
-        view.bringSubviewToFront(spinner)
-        captureHeight = capture.heightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.heightAnchor, multiplier: 0.48)
-        captureHeight?.priority = .defaultHigh
-        NSLayoutConstraint.activate([
-            status.leadingAnchor.constraint(equalTo: statusCard.leadingAnchor, constant: 18),
-            status.trailingAnchor.constraint(equalTo: statusCard.trailingAnchor, constant: -18),
-            status.topAnchor.constraint(equalTo: statusCard.topAnchor, constant: 15),
-            status.bottomAnchor.constraint(equalTo: statusCard.bottomAnchor, constant: -15),
-            captureHeight!,
-            primary.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
-            primary.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
-            primary.bottomAnchor.constraint(equalTo: view.keyboardLayoutGuide.topAnchor, constant: -12),
-            primary.heightAnchor.constraint(greaterThanOrEqualToConstant: 52),
-            spinner.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            spinner.centerYAnchor.constraint(equalTo: capture.centerYAnchor),
-            resultsScroll.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-            resultsScroll.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
-            resultsScroll.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
-            resultsScroll.bottomAnchor.constraint(equalTo: primary.topAnchor, constant: -12),
-            body.leadingAnchor.constraint(equalTo: resultsScroll.contentLayoutGuide.leadingAnchor),
-            body.trailingAnchor.constraint(equalTo: resultsScroll.contentLayoutGuide.trailingAnchor),
-            body.topAnchor.constraint(equalTo: resultsScroll.contentLayoutGuide.topAnchor),
-            body.bottomAnchor.constraint(equalTo: resultsScroll.contentLayoutGuide.bottomAnchor),
-            body.widthAnchor.constraint(equalTo: resultsScroll.frameLayoutGuide.widthAnchor)
-        ])
-        addInformation(text("intro"), icon: "viewfinder")
-        addInformation(text("noTexture"), icon: "info.circle")
-        status.text = text("prepare")
-        primary.setTitle(text("start"), for: .normal)
+        view.addSubview(capture)
+        captureFull = [
+            capture.topAnchor.constraint(equalTo: view.topAnchor), capture.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            capture.leadingAnchor.constraint(equalTo: view.leadingAnchor), capture.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+        ]
+        captureTop = [
+            capture.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+            capture.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 16),
+            capture.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
+            capture.heightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.heightAnchor, multiplier: 0.38)
+        ]
+        buildPreparation()
+        buildOverlay()
+        buildReview()
         interruptionObserver = NotificationCenter.default.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
             guard let self = self, self.lifecycle.phase == .capturing else { return }
             self.fail(self.text("interrupted"))
         }
-        keyboardObserver = NotificationCenter.default.addObserver(forName: UIResponder.keyboardDidChangeFrameNotification, object: nil, queue: .main) { [weak self] _ in
-            self?.revealFocusedField()
+        if !Self.isSupported { fail(text("unsupported")) } else { showPreparation() }
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        // "Scan next room" goes straight to the camera; the tips were just seen.
+        if skipPreparation && lifecycle.phase == .ready { skipPreparation = false; authorizeCamera() }
+    }
+
+    override var preferredStatusBarStyle: UIStatusBarStyle { overlay.isHidden ? .default : .lightContent }
+
+    // MARK: Layout
+
+    private func column(_ scroll: UIScrollView, _ column: UIStackView) {
+        scroll.translatesAutoresizingMaskIntoConstraints = false
+        scroll.alwaysBounceVertical = true
+        scroll.keyboardDismissMode = .interactive
+        column.axis = .vertical
+        column.spacing = 14
+        column.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(scroll)
+        scroll.addSubview(column)
+        let preferred = column.widthAnchor.constraint(equalToConstant: 600)
+        preferred.priority = .defaultHigh
+        NSLayoutConstraint.activate([
+            scroll.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scroll.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            column.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor, constant: 16),
+            column.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor, constant: -20),
+            column.centerXAnchor.constraint(equalTo: scroll.frameLayoutGuide.centerXAnchor),
+            column.widthAnchor.constraint(lessThanOrEqualTo: scroll.frameLayoutGuide.widthAnchor, constant: -40),
+            preferred
+        ])
+    }
+
+    private func buildPreparation() {
+        column(prepScroll, prepColumn)
+        prepButton = KanturaDesign.primaryButton(home("startScan"), icon: "viewfinder") { [weak self] in self?.prepAction() }
+        prepBar = KanturaDesign.bottomBar([prepButton], in: self)
+        NSLayoutConstraint.activate([
+            prepScroll.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            prepScroll.bottomAnchor.constraint(equalTo: prepBar.topAnchor)
+        ])
+    }
+
+    private func showPreparation() {
+        prepColumn.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        let heading = KanturaDesign.label(home("prepTitle"), style: .largeTitle)
+        heading.accessibilityTraits.insert(.header)
+        prepColumn.addArrangedSubview(heading)
+        prepColumn.addArrangedSubview(KanturaDesign.label(home("prepSubtitle"), style: .body, secondary: true))
+        prepColumn.setCustomSpacing(24, after: prepColumn.arrangedSubviews.last!)
+        for (key, icon) in [("tipLight", "lightbulb"), ("tipSlow", "figure.walk"), ("tipWalls", "square.split.bottomrightquarter"), ("tipFinish", "arrow.triangle.2.circlepath")] {
+            let title = KanturaDesign.label(home(key), style: .headline)
+            let detail = KanturaDesign.label(home(key + "Detail"), style: .subheadline, secondary: true)
+            let copy = UIStackView(arrangedSubviews: [title, detail])
+            copy.axis = .vertical
+            copy.spacing = 3
+            let row = UIStackView(arrangedSubviews: [KanturaDesign.symbolTile(icon), copy])
+            row.spacing = 14
+            row.alignment = .top
+            row.isAccessibilityElement = true
+            row.accessibilityLabel = home(key) + ". " + home(key + "Detail")
+            prepColumn.addArrangedSubview(row)
+            prepColumn.setCustomSpacing(20, after: row)
         }
-        if !Self.isSupported { fail(text("unsupported")) }
+        prepColumn.addArrangedSubview(KanturaDesign.label(text("noTexture"), style: .footnote, secondary: true))
+        prepButton.setTitle("  " + home("startScan"), for: .normal)
+        prepButton.setImage(UIImage(systemName: "viewfinder"), for: .normal)
+        setStage(prep: true)
     }
 
-    private func addInformation(_ value: String, icon: String) {
-        let symbol = UIImageView(image: UIImage(systemName: icon))
-        symbol.tintColor = KanturaDesign.tint
-        symbol.contentMode = .top
-        symbol.widthAnchor.constraint(equalToConstant: 22).isActive = true
-        symbol.isAccessibilityElement = false
-        let row = UIStackView(arrangedSubviews: [symbol, KanturaDesign.label(value, style: .subheadline, secondary: true)])
-        row.alignment = .top
-        row.spacing = 12
-        results.addArrangedSubview(KanturaDesign.inset(row, padding: 18))
+    private func buildOverlay() {
+        overlay.translatesAutoresizingMaskIntoConstraints = false
+        overlay.isHidden = true
+        view.addSubview(overlay)
+        let config = UIImage.SymbolConfiguration(pointSize: 17, weight: .bold)
+        closeButton.setImage(UIImage(systemName: "xmark", withConfiguration: config), for: .normal)
+        closeButton.tintColor = .white
+        closeButton.backgroundColor = UIColor.black.withAlphaComponent(0.45)
+        closeButton.layer.cornerRadius = 22
+        closeButton.accessibilityLabel = text("close")
+        closeButton.addTarget(self, action: #selector(close), for: .touchUpInside)
+        finishButton.addTarget(self, action: #selector(finishCapture), for: .touchUpInside)
+        spinner.color = .white
+        spinner.hidesWhenStopped = true
+        photoBadge.isHidden = true
+        photoBadge.isAccessibilityElement = true
+        // Deliberate photos: tap to take the next steady frame.
+        let shutterConfig = UIImage.SymbolConfiguration(pointSize: 22, weight: .semibold)
+        shutter.setImage(UIImage(systemName: "camera.fill", withConfiguration: shutterConfig), for: .normal)
+        shutter.tintColor = .white
+        shutter.backgroundColor = UIColor.black.withAlphaComponent(0.45)
+        shutter.layer.cornerRadius = 28
+        shutter.accessibilityLabel = home("photoNow")
+        shutter.translatesAutoresizingMaskIntoConstraints = false
+        shutter.addAction(UIAction { [weak self] _ in
+            self?.photoRecorder.captureNow()
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }, for: .touchUpInside)
+        overlay.addSubview(shutter)
+        NSLayoutConstraint.activate([
+            shutter.widthAnchor.constraint(equalToConstant: 56), shutter.heightAnchor.constraint(equalToConstant: 56),
+            shutter.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -28),
+            shutter.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40)
+        ])
+        photoRecorder.onPhoto = { UIImpactFeedbackGenerator(style: .soft).impactOccurred(intensity: 0.4) }
+        for item in [closeButton, hint, finishButton, spinner, photoBadge] as [UIView] { item.translatesAutoresizingMaskIntoConstraints = false; overlay.addSubview(item) }
+        NSLayoutConstraint.activate([
+            photoBadge.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
+            photoBadge.centerYAnchor.constraint(equalTo: closeButton.centerYAnchor)
+        ])
+        NSLayoutConstraint.activate([
+            overlay.topAnchor.constraint(equalTo: view.topAnchor), overlay.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            overlay.leadingAnchor.constraint(equalTo: view.leadingAnchor), overlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            closeButton.widthAnchor.constraint(equalToConstant: 44), closeButton.heightAnchor.constraint(equalToConstant: 44),
+            closeButton.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 16),
+            closeButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+            hint.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            hint.topAnchor.constraint(equalTo: closeButton.bottomAnchor, constant: 12),
+            hint.widthAnchor.constraint(lessThanOrEqualTo: view.widthAnchor, constant: -48),
+            finishButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            finishButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
+            spinner.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            spinner.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+        ])
     }
 
-    @objc private func primaryAction() {
+    private func styleField(_ field: UITextField, placeholder: String) {
+        field.borderStyle = .none
+        field.backgroundColor = KanturaDesign.surface
+        field.textColor = KanturaDesign.text
+        field.tintColor = KanturaDesign.tint
+        field.layer.cornerRadius = 14
+        field.layer.cornerCurve = .continuous
+        field.layer.borderWidth = 1
+        field.layer.borderColor = KanturaDesign.border.cgColor
+        field.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 14, height: 50))
+        field.leftViewMode = .always
+        field.rightView = UIView(frame: CGRect(x: 0, y: 0, width: 14, height: 50))
+        field.rightViewMode = .always
+        field.placeholder = placeholder
+        field.accessibilityLabel = placeholder
+        field.font = .preferredFont(forTextStyle: .body)
+        field.adjustsFontForContentSizeCategory = true
+        field.delegate = self
+        field.autocapitalizationType = .words
+        field.clearButtonMode = .whileEditing
+        field.addTarget(self, action: #selector(namesChanged), for: .editingChanged)
+        field.heightAnchor.constraint(greaterThanOrEqualToConstant: 50).isActive = true
+    }
+
+    private func buildReview() {
+        column(reviewScroll, reviewColumn)
+        saveButton = KanturaDesign.primaryButton(home("save"), icon: "checkmark") { [weak self] in self?.saveOrFinish() }
+        againButton = KanturaDesign.secondaryButton(home("rescan"), icon: "arrow.counterclockwise") { [weak self] in self?.newRoom() }
+        reviewBar = KanturaDesign.bottomBar([saveButton, againButton], in: self)
+        let followsBar = reviewScroll.bottomAnchor.constraint(equalTo: reviewBar.topAnchor)
+        followsBar.priority = .defaultHigh
+        NSLayoutConstraint.activate([
+            reviewScroll.topAnchor.constraint(equalTo: capture.bottomAnchor, constant: 4),
+            followsBar,
+            reviewScroll.bottomAnchor.constraint(lessThanOrEqualTo: view.keyboardLayoutGuide.topAnchor)
+        ])
+        notes.axis = .vertical
+        notes.spacing = 6
+        styleField(nameField, placeholder: home("roomName"))
+        nameField.returnKeyType = .done
+        styleField(buildingField, placeholder: text("building"))
+        buildingField.returnKeyType = .next
+        styleField(floorField, placeholder: text("floorName"))
+        floorField.returnKeyType = .done
+        locationFields.axis = .vertical
+        locationFields.spacing = 8
+        locationFields.isHidden = true
+        [buildingField, floorField].forEach { locationFields.addArrangedSubview($0) }
+        locationToggle.contentHorizontalAlignment = .leading
+        locationToggle.titleLabel?.font = .preferredFont(forTextStyle: .subheadline)
+        locationToggle.titleLabel?.adjustsFontForContentSizeCategory = true
+        locationToggle.tintColor = KanturaDesign.tint
+        locationToggle.addAction(UIAction { [weak self] _ in
+            guard let self = self else { return }
+            self.locationFields.isHidden.toggle()
+            self.refreshLocationToggle()
+        }, for: .touchUpInside)
+        let surfaces = KanturaDesign.secondaryButton(home("allSurfaces"), icon: "list.bullet") { [weak self] in
+            guard let self = self, let document = self.document else { return }
+            self.navigationController?.pushViewController(RoomSurfacesViewController(document: document), animated: true)
+        }
+        let heading = KanturaDesign.label(home("resultTitle"), style: .title2)
+        heading.accessibilityTraits.insert(.header)
+        for item in [heading, metrics, counts, nameField, locationToggle, locationFields, notes, surfaces] as [UIView] { reviewColumn.addArrangedSubview(item) }
+        reviewColumn.setCustomSpacing(20, after: counts)
+    }
+
+    private func refreshLocationToggle() {
+        let building = (buildingField.text ?? "").trimmingCharacters(in: .whitespaces), floor = (floorField.text ?? "").trimmingCharacters(in: .whitespaces)
+        let summary = [building, floor].filter { !$0.isEmpty }.joined(separator: " · ")
+        locationToggle.setTitle("  " + home("buildingFloor") + (summary.isEmpty ? "" : ": " + summary), for: .normal)
+        locationToggle.setImage(UIImage(systemName: locationFields.isHidden ? "chevron.down" : "chevron.up"), for: .normal)
+    }
+
+    /// Exactly one of preparation, live capture or review is visible.
+    private func setStage(prep: Bool = false, capturing: Bool = false, review: Bool = false) {
+        prepScroll.isHidden = !prep
+        prepBar.isHidden = !prep
+        overlay.isHidden = !capturing
+        reviewScroll.isHidden = !review
+        reviewBar.isHidden = !review
+        capture.isHidden = !(capturing || review)
+        NSLayoutConstraint.deactivate(captureFull + captureTop)
+        NSLayoutConstraint.activate(review ? captureTop : captureFull)
+        capture.layer.cornerRadius = review ? 22 : 0
+        capture.layer.cornerCurve = .continuous
+        view.backgroundColor = capturing ? .black : KanturaDesign.background
+        navigationController?.setNavigationBarHidden(capturing, animated: true)
+        title = review ? home("resultTitle") : nil
+        setNeedsStatusBarAppearanceUpdate()
+        view.bringSubviewToFront(overlay)
+    }
+
+    // MARK: Capture
+
+    private func prepAction() {
         switch lifecycle.phase {
         case .ready: authorizeCamera()
-        case .capturing:
-            guard lifecycle.finish() else { return }
-            status.text = text("processing")
-            primary.setTitle(text("processing"), for: .normal)
-            primary.isEnabled = false
-            spinner.startAnimating()
-            let work = DispatchWorkItem { [weak self] in
-                guard let self = self, self.lifecycle.phase == .processing else { return }
-                self.fail(self.text("processingFailed"))
-            }
-            timeout = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + 120, execute: work)
-            capture.captureSession.stop(pauseARSession: true)
-        case .review: exportFiles()
-        case .failed: closeNow()
-        default: break
+        default: closeNow()
         }
     }
 
     private func authorizeCamera() {
         guard lifecycle.authorize() else { return }
-        primary.isEnabled = false
+        prepButton.isEnabled = false
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized: startCapture()
         case .notDetermined:
@@ -169,18 +344,69 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
 
     private func startCapture() {
         guard Self.isSupported, lifecycle.start() else { return }
-        results.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        addInformation(text("scanHelp"), icon: "viewfinder")
         var configuration = RoomCaptureSession.Configuration()
         configuration.isCoachingEnabled = true
-        status.text = text("scanning")
-        primary.setTitle(text("finish"), for: .normal)
-        primary.isEnabled = true
-        capture.isHidden = false
-        view.layoutIfNeeded()
-        resultsScroll.setContentOffset(.zero, animated: false)
+        hint.label.text = home("scanHint")
+        hint.isHidden = false
+        finishButton.isEnabled = true
+        finishButton.isHidden = false
+        setStage(capturing: true)
         capture.captureSession.run(configuration: configuration)
-        UIAccessibility.post(notification: .screenChanged, argument: status)
+        // Photos come from RoomPlan's own AR session, so they share the room's coordinates.
+        photoRecorder.start(session: capture.captureSession.arSession)
+        photoBadge.isHidden = false
+        refreshPhotoBadge()
+        UIAccessibility.post(notification: .screenChanged, argument: hint)
+    }
+
+    @objc private func finishCapture() {
+        guard lifecycle.finish() else { return }
+        finishButton.isEnabled = false
+        finishButton.isHidden = true
+        hint.label.text = home("processing")
+        spinner.startAnimating()
+        UIAccessibility.post(notification: .announcement, argument: home("processing"))
+        let work = DispatchWorkItem { [weak self] in
+            guard let self = self, self.lifecycle.phase == .processing else { return }
+            self.fail(self.text("processingFailed"))
+        }
+        timeout = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 120, execute: work)
+        photoRecorder.stop()
+        photoBadge.isHidden = true
+        capture.captureSession.stop(pauseARSession: true)
+    }
+
+    private func refreshPhotoBadge() {
+        guard lifecycle.phase == .capturing else { return }
+        photoBadge.label.text = "📷 \(photoRecorder.count)" + (coverageText.isEmpty ? "" : " · " + coverageText)
+        photoBadge.accessibilityLabel = home("photosTaken").replacingOccurrences(of: "{count}", with: "\(photoRecorder.count)")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in self?.refreshPhotoBadge() }
+    }
+
+    /// Live room updates: every 2 s, check which walls still lack photos and
+    /// point the user to the next one ("left", "right", "behind you", …).
+    func captureSession(_ session: RoomCaptureSession, didUpdate room: CapturedRoom) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self, self.lifecycle.phase == .capturing, Date().timeIntervalSince(self.lastCoverageCheck) > 2 else { return }
+            self.lastCoverageCheck = Date()
+            let document = self.makeDocument(room, name: "live"), photos = self.photoRecorder.photos, camera = self.photoRecorder.latestTransform
+            DispatchQueue.global(qos: .utility).async {
+                let walls = RoomPhotoCoverage.walls(document, photos: photos, tileSize: 0.6)
+                guard !walls.isEmpty else { return }
+                let total = walls.map { $0.fraction }.reduce(0, +) / Double(walls.count)
+                let next = walls.filter { $0.fraction < 0.7 }.min { $0.fraction < $1.fraction }
+                DispatchQueue.main.async {
+                    guard self.lifecycle.phase == .capturing else { return }
+                    self.coverageText = self.home("photoCoverage").replacingOccurrences(of: "{percent}", with: "\(Int((total * 100).rounded()))")
+                    if let next = next, let camera = camera {
+                        self.hint.label.text = self.home("photoGuide_" + RoomPhotoCoverage.direction(to: next.centre, camera: camera).rawValue)
+                    } else if walls.allSatisfy({ $0.fraction >= 0.7 }) {
+                        self.hint.label.text = self.home("photoGuideDone")
+                    }
+                }
+            }
+        }
     }
 
     func captureView(shouldPresent roomDataForProcessing: CapturedRoomData, error: Error?) -> Bool {
@@ -208,14 +434,9 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
             catch { self.fail(self.text("empty")); return }
             guard self.lifecycle.processed() else { return }
             self.timeout?.cancel()
-            self.result = processedResult
             self.spinner.stopAnimating()
-            self.status.text = self.text("review")
-            self.primary.setTitle(self.text("export"), for: .normal)
-            self.primary.isEnabled = true
-            self.renderResults(document)
-            self.resultsScroll.setContentOffset(.zero, animated: false)
-            UIAccessibility.post(notification: .screenChanged, argument: self.status)
+            self.result = processedResult
+            self.showReview(document)
         }
     }
 
@@ -230,49 +451,25 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
         }
     }
 
-    private func renderResults(_ document: RoomPlanDocument) {
-        results.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        captureHeight?.isActive = false
-        captureHeight = capture.heightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.heightAnchor, multiplier: 0.30)
-        captureHeight?.priority = .defaultHigh
-        captureHeight?.isActive = true
+    // MARK: Review and save
+
+    private func showReview(_ document: RoomPlanDocument) {
+        self.document = document
+        let summary = RoomPlanSummary(document)
+        metrics.update(KanturaDesign.roomMetrics(summary))
+        counts.text = home("doorsWindows").replacingOccurrences(of: "{doors}", with: "\(summary.doors)").replacingOccurrences(of: "{windows}", with: "\(summary.windows)")
+        notes.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        for note in KanturaDesign.roomNotes(summary) + [text("separateOrigins")] {
+            notes.addArrangedSubview(KanturaDesign.label(note, style: .footnote, secondary: true))
+        }
         buildingField.text = UserDefaults.standard.string(forKey: "KanturaRoomBuilding") ?? text("defaultBuilding")
         floorField.text = UserDefaults.standard.string(forKey: "KanturaRoomFloor") ?? text("defaultFloor")
-        nameField.text = text("title")
-        let fields = UIStackView()
-        fields.axis = .vertical
-        fields.spacing = 9
-        for (field, key) in [(buildingField, "building"), (floorField, "floorName"), (nameField, "name")] {
-            fields.addArrangedSubview(KanturaDesign.label(text(key), style: .subheadline, secondary: true))
-            field.borderStyle = .none
-            field.backgroundColor = KanturaDesign.background
-            field.textColor = KanturaDesign.text
-            field.tintColor = KanturaDesign.tint
-            field.layer.cornerRadius = 12
-            field.layer.cornerCurve = .continuous
-            let paddingView = UIView(frame: CGRect(x: 0, y: 0, width: 12, height: 48))
-            field.leftView = paddingView
-            field.leftViewMode = .always
-            field.rightView = UIView(frame: CGRect(x: 0, y: 0, width: 12, height: 48))
-            field.rightViewMode = .always
-            field.placeholder = text(key)
-            field.accessibilityLabel = text(key)
-            field.font = .preferredFont(forTextStyle: .body)
-            field.adjustsFontForContentSizeCategory = true
-            field.delegate = self
-            field.returnKeyType = field === nameField ? .done : .next
-            field.autocapitalizationType = .words
-            field.addTarget(self, action: #selector(namesChanged), for: .editingChanged)
-            field.heightAnchor.constraint(greaterThanOrEqualToConstant: 52).isActive = true
-            fields.addArrangedSubview(field)
-            fields.setCustomSpacing(19, after: field)
-        }
-        results.addArrangedSubview(KanturaDesign.inset(fields))
-        if onNewRoom != nil { results.addArrangedSubview(anotherRoom) }
-        addInformation(text("separateOrigins"), icon: "building.2")
-        addInformation(text("verify"), icon: "ruler")
-        RoomPlanPresentation.addMeasurements(document, to: results)
-        addInformation(text("noTexture"), icon: "info.circle")
+        nameField.text = ""
+        refreshLocationToggle()
+        setStage(review: true)
+        namesChanged()
+        reviewScroll.setContentOffset(.zero, animated: false)
+        UIAccessibility.post(notification: .screenChanged, argument: metrics)
     }
 
     private var enteredNames: [String] {
@@ -290,23 +487,27 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
     @objc private func namesChanged() {
         guard lifecycle.phase == .review else { return }
         let saved = hasSavedReview
-        status.text = text(saved ? "savedLocally" : "review")
-        primary.setTitle(saved ? MeasurementGuide.all[MeasurementGuide.selectedLanguage]?.saveFiles : text("export"), for: .normal)
+        saveButton.setTitle("  " + home(saved ? "done" : "save"), for: .normal)
+        saveButton.setImage(UIImage(systemName: saved ? "checkmark.circle.fill" : "checkmark"), for: .normal)
+        againButton.setTitle("  " + home(saved ? "nextRoom" : "rescan"), for: .normal)
+        againButton.setImage(UIImage(systemName: saved ? "plus" : "arrow.counterclockwise"), for: .normal)
+        againButton.isHidden = onNewRoom == nil
+        if saved {
+            let share = UIBarButtonItem(barButtonSystemItem: .action, target: self, action: #selector(share(_:)))
+            share.accessibilityLabel = home("share")
+            navigationItem.rightBarButtonItem = share
+        } else { navigationItem.rightBarButtonItem = nil }
+        refreshLocationToggle()
     }
 
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        if textField === buildingField { floorField.becomeFirstResponder() }
-        else if textField === floorField { nameField.becomeFirstResponder() }
-        else { textField.resignFirstResponder() }
+        if textField === buildingField { floorField.becomeFirstResponder() } else { textField.resignFirstResponder() }
         return true
     }
 
-    func textFieldDidBeginEditing(_ textField: UITextField) { revealFocusedField() }
-
-    private func revealFocusedField() {
-        guard let field = [buildingField, floorField, nameField].first(where: { $0.isFirstResponder }) else { return }
+    func textFieldDidBeginEditing(_ textField: UITextField) {
         view.layoutIfNeeded()
-        resultsScroll.scrollRectToVisible(field.convert(field.bounds, to: resultsScroll).insetBy(dx: 0, dy: -20), animated: true)
+        reviewScroll.scrollRectToVisible(textField.convert(textField.bounds, to: reviewScroll).insetBy(dx: 0, dy: -20), animated: true)
     }
 
     private func makeDocument(_ room: CapturedRoom, name: String) -> RoomPlanDocument {
@@ -330,69 +531,101 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
             + room.windows.map { convert($0, kind: "window") }
             + room.openings.map { convert($0, kind: "opening") }
             + room.floors.map { convert($0, kind: "floor") }
-        return RoomPlanDocument(name: name, createdAt: ISO8601DateFormatter().string(from: Date()), roomId: room.identifier.uuidString, surfaces: surfaces)
+        var document = RoomPlanDocument(name: name, createdAt: ISO8601DateFormatter().string(from: Date()), roomId: room.identifier.uuidString, surfaces: surfaces)
+        let objects = room.objects.map { object -> RoomPlanDocument.Object in
+            let matrix = object.transform
+            let confidence: String
+            switch object.confidence {
+            case .high: confidence = "high"
+            case .medium: confidence = "medium"
+            case .low: confidence = "low"
+            @unknown default: confidence = "unknown"
+            }
+            let category = String(describing: object.category).filter(\.isLetter)
+            return RoomPlanDocument.Object(id: object.identifier.uuidString, category: category.isEmpty ? "unknown" : String(category.prefix(40)),
+                dimensions: [Double(object.dimensions.x), Double(object.dimensions.y), Double(object.dimensions.z)],
+                transform: (0..<4).flatMap { column in (0..<4).map { row in Double(matrix[column][row]) } }, confidence: confidence)
+        }
+        if !objects.isEmpty { document.objects = Array(objects.prefix(150)) }
+        return document
     }
 
-    private func exportFiles() {
+    private func saveOrFinish() {
         guard let room = result, lifecycle.phase == .review else { return }
         view.endEditing(true)
-        let names = enteredNames
-        if hasSavedReview {
-            present(UIDocumentPickerViewController(forExporting: savedFiles, asCopy: true), animated: true)
-            return
-        }
+        if hasSavedReview { closeNow(); return }
         guard lifecycle.export() else { return }
+        let names = enteredNames
         var document = makeDocument(room, name: names[2])
         document.building = RoomPlanDocument.Building(name: names[0], floor: names[1], room: names[2])
         UserDefaults.standard.set(document.building?.name, forKey: "KanturaRoomBuilding")
         UserDefaults.standard.set(document.building?.floor, forKey: "KanturaRoomFloor")
         let exportDocument = document
-        primary.isEnabled = false
-        primary.setTitle(text("exporting"), for: .normal)
-        anotherRoom.isEnabled = false
-        navigationItem.leftBarButtonItem?.isEnabled = false
-        [buildingField, floorField, nameField].forEach { $0.isEnabled = false }
-        spinner.startAnimating()
-        status.text = text("exporting")
+        // Renaming after a save updates the same library entry instead of adding a copy.
+        let previous = savedDirectory
+        let recorder = photoRecorder
+        setReviewEnabled(false)
+        saveButton.setTitle("  " + text("exporting"), for: .normal)
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            let outcome: Result<[URL], Error>
+            let outcome: Result<(URL, [URL]), Error>
             do {
                 let identifier = UUID()
-                let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                let directory = previous ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
                     .appendingPathComponent("KanturaRooms", isDirectory: true)
                     .appendingPathComponent(identifier.uuidString, isDirectory: true)
                 try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
                 let stem = SavedRoomPlan.exportStem(name: exportDocument.name, identifier: identifier)
                 let json = directory.appendingPathComponent(stem + ".kantura-room.json")
                 let usdz = directory.appendingPathComponent(stem + ".usdz")
+                let stale = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
                 try exportDocument.encoded().write(to: json, options: .atomic)
                 try room.export(to: usdz, exportOptions: .mesh)
-                outcome = .success([json, usdz])
+                // Photos are optional: a failed copy must not lose the room itself.
+                try? recorder.write(to: directory)
+                // Only after both new files exist, remove the previous pair (photos stay).
+                let keep: Set<String> = ["photos", "markers", RoomExtras.fileName, StairMesh.fileName]
+                for file in stale where file != json && file != usdz && !keep.contains(file.lastPathComponent) { try? FileManager.default.removeItem(at: file) }
+                outcome = .success((directory, [json, usdz]))
             } catch { outcome = .failure(error) }
             DispatchQueue.main.async {
                 guard let self = self, self.lifecycle.phase == .exporting else { return }
                 self.lifecycle.exported()
-                self.spinner.stopAnimating()
-                self.primary.isEnabled = true
-                self.anotherRoom.isEnabled = true
-                self.navigationItem.leftBarButtonItem?.isEnabled = true
-                [self.buildingField, self.floorField, self.nameField].forEach { $0.isEnabled = true }
+                self.setReviewEnabled(true)
                 switch outcome {
-                case .success(let urls):
+                case .success(let (directory, urls)):
+                    self.savedDirectory = directory
                     self.savedNames = names
                     self.savedFiles = urls
-                    self.namesChanged()
-                    let picker = UIDocumentPickerViewController(forExporting: urls, asCopy: true)
-                    self.present(picker, animated: true)
+                    self.document = exportDocument
+                    self.onSaved?()
+                    UIAccessibility.post(notification: .announcement, argument: self.home("saved"))
+                    let generator = UINotificationFeedbackGenerator()
+                    generator.notificationOccurred(.success)
                 case .failure:
-                    self.namesChanged()
                     let alert = UIAlertController(title: self.text("exportFailed"), message: self.text("exportRetry"), preferredStyle: .alert)
                     alert.addAction(UIAlertAction(title: self.text("close"), style: .default))
                     self.present(alert, animated: true)
                 }
+                self.namesChanged()
             }
         }
     }
+
+    private func setReviewEnabled(_ enabled: Bool) {
+        [saveButton, againButton].forEach { $0?.isEnabled = enabled }
+        [nameField, buildingField, floorField].forEach { $0.isEnabled = enabled }
+        navigationItem.leftBarButtonItem?.isEnabled = enabled
+        navigationItem.rightBarButtonItem?.isEnabled = enabled
+    }
+
+    @objc private func share(_ sender: UIBarButtonItem) {
+        guard presentedViewController == nil, hasSavedReview else { return }
+        let activity = UIActivityViewController(activityItems: savedFiles, applicationActivities: nil)
+        activity.popoverPresentationController?.barButtonItem = sender
+        present(activity, animated: true)
+    }
+
+    // MARK: Failure and leaving
 
     private func fail(_ message: String) {
         guard lifecycle.phase != .cancelled && lifecycle.phase != .failed else { return }
@@ -402,19 +635,28 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
         if wasCapturing { capture.captureSession.stop(pauseARSession: true) }
         capture.captureSession.arSession.pause()
         spinner.stopAnimating()
-        status.text = message
-        capture.isHidden = true
-        primary.setTitle(text("close"), for: .normal)
-        primary.isEnabled = true
-        resultsScroll.setContentOffset(.zero, animated: false)
-        UIAccessibility.post(notification: .screenChanged, argument: status)
+        photoRecorder.stop()
+        prepColumn.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        let icon = KanturaDesign.symbolTile("exclamationmark.triangle", size: 64)
+        let wrapper = UIView()
+        icon.translatesAutoresizingMaskIntoConstraints = false
+        wrapper.addSubview(icon)
+        NSLayoutConstraint.activate([icon.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 40), icon.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor), icon.centerXAnchor.constraint(equalTo: wrapper.centerXAnchor)])
+        let label = KanturaDesign.label(message, style: .title3)
+        label.textAlignment = .center
+        prepColumn.addArrangedSubview(wrapper)
+        prepColumn.addArrangedSubview(label)
+        prepButton.isEnabled = true
+        prepButton.setTitle(text("close"), for: .normal)
+        prepButton.setImage(nil, for: .normal)
+        setStage(prep: true)
+        UIAccessibility.post(notification: .screenChanged, argument: label)
     }
 
-    @objc private func close() {
-        leave(after: nil)
+    @objc private func close() { leave(after: nil) }
+    private func newRoom() {
+        if hasSavedReview { closeNow(after: onNewRoom) } else { leave(after: onNewRoom) }
     }
-
-    @objc private func newRoom() { leave(after: onNewRoom) }
 
     private func leave(after callback: (() -> Void)?) {
         guard lifecycle.phase != .exporting, presentedViewController == nil else { return }
@@ -429,6 +671,7 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
 
     private func closeNow(after next: (() -> Void)? = nil) {
         let wasCapturing = lifecycle.phase == .capturing
+        photoRecorder.discard()
         lifecycle.cancel()
         timeout?.cancel()
         capture.delegate = nil
@@ -441,7 +684,6 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
 
     deinit {
         if let observer = interruptionObserver { NotificationCenter.default.removeObserver(observer) }
-        if let observer = keyboardObserver { NotificationCenter.default.removeObserver(observer) }
         timeout?.cancel()
     }
 }
@@ -474,8 +716,8 @@ private enum RoomPlanPresentation {
                 let value = "\(number(measurement.value)) \(measurement.unit)"
                 // Isolate the numeric value and SI unit, keeping the translated
                 // label in the natural reading direction (including Arabic).
-                let metric = KanturaDesign.label(label + ": \u{2066}" + value + "\u{2069}", style: .title2)
-                metric.font = UIFontMetrics(forTextStyle: .title2).scaledFont(for: .monospacedDigitSystemFont(ofSize: 23, weight: .semibold))
+                let metric = KanturaDesign.label(label + ": \u{2066}" + value + "\u{2069}", style: .body)
+                metric.font = UIFontMetrics(forTextStyle: .body).scaledFont(for: .monospacedDigitSystemFont(ofSize: 17, weight: .medium))
                 content.addArrangedSubview(metric)
                 accessibility.append(label + ": " + value)
             }
@@ -485,12 +727,11 @@ private enum RoomPlanPresentation {
                 accessibility.append(unavailable)
             }
             let confidenceText = MeasurementGuide.roomText("confidence") + ": " + MeasurementGuide.roomText(surface.confidence)
-            let confidence = KanturaDesign.label(confidenceText, style: .footnote, secondary: true)
-            content.addArrangedSubview(confidence)
+            content.addArrangedSubview(KanturaDesign.label(confidenceText, style: .footnote, secondary: true))
             accessibility.append(confidenceText)
             content.axis = .vertical
-            content.spacing = 10
-            let card = KanturaDesign.inset(content)
+            content.spacing = 6
+            let card = KanturaDesign.inset(content, padding: 16)
             card.isAccessibilityElement = true
             card.accessibilityLabel = accessibility.joined(separator: ", ")
             card.accessibilityLanguage = MeasurementGuide.selectedLanguage
@@ -499,196 +740,159 @@ private enum RoomPlanPresentation {
     }
 }
 
-/// Each stored room has its own RoomPlan origin. Grouping by building and floor
-/// organizes scans; it intentionally does not claim to align or merge them.
-@available(iOS 17.0, *)
-final class RoomPlanLibraryViewController: UITableViewController {
-    var onClose: (() -> Void)?
-    var onNewRoom: (() -> Void)?
-    private var groups: [(title: String, rooms: [SavedRoomPlan])] = []
-    private func text(_ key: String) -> String { MeasurementGuide.roomText(key) }
-
+/// Every detected wall, door, window, opening and floor with its dimensions.
+final class RoomSurfacesViewController: UIViewController {
+    private let document: RoomPlanDocument
+    init(document: RoomPlanDocument) { self.document = document; super.init(nibName: nil, bundle: nil) }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = text("library")
         view.backgroundColor = KanturaDesign.background
-        view.tintColor = KanturaDesign.tint
         KanturaDesign.navigation(self)
-        navigationItem.leftBarButtonItem = UIBarButtonItem(title: text("close"), style: .done, target: self, action: #selector(close))
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: text("newRoom"), style: .plain, target: self, action: #selector(newRoom))
-        let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("KanturaRooms", isDirectory: true)
-        let rooms = SavedRoomPlan.load(from: directory)
-        let grouped = Dictionary(grouping: rooms) { room in
-            guard let building = room.document.building else { return self.text("otherRooms") }
-            return building.name + " · " + building.floor
-        }
-        groups = grouped.keys.sorted().map { (title: $0, rooms: grouped[$0]!) }
-        tableView.rowHeight = UITableView.automaticDimension
-        tableView.estimatedRowHeight = 92
-        tableView.sectionHeaderHeight = UITableView.automaticDimension
-        tableView.estimatedSectionHeaderHeight = 44
-        tableView.separatorColor = KanturaDesign.border
-        tableView.cellLayoutMarginsFollowReadableWidth = true
-        if rooms.isEmpty {
-            let empty = UILabel()
-            empty.text = text("libraryEmpty")
-            empty.textAlignment = .center
-            empty.numberOfLines = 0
-            empty.font = .preferredFont(forTextStyle: .body)
-            empty.adjustsFontForContentSizeCategory = true
-            empty.textColor = KanturaDesign.muted
-            let illustration = UIImageView(image: UIImage(systemName: "building.2.crop.circle", withConfiguration: UIImage.SymbolConfiguration(pointSize: 56, weight: .light)))
-            illustration.contentMode = .scaleAspectFit
-            illustration.tintColor = KanturaDesign.tint
-            illustration.heightAnchor.constraint(equalToConstant: 72).isActive = true
-            illustration.isAccessibilityElement = false
-            let start = KanturaButton(type: .system)
-            KanturaDesign.button(start, primary: true)
-            start.setTitle(text("newRoom"), for: .normal)
-            start.addTarget(self, action: #selector(newRoom), for: .touchUpInside)
-            let content = UIStackView(arrangedSubviews: [illustration, empty, start])
-            content.axis = .vertical
-            content.spacing = 24
-            let emptyContainer = UIView()
-            content.translatesAutoresizingMaskIntoConstraints = false
-            emptyContainer.addSubview(content)
-            NSLayoutConstraint.activate([
-                content.topAnchor.constraint(equalTo: emptyContainer.topAnchor, constant: 32),
-                content.bottomAnchor.constraint(equalTo: emptyContainer.bottomAnchor, constant: -32),
-                content.leadingAnchor.constraint(equalTo: emptyContainer.leadingAnchor, constant: 32),
-                content.trailingAnchor.constraint(equalTo: emptyContainer.trailingAnchor, constant: -32)
-            ])
-            tableView.tableHeaderView = emptyContainer
-        }
-    }
-
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        guard let header = tableView.tableHeaderView else { return }
-        let width = tableView.bounds.width
-        let height = header.systemLayoutSizeFitting(CGSize(width: width, height: 0),
-            withHorizontalFittingPriority: .required, verticalFittingPriority: .fittingSizeLevel).height
-        if header.frame.width != width || header.frame.height != height {
-            header.frame = CGRect(x: 0, y: 0, width: width, height: height)
-            tableView.tableHeaderView = header
-        }
-    }
-
-    override func numberOfSections(in tableView: UITableView) -> Int { groups.count }
-    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { groups[section].rooms.count }
-    override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? { groups[section].title }
-    override func tableView(_ tableView: UITableView, willDisplayHeaderView view: UIView, forSection section: Int) {
-        guard let header = view as? UITableViewHeaderFooterView else { return }
-        header.textLabel?.textColor = KanturaDesign.muted
-        header.textLabel?.font = .preferredFont(forTextStyle: .subheadline)
-        header.textLabel?.adjustsFontForContentSizeCategory = true
-        header.textLabel?.numberOfLines = 0
-    }
-    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = UITableViewCell(style: .subtitle, reuseIdentifier: nil)
-        cell.backgroundColor = KanturaDesign.surface
-        cell.tintColor = KanturaDesign.tint
-        cell.textLabel?.textColor = KanturaDesign.text
-        cell.detailTextLabel?.textColor = KanturaDesign.muted
-        cell.directionalLayoutMargins = NSDirectionalEdgeInsets(top: 18, leading: 18, bottom: 18, trailing: 18)
-        let room = groups[indexPath.section].rooms[indexPath.row]
-        cell.textLabel?.text = room.document.building?.room ?? room.document.name
-        cell.detailTextLabel?.text = "\(room.document.surfaces.count) " + text("surfaces") + " · " + String(room.document.createdAt.prefix(10))
-        cell.textLabel?.numberOfLines = 0
-        cell.detailTextLabel?.numberOfLines = 0
-        cell.textLabel?.font = .preferredFont(forTextStyle: .headline)
-        cell.detailTextLabel?.font = .preferredFont(forTextStyle: .subheadline)
-        cell.textLabel?.adjustsFontForContentSizeCategory = true
-        cell.detailTextLabel?.adjustsFontForContentSizeCategory = true
-        cell.imageView?.image = UIImage(systemName: "square.split.bottomrightquarter")
-        cell.accessoryType = .disclosureIndicator
-        return cell
-    }
-
-    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        tableView.deselectRow(at: indexPath, animated: true)
-        let room = groups[indexPath.section].rooms[indexPath.row]
-        navigationController?.pushViewController(SavedRoomPlanViewController(room: room), animated: true)
-    }
-
-    @objc private func close() {
-        let callback = onClose
-        dismiss(animated: true) { callback?() }
-    }
-    @objc private func newRoom() {
-        let closeCallback = onClose
-        let callback = onNewRoom
-        dismiss(animated: true) { closeCallback?(); callback?() }
+        navigationItem.largeTitleDisplayMode = .never
+        title = MeasurementGuide.homeText("allSurfaces")
+        let (_, column) = KanturaDesign.scrollColumn(in: self, spacing: 10)
+        column.addArrangedSubview(KanturaDesign.label(MeasurementGuide.roomText("verify"), style: .footnote, secondary: true))
+        RoomPlanPresentation.addMeasurements(document, to: column)
     }
 }
 
-/// Saved measurements remain useful without repeating a capture or exporting
-/// again. Preview and Files use exactly the JSON/USDZ pair already on disk.
-@available(iOS 17.0, *)
-private final class SavedRoomPlanViewController: UIViewController, QLPreviewControllerDataSource {
-    private let room: SavedRoomPlan
+/// A saved room: interactive 3D model, headline numbers, share and delete.
+/// Uses exactly the JSON/USDZ pair already on disk.
+final class SavedRoomViewController: UIViewController, QLPreviewControllerDataSource {
+    static let changed = Notification.Name("KanturaRoomChanged")
+    private var room: SavedRoomPlan
+    private var column: UIStackView!
+    private var observer: NSObjectProtocol?
+    var onDeleted: (() -> Void)?
     init(room: SavedRoomPlan) { self.room = room; super.init(nibName: nil, bundle: nil) }
+    deinit { if let observer = observer { NotificationCenter.default.removeObserver(observer) } }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+    private func text(_ key: String) -> String { MeasurementGuide.homeText(key) }
+
+    /// Remove one room folder from the local library (never anything outside it).
+    static func remove(_ room: SavedRoomPlan) {
+        let library = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("KanturaRooms", isDirectory: true).standardizedFileURL
+        let folder = room.jsonURL.deletingLastPathComponent().standardizedFileURL
+        guard folder.deletingLastPathComponent() == library else { return }
+        try? FileManager.default.removeItem(at: folder)
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = room.document.name
         view.backgroundColor = KanturaDesign.background
         KanturaDesign.navigation(self)
-        let scroll = UIScrollView()
-        let content = UIStackView()
-        content.axis = .vertical
-        content.spacing = 16
-        scroll.translatesAutoresizingMaskIntoConstraints = false
-        content.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(scroll)
-        scroll.addSubview(content)
-        NSLayoutConstraint.activate([
-            scroll.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
-            scroll.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
-            scroll.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            scroll.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            content.leadingAnchor.constraint(equalTo: scroll.contentLayoutGuide.leadingAnchor, constant: 20),
-            content.trailingAnchor.constraint(equalTo: scroll.contentLayoutGuide.trailingAnchor, constant: -20),
-            content.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor, constant: 20),
-            content.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor, constant: -20),
-            content.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor, constant: -40)
-        ])
-        let heading = KanturaDesign.label(room.document.name, style: .largeTitle)
-        heading.accessibilityTraits.insert(.header)
-        content.addArrangedSubview(heading)
-        if let building = room.document.building {
-            content.addArrangedSubview(KanturaDesign.label(building.name + " · " + building.floor, style: .body, secondary: true))
+        navigationItem.largeTitleDisplayMode = .never
+        let name = room.document.building?.room ?? room.document.name
+        title = name
+        let delete = UIAction(title: text("delete"), image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in self?.confirmDelete() }
+        let more = UIBarButtonItem(title: nil, image: UIImage(systemName: "ellipsis.circle"), primaryAction: nil, menu: UIMenu(children: [delete]))
+        more.accessibilityLabel = MeasurementGuide.homeText("settings")
+        navigationItem.rightBarButtonItem = more
+
+        column = KanturaDesign.scrollColumn(in: self, spacing: 14).column
+        // Corrections made in the room view update numbers here as well.
+        observer = NotificationCenter.default.addObserver(forName: Self.changed, object: nil, queue: .main) { [weak self] note in
+            guard let self = self, let updated = note.object as? SavedRoomPlan, updated.jsonURL == self.room.jsonURL else { return }
+            self.room = updated
+            self.render()
         }
-        for (key, icon, handler) in [
-            ("preview", "cube.transparent", #selector(preview)),
-            ("export", "square.and.arrow.up", #selector(exportFiles))
-        ] {
-            let button = KanturaButton(type: .system)
-            KanturaDesign.button(button, primary: key == "preview")
-            button.setTitle("  " + MeasurementGuide.roomText(key), for: .normal)
-            button.setImage(UIImage(systemName: icon), for: .normal)
-            button.addTarget(self, action: handler, for: .touchUpInside)
-            content.addArrangedSubview(button)
+        render()
+    }
+
+    private func render() {
+        column.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        var context = [KanturaHomeViewController.date(room.document.createdAt)]
+        let group = LibraryLabels.group(room.document.building)
+        if !group.isEmpty { context.insert(group, at: 0) }
+        column.addArrangedSubview(KanturaDesign.label(context.joined(separator: " · "), style: .subheadline, secondary: true))
+
+        let scene = SCNView()
+        scene.scene = try? SCNScene(url: room.modelURL, options: nil)
+        scene.allowsCameraControl = true
+        scene.autoenablesDefaultLighting = true
+        scene.backgroundColor = KanturaDesign.surface
+        scene.layer.cornerRadius = 22
+        scene.layer.cornerCurve = .continuous
+        scene.clipsToBounds = true
+        scene.isAccessibilityElement = true
+        scene.accessibilityLabel = text("view3d")
+        scene.heightAnchor.constraint(equalTo: scene.widthAnchor, multiplier: 0.75).isActive = true
+        column.addArrangedSubview(scene)
+
+        let summary = RoomPlanSummary(room.document)
+        column.addArrangedSubview(KanturaMetricGrid(KanturaDesign.roomMetrics(summary)))
+        column.addArrangedSubview(KanturaDesign.label(text("doorsWindows").replacingOccurrences(of: "{doors}", with: "\(summary.doors)").replacingOccurrences(of: "{windows}", with: "\(summary.windows)"), style: .subheadline, secondary: true))
+        column.addArrangedSubview(KanturaDesign.primaryButton(text("walkTitle"), icon: "figure.stand") { [weak self] in
+            guard let self = self else { return }
+            self.navigationController?.pushViewController(RoomWalkthroughViewController(room: self.room), animated: true)
+        })
+        if !RoomWalkthroughViewController.hasPhotos(room) {
+            column.addArrangedSubview(KanturaDesign.label(text("walkNoPhotos"), style: .footnote, secondary: true))
         }
-        content.addArrangedSubview(KanturaDesign.inset(KanturaDesign.label(MeasurementGuide.roomText("verify"), style: .subheadline, secondary: true)))
-        RoomPlanPresentation.addMeasurements(room.document, to: content)
-        content.addArrangedSubview(KanturaDesign.label(MeasurementGuide.roomText("separateOrigins"), style: .footnote, secondary: true))
-        if let help = MeasurementGuide.all[MeasurementGuide.selectedLanguage]?.cloudHelp {
-            content.addArrangedSubview(KanturaDesign.inset(KanturaDesign.label(help, style: .subheadline, secondary: true)))
+        // RoomPlan keeps one storey per room: stairs going down need their own scan.
+        let home = navigationController?.viewControllers.first as? KanturaHomeViewController
+        if room.document.objects?.contains(where: { $0.category == "stairs" }) == true, let home = home {
+            let card = KanturaActionCard(title: text("stairTitle"), detail: text("stairRoomHint"), icon: "figure.stairs", emphasis: .mint)
+            card.addAction(UIAction { [weak home] _ in home?.onRoute?(.stairScan) }, for: .touchUpInside)
+            column.addArrangedSubview(card)
+        }
+        column.addArrangedSubview(KanturaDesign.secondaryButton(text("transportTitle"), icon: "shippingbox") { [weak self, weak home] in
+            guard let self = self else { return }
+            let check = TransportCheckViewController(preselected: self.room)
+            if home != nil { check.onStairScan = { [weak home] in home?.onRoute?(.stairScan) } }
+            self.navigationController?.pushViewController(check, animated: true)
+        })
+        let extras = RoomExtras.load(from: room.jsonURL.deletingLastPathComponent())
+        let openMarkers = extras.markers.filter { $0.status == "open" }.count
+        column.addArrangedSubview(KanturaDesign.secondaryButton(text("markers") + (extras.markers.isEmpty ? "" : " · " + text("markersOpenCount").replacingOccurrences(of: "{count}", with: "\(openMarkers)")), icon: "mappin.and.ellipse") { [weak self] in
+            guard let self = self else { return }
+            let list = MarkerListViewController(folder: self.room.jsonURL.deletingLastPathComponent())
+            list.onChange = { [weak self] _ in self?.render() }
+            self.navigationController?.pushViewController(list, animated: true)
+        })
+        column.addArrangedSubview(KanturaDesign.secondaryButton(text("export"), icon: "square.and.arrow.up") { [weak self] in
+            guard let self = self else { return }
+            self.navigationController?.pushViewController(RoomShareViewController(room: self.room), animated: true)
+        })
+        column.addArrangedSubview(KanturaDesign.secondaryButton(text("view3d"), icon: "arkit") { [weak self] in self?.preview() })
+        column.addArrangedSubview(KanturaDesign.secondaryButton(text("allSurfaces"), icon: "list.bullet") { [weak self] in
+            guard let self = self else { return }
+            self.navigationController?.pushViewController(RoomSurfacesViewController(document: self.room.document), animated: true)
+        })
+        for note in KanturaDesign.roomNotes(summary) + [text("computerNote"), MeasurementGuide.roomText("separateOrigins")] {
+            column.addArrangedSubview(KanturaDesign.label(note, style: .footnote, secondary: true))
         }
     }
 
-    @objc private func preview() {
+    private func share() {
+        guard presentedViewController == nil else { return }
+        let activity = UIActivityViewController(activityItems: [room.jsonURL, room.modelURL], applicationActivities: nil)
+        activity.popoverPresentationController?.sourceView = view
+        activity.popoverPresentationController?.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 1, height: 1)
+        present(activity, animated: true)
+    }
+
+    private func preview() {
         let controller = QLPreviewController()
         controller.dataSource = self
         navigationController?.pushViewController(controller, animated: true)
     }
-    @objc private func exportFiles() {
+
+    private func confirmDelete() {
         guard presentedViewController == nil else { return }
-        present(UIDocumentPickerViewController(forExporting: [room.jsonURL, room.modelURL], asCopy: true), animated: true)
+        let alert = UIAlertController(title: text("deleteTitle"), message: text("deleteBody"), preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: text("cancel"), style: .cancel))
+        alert.addAction(UIAlertAction(title: text("delete"), style: .destructive) { [weak self] _ in
+            guard let self = self else { return }
+            SavedRoomViewController.remove(self.room)
+            self.onDeleted?()
+            self.navigationController?.popViewController(animated: true)
+        })
+        present(alert, animated: true)
     }
+
     func numberOfPreviewItems(in controller: QLPreviewController) -> Int { 1 }
     func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem { room.modelURL as NSURL }
 }

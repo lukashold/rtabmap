@@ -1,5 +1,6 @@
 import { validCaptureWarnings } from './measurement-policy.js';
 import { assessTransport } from './transport.js';
+import { validateAreaInputs } from './areas.js';
 export class MeasureError extends Error { constructor(code) { super(code); this.code = code; } }
 const sub = (a, b) => a.map((v, i) => v - b[i]);
 const dot = (a, b) => a.reduce((s, v, i) => s + v * b[i], 0);
@@ -75,6 +76,7 @@ export function validateProject(p) {
     if(m.kind==='distance' && m.points.length!==2) throw new MeasureError('invalidProject');
     resultFor(m,p.scale);
   }
+  try{validateAreaInputs(p.roomSurfaces,p.openingAssignments);}catch{throw new MeasureError('invalidProject');}
   const ids=new Set();
   if(p.transport!==undefined){if(typeof p.transport.model!=='string'||p.transport.model.length>200||typeof p.transport.assessedAt!=='string'||!Number.isFinite(Date.parse(p.transport.assessedAt)))throw new MeasureError('invalidProject');assessTransport(p.transport.input);}
   for(const [key,limit] of [['notes',200],['checks',100]]) {

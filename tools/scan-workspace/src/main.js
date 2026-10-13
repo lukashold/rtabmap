@@ -22,16 +22,19 @@ import { modesText } from './modes-i18n.js';
 import { measurementPolicy } from './measurement-policy.js';
 import { coordinateText } from './coordinate-i18n.js';
 import { coordinateAnchors } from './coordinate-anchors.js';
+import { areaSummary, surfaceOutline } from './areas.js';
+import { areasText } from './areas-i18n.js';
 
 const $=id=>document.getElementById(id);
 $('language').replaceChildren();for(const code of supportedLanguages){const option=document.createElement('option');option.value=code;option.textContent=guide[code].name;$('language').append(option);}
 const storage={get(key){try{return localStorage.getItem(key);}catch{return null;}},set(key,value){try{localStorage.setItem(key,value);}catch{}}};
 let language=resolveLanguage(storage.get('rtab-language')||navigator.language),bundle,measurements=[],notes=[],checks=[],pending=[],scale=1,upAxis='z',mode='orbit',dirty=false,calibrated=false,busy=false,guideStep=0,guideRoute='lidar',entryChoice,focusLoadedWorkspace=false;
+let roomSurfaces,openingAssignments={};
 let building={name:'',rooms:[],activeRoom:null},addingRoom=false,selectedMeasurement=null,editingNote,notePoint,removePhoto=false,photoPreviewURL,transportResult,transportRecord;
 const photoURLs=new Map();
 let snapFeedback,splatViewer,splatData,splatAttempt=0,splatLoading=false,photoPanel;
 let provider='microsoft',config={},authReady=false,drive,cloudBusy=false,toastTimer,authAttempt=0;
-const t=key=>key==='coordinateTitle'?coordinateText(language).title:key==='panoramaTitle'?panoramaText(language).title:modesText(language)[key]||qualityDictionaries[language]?.[key]||uxDictionaries[language]?.[key]||designDictionaries[language]?.[key]||experienceDictionaries[language]?.[key]||dictionaries[language][key]||key;
+const t=key=>key==='coordinateTitle'?coordinateText(language).title:key==='panoramaTitle'?panoramaText(language).title:areasText(language)[key]||modesText(language)[key]||qualityDictionaries[language]?.[key]||uxDictionaries[language]?.[key]||designDictionaries[language]?.[key]||experienceDictionaries[language]?.[key]||dictionaries[language][key]||key;
 const format=value=>new Intl.NumberFormat(language,{maximumFractionDigits:3}).format(value);
 const icons={folder:'M3 7h7l2 2h9v11H3z M3 7V4h7l2 3',ruler:'M3 16L16 3l5 5L8 21z M8 11l3 3 M12 7l3 3 M5 14l3 3',floor:'M3 4h18v16H3z M3 9h6V4 M15 20v-5h6',surface:'M3 8l13-5 5 13-13 5z',target:'M12 3v4 M12 17v4 M3 12h4 M17 12h4 M17 12a5 5 0 1 1-10 0 5 5 0 0 1 10 0',cloud:'M6 18a5 5 0 0 1-1-10 7 7 0 0 1 13-1 5 5 0 0 1 0 11 M12 20V10 M8 14l4-4 4 4',cube:'M12 2l9 5v10l-9 5-9-5V7z M3 7l9 5 9-5 M12 12v10',image:'M3 3h18v18H3z M3 17l6-6 4 4 3-3 5 5 M15 7h1',layers:'M3 7l9-5 9 5-9 5z M3 12l9 5 9-5 M3 17l9 5 9-5',fit:'M8 3H3v5 M16 3h5v5 M3 16v5h5 M21 16v5h-5',book:'M12 5Q6 1 2 4v16q5-3 10 0 5-3 10 0V4q-5-3-10 1v15',save:'M4 3h13l4 4v14H3V3z M7 3v6h10V3 M7 21v-8h10v8',download:'M12 3v12 M7 10l5 5 5-5 M4 16v5h16v-5'};
 function icon(name){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${icons[name]||icons.cube}"/></svg>`;}
@@ -42,7 +45,7 @@ function toast(text,error=false,persistent=false){clearTimeout(toastTimer);$('st
 function showError(error){const detail=error?.code&&t(error.code)!==error.code?t(error.code):'',text=`${t('error')}${detail?`: ${detail}`:''}${error?.status?` (${error.status})`:''}`,feedback=document.querySelector('dialog[open] .dialog-feedback');if(feedback){feedback.textContent=text;feedback.hidden=false;feedback.scrollIntoView({block:'nearest'});}else toast(text,true);}
 const tasks=createTaskRunner(active=>{busy=active;refresh();if(active){const feedback=document.querySelector('dialog[open] .dialog-feedback');if(feedback)feedback.hidden=true;toast(t('working'),false,true);}else{if($('status').textContent===t('working'))$('status').classList.remove('visible');if(focusLoadedWorkspace){focusLoadedWorkspace=false;window.scrollTo(0,0);viewer?.renderer.domElement.focus({preventScroll:true});}}});
 async function runTask(action){try{return await tasks.run(action);}catch(error){showError(error);return false;}}
-function project(){return structuredClone({version:1,source:bundle?.source,captureWarnings:bundle?.captureWarnings,name:$('project-name').value.trim()||'Scan',scale,upAxis,calibrated,demo:!!bundle?.demo,measurements,notes,checks,transport:bundle?.source==='generated'?undefined:transportRecord});}
+function project(){return structuredClone({version:1,source:bundle?.source,captureWarnings:bundle?.captureWarnings,name:$('project-name').value.trim()||'Scan',scale,upAxis,calibrated,demo:!!bundle?.demo,measurements,notes,checks,transport:bundle?.source==='generated'?undefined:transportRecord,...(roomSurfaces?{roomSurfaces,openingAssignments}:{})});}
 function stashRoom(){const room=building.rooms.find(r=>r.id===building.activeRoom);if(room&&bundle){room.project=project();room.bundle=bundle;room.floor=$('floor-name').value.trim()||'0';}building.name=$('building-name').value.trim()||project().name;}
 function workspaceSnapshot(){stashRoom();return {name:building.name,activeRoom:building.activeRoom,rooms:building.rooms.map(r=>({...r,project:structuredClone(r.project)}))};}
 function stateSignature(){stashRoom();return JSON.stringify({name:building.name,activeRoom:building.activeRoom,rooms:building.rooms.map(r=>({id:r.id,floor:r.floor,project:r.project}))});}
@@ -83,7 +86,7 @@ function refresh(){
     const detail=document.createElement('p');detail.className='measure-detail';detail.textContent=m.kind==='distance'?`${t('horizontal')} ${format(r.horizontal)} m · ${t('vertical')} ${format(r.vertical)} m`:`${t('perimeter')} ${format(r.perimeter)} m`;
     li.append(heading,value,detail);list.append(li);
   });
-  viewer?.drawMeasurements(measurements.filter(m=>m.source!=='roomplan'||m.id===selectedMeasurement),pending,scale,format,notes.filter(n=>!n.id.startsWith('roomplan-')||n.id===editingNote),openNote);renderNotes();renderChecks();refreshRooms();refreshRouteSources();refreshCloudButtons();
+  viewer?.drawMeasurements(measurements.filter(m=>m.source!=='roomplan'||m.id===selectedMeasurement),pending,scale,format,notes.filter(n=>!n.id.startsWith('roomplan-')||n.id===editingNote),openNote);renderNotes();renderChecks();renderAreas();refreshRooms();refreshRouteSources();refreshCloudButtons();
 }
 function translate(){
   document.documentElement.lang=language;document.documentElement.dir=directionFor(language);$('language').value=language;
@@ -124,7 +127,7 @@ async function load(next,{keepBuilding=false,roomId}={}){
   if(!viewer)throw {code:'unsupported'};
     const model=await parseModel(next),p=next.project;
     bundle={...next};delete bundle.building;document.body.classList.remove('show-home');document.querySelector('.workspace').hidden=false;document.querySelector('.workflow').hidden=false;$('home-screen').hidden=true;bundle.source=p?.source||next.source;bundle.captureWarnings=p?.captureWarnings||next.captureWarnings||[];bundle.demo=!!(next.demo||p?.demo);scale=p?.scale||1;upAxis=p?.upAxis||(/\.glb$/i.test(next.model)?'y':'z');
-    measurements=p?.measurements||[];measurements.forEach(m=>m.id??=crypto.randomUUID());notes=p?.notes||[];checks=p?.checks||[];calibrated=!!p?.calibrated;pending=[];mode='orbit';selectedMeasurement=null;editingNote=undefined;
+    measurements=p?.measurements||[];measurements.forEach(m=>m.id??=crypto.randomUUID());notes=p?.notes||[];checks=p?.checks||[];roomSurfaces=p?.roomSurfaces;openingAssignments=p?.openingAssignments||{};calibrated=!!p?.calibrated;pending=[];mode='orbit';selectedMeasurement=null;editingNote=undefined;
     transportRecord=p?.transport;$('transport-form').reset();$('model-search').value='';$('catalog-source').replaceChildren();$('catalog-results').replaceChildren();invalidateTransport();
     photoURLs.forEach(URL.revokeObjectURL);photoURLs.clear();
     $('project-name').value=p?.name||next.name;$('axis').value=upAxis;$('units').value=[1,.01,.001].includes(scale)?String(scale):'1';
@@ -246,6 +249,39 @@ $('note-form').onsubmit=async event=>{event.preventDefault();if(busy||!notePoint
   if(old?.photo&&old.photo!==note.photo&&!next.some(n=>n.photo===old.photo)){delete bundle.assets[old.photo];URL.revokeObjectURL(photoURLs.get(old.photo));photoURLs.delete(old.photo);}if(bytes)bundle.assets[note.photo]=bytes;
   notes=next;dirty=true;$('note-dialog').close();
 });$('note-submit').disabled=false;if(!$('note-dialog').open){mode='orbit';pending=[];viewer.setMode(mode);refresh();}};
+function renderAreas(){
+  // Floor / gross wall / opening / net wall areas from preserved RoomPlan surfaces.
+  const section=$('areas-section'),panel=$('areas-panel');let summary=null;
+  try{summary=roomSurfaces?areaSummary(roomSurfaces,openingAssignments,scale):null;}catch{summary=null;}
+  section.hidden=!summary;panel.replaceChildren();if(!summary)return;
+  const m2=v=>v===null?t('areasUnknown'):`${format(v)} m²`,issues=list=>list.map(i=>t(`areaIssue_${i}`)).join(' · ');
+  const el=(tag,className,text)=>{const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;};
+  const locate=(surface,label)=>{const button=el('button','locate-button','⌖');button.setAttribute('aria-label',`${t('model')}: ${label}`);button.disabled=busy;button.onclick=()=>viewer?.focusPoints(surfaceOutline(surface));return button;};
+  const byId=new Map(roomSurfaces.map(s=>[s.id,s]));
+  const totals=el('dl','area-totals');
+  for(const [key,value] of [['areasFloor',summary.totals.floor],['areasGross',summary.totals.gross],['areasOpenings',summary.totals.openingArea],['areasNet',summary.totals.net]])totals.append(el('dt','',t(key)),el('dd',key==='areasNet'?'area-net':'',m2(value)));
+  panel.append(totals);
+  if(summary.totals.incomplete)panel.append(el('p','area-warning',t('areasIncomplete')));
+  if(summary.totals.unresolved)panel.append(el('p','area-warning',t('areasUnresolved')));
+  panel.append(el('p','privacy',t('areasHelp')),el('h3','area-heading',t('areasWalls')));
+  const walls=el('ul','area-list');
+  summary.walls.forEach(w=>{const li=el('li'),text=el('p','',`${w.label}: ${m2(w.gross)} − ${m2(w.openingArea)} = ${m2(w.net)}`);if(w.issues.length)text.append(el('span','area-issue',` · ${issues(w.issues)}`));li.append(text,locate(byId.get(w.id),w.label));walls.append(li);});
+  panel.append(walls);
+  if(!summary.openings.length)return;
+  panel.append(el('h3','area-heading',t('areasOpeningList')));
+  const openings=el('ul','area-list');
+  summary.openings.forEach(o=>{
+    const li=el('li','area-opening'),text=el('p','',`${o.label} · ${m2(o.area)} · ${t('areasDeducted')} ${m2(o.deducted)}`);
+    const origin=o.assignment==='auto'?t('areasAuto'):o.assignment==='manual'?t('areasManual'):'';
+    if(origin||o.issues.length)text.append(el('span','area-issue',` · ${[origin,issues(o.issues)].filter(Boolean).join(' · ')}`));
+    const select=el('select');select.setAttribute('aria-label',`${t('areasAssignLabel')}: ${o.label}`);select.disabled=busy;
+    select.append(new Option(t('areasAssignAuto'),''),...summary.walls.map(w=>new Option(w.label,w.id)),new Option(t('areasAssignNone'),'__none'));
+    select.value=Object.hasOwn(openingAssignments,o.id)?openingAssignments[o.id]??'__none':'';
+    select.onchange=()=>{const next={...openingAssignments};if(select.value==='')delete next[o.id];else next[o.id]=select.value==='__none'?null:select.value;openingAssignments=next;dirty=true;refresh();};
+    li.append(text,locate(byId.get(o.id),o.label),select);openings.append(li);
+  });
+  panel.append(openings);
+}
 function renderChecks(){
   $('checks-empty').hidden=!!checks.length;$('check-list').replaceChildren();
   checks.forEach(check=>{const result=referenceCheck(check,scale),li=document.createElement('li'),text=document.createElement('p'),remove=document.createElement('button');text.textContent=`${check.label}: ${format(result.measured)} / ${format(result.known)} m · ${t('verificationDeviation')} ${format(result.difference)} m (${format(result.percent)} %)`;remove.className='icon-button';remove.textContent='×';remove.setAttribute('aria-label',`${t('verificationRemove')}: ${check.label}`);remove.onclick=()=>{if(!confirm(`${t('verificationRemove')}: ${check.label}?`))return;checks=checks.filter(c=>c.id!==check.id);dirty=true;refresh();};li.append(text,remove);$('check-list').append(li);});

@@ -24,6 +24,15 @@ for language in MeasurementGuide.languages {
     precondition(guide.objectCapture!.values.allSatisfy { !$0.isEmpty })
     precondition(guide.objectCapture!["photosCount"]!.contains("{count}") && guide.objectCapture!["photosCount"]!.contains("{max}"))
     precondition(guide.splat!.count == 9)
+    precondition(guide.home!.count == 249)
+    precondition(guide.home!["stairProgress"]!.contains("{distance}") && guide.home!["stairProgress"]!.contains("{height}"))
+    for key in ["stairNarrowest", "stairCollision"] {
+        precondition(["{distance}", "{cm}", "{where}"].allSatisfy { guide.home![key]!.contains($0) })
+    }
+    precondition(Set(guide.home!.keys) == Set(guides["de"]!.home!.keys))
+    precondition(guide.home!.values.allSatisfy { !$0.isEmpty })
+    precondition(guide.home!["doorsWindows"]!.contains("{doors}") && guide.home!["doorsWindows"]!.contains("{windows}"))
+    precondition(guide.home!["unresolvedNote"]!.contains("{count}"))
     precondition(Set(guide.splat!.keys) == Set(guides["en"]!.splat!.keys))
     precondition(guide.splat!.values.allSatisfy { !$0.isEmpty })
     precondition(guide.sceneCapture!.count == 38)
@@ -342,3 +351,338 @@ let decodedPayload = try JSONSerialization.jsonObject(with: Data(payload.utf8)) 
 precondition(decodedPayload["name"] == hostileName && decodedPayload["language"] == "ar")
 precondition(Data(base64Encoded: decodedPayload["base64"]!) == hostile.data)
 print("Offline Splat import: bounded reads, file-type/signature checks, truncated data, and safe bridge payload checks passed")
+
+// Room summary: the same 4 × 5 m, 2.5 m high acceptance room as the browser test
+// (tools/scan-workspace/test/areas.test.mjs) must give 20 / 45 / 41.5 m².
+func summaryFrame(_ center: [Double], _ x: [Double]) -> [Double] {
+    let y = [0.0, 1, 0], z = [x[1] * y[2] - x[2] * y[1], x[2] * y[0] - x[0] * y[2], x[0] * y[1] - x[1] * y[0]]
+    return x + [0] + y + [0] + z + [0] + center + [1]
+}
+func summarySurface(_ id: String, _ kind: String, _ dimensions: [Double], _ transform: [Double], _ corners: [[Double]]? = nil) -> RoomPlanDocument.Surface {
+    RoomPlanDocument.Surface(id: id, kind: kind, dimensions: dimensions, transform: transform, confidence: "high", polygonCorners: corners)
+}
+let summaryWalls = [
+    summarySurface("w1", "wall", [4, 2.5, 0], summaryFrame([0, 1.25, -2.5], [1, 0, 0])),
+    summarySurface("w2", "wall", [5, 2.5, 0], summaryFrame([2, 1.25, 0], [0, 0, 1])),
+    summarySurface("w3", "wall", [4, 2.5, 0], summaryFrame([0, 1.25, 2.5], [-1, 0, 0])),
+    summarySurface("w4", "wall", [5, 2.5, 0], summaryFrame([-2, 1.25, 0], [0, 0, -1]))
+]
+let summaryFloor = summarySurface("f", "floor", [4, 5, 0], [1,0,0,0, 0,0,-1,0, 0,1,0,0, 0,0,0,1], [[-2,-2.5,0],[2,-2.5,0],[2,2.5,0],[-2,2.5,0]])
+let summaryDoor = summarySurface("d", "door", [0.8, 2.5, 0.04], summaryFrame([0.5, 1.25, -2.49], [1, 0, 0]))
+let summaryWindow = summarySurface("o", "window", [1, 1.5, 0.04], summaryFrame([2.01, 1.4, 1], [0, 0, 1]))
+let summary = RoomPlanSummary(RoomPlanDocument(name: "Test", createdAt: "2026-10-13T00:00:00Z", roomId: "r",
+    surfaces: summaryWalls + [summaryFloor, summaryDoor, summaryWindow]))
+func near(_ a: Double?, _ b: Double) -> Bool { a.map { abs($0 - b) < 1e-9 } ?? false }
+precondition(near(summary.floorArea, 20) && near(summary.floorPerimeter, 18))
+precondition(near(summary.grossWallArea, 45) && near(summary.openingArea, 3.5) && near(summary.netWallArea, 41.5))
+precondition(near(summary.wallHeight, 2.5) && summary.walls == 4 && summary.doors == 1 && summary.windows == 1)
+precondition(summary.unresolvedOpenings == 0 && !summary.incomplete)
+// Overlapping windows are deducted once; a stray opening is not deducted at all.
+let overlapping = RoomPlanSummary(RoomPlanDocument(name: "Test", createdAt: "2026-10-13T00:00:00Z", roomId: "r",
+    surfaces: summaryWalls + [summaryFloor,
+        summarySurface("a", "window", [1, 1, 0], summaryFrame([0, 1.5, -2.5], [1, 0, 0])),
+        summarySurface("b", "window", [1, 1, 0], summaryFrame([0.5, 1.5, -2.5], [1, 0, 0])),
+        summarySurface("c", "door", [0.8, 2, 0], summaryFrame([0, 1, 0], [1, 0, 0]))]))
+precondition(near(overlapping.openingArea, 1.5) && near(overlapping.netWallArea, 43.5) && overlapping.unresolvedOpenings == 1)
+// A wall without height has no gross area; the total is marked incomplete.
+var lowWalls = summaryWalls
+lowWalls[1] = summarySurface("w2", "wall", [5, 0, 0], summaryFrame([2, 1.25, 0], [0, 0, 1]))
+let partial = RoomPlanSummary(RoomPlanDocument(name: "Test", createdAt: "2026-10-13T00:00:00Z", roomId: "r", surfaces: lowWalls + [summaryFloor]))
+precondition(partial.incomplete && near(partial.grossWallArea, 32.5))
+print("Room summary: floor, gross/net wall area, overlap and incomplete-wall checks passed")
+
+// Room photos: projection, best-photo choice and textured mesh coverage.
+let frontCamera = RoomPhotoSet.Photo(file: "photo-001.jpg", transform: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,1.5,0,1],
+    intrinsics: [1000,0,0, 0,1000,0, 960,720,1], width: 1920, height: 1440, timestamp: 1)
+let projected = RoomPhotoProjection.project((0, 1.25, -2.5), photo: frontCamera)!
+precondition(abs(projected.u - 960) < 1e-9 && abs(projected.v - 820) < 1e-9 && abs(projected.depth - 2.5) < 1e-9)
+precondition(RoomPhotoProjection.project((0, 1.5, 1), photo: frontCamera) == nil, "points behind the camera are not visible")
+// A camera looking along the wall (grazing) loses against one facing it.
+let grazing = RoomPhotoSet.Photo(file: "photo-002.jpg", transform: [0,0,-1,0, 0,1,0,0, 1,0,0,0, 3,1.5,-2.3,1],
+    intrinsics: [1000,0,0, 0,1000,0, 960,720,1], width: 1920, height: 1440, timestamp: 2)
+let tile: [RoomPhotoProjection.Vec3] = [(-0.2, 1.0, -2.5), (0.2, 1.0, -2.5), (0.2, 1.4, -2.5), (-0.2, 1.4, -2.5)]
+let choice = RoomPhotoProjection.bestPhoto(corners: tile, normal: (0, 0, 1), photos: [grazing, frontCamera])!
+precondition(choice.photoIndex == 1 && choice.uv.allSatisfy { $0.allSatisfy { (0...1).contains($0) } })
+precondition(RoomPhotoProjection.bestPhoto(corners: tile, normal: (0, 0, 1), photos: [grazing]) == nil)
+precondition(RoomPhotoProjection.tiles(width: 1, height: 0.7, size: 0.35).count == 6)
+precondition(!RoomPhotoProjection.isNewView(frontCamera.transform, kept: [frontCamera.transform]))
+precondition(RoomPhotoProjection.isNewView(grazing.transform, kept: [frontCamera.transform]))
+let photoSet = RoomPhotoSet(photos: [frontCamera, grazing])
+try photoSet.validate()
+let decodedPhotoSet = try JSONDecoder().decode(RoomPhotoSet.self, from: JSONEncoder().encode(photoSet))
+precondition(decodedPhotoSet == photoSet)
+do { try RoomPhotoSet(photos: [RoomPhotoSet.Photo(file: "../x.jpg", transform: frontCamera.transform, intrinsics: frontCamera.intrinsics, width: 1, height: 1, timestamp: 0)]).validate(); preconditionFailure("unsafe file name") } catch RoomPhotoSet.ValidationError.invalid { }
+let photoMesh = RoomPhotoMesh.build(RoomPlanDocument(name: "Test", createdAt: "2026-10-13T00:00:00Z", roomId: "r", surfaces: summaryWalls + [summaryFloor]),
+    photos: [frontCamera], ceilingHeight: 2.5)
+precondition(photoMesh.totalTiles > 0 && photoMesh.coveredTiles > 0 && photoMesh.coveredTiles < photoMesh.totalTiles)
+precondition(abs(photoMesh.eye.y - 1.6) < 1e-9 && abs(photoMesh.eye.x) < 1e-9 && abs(photoMesh.eye.z) < 1e-9)
+precondition(photoMesh.buckets.allSatisfy { $0.positions.count / 3 * 2 == $0.uvs.count && $0.indices.count == $0.tiles * 6 })
+// Detected objects (for example stairs) round-trip and are validated.
+var withStairs = RoomPlanDocument(name: "Test", createdAt: "2026-10-13T00:00:00Z", roomId: "r", surfaces: summaryWalls)
+withStairs.objects = [.init(id: "s", category: "stairs", dimensions: [1.0, 2.8, 3.2], transform: summaryWalls[0].transform, confidence: "high")]
+try withStairs.validate()
+withStairs.objects = [.init(id: "s", category: "../x", dimensions: [1, 1, 1], transform: summaryWalls[0].transform, confidence: "high")]
+do { try withStairs.validate(); preconditionFailure("invalid object category") } catch RoomPlanDocument.ValidationError.invalidSurface { }
+print("Room photos: projection, best view, tiling, mesh coverage and detected objects checks passed")
+
+// Transport check: identical results to tools/scan-workspace/src/transport.js
+// (reference values computed with the JavaScript implementation).
+let fridge = TransportAssessment.Object(width: 0.6, depth: 0.66, height: 2.03)
+let wide = try TransportAssessment(object: fridge, route: .init(width: 0.9, ceiling: 2.1, landingWidth: 1.2, landingDepth: 1.2, rise: 0.18, run: 0.27, turnDegrees: 180), margin: 0.02, allowTilt: true)
+precondition(wide.verdict == .possible && wide.chosen.id == "upright" && abs(wide.chosen.minimumClearance - 0.03) < 1e-9)
+precondition(wide.reasons == ["upright_envelope_fits"] && wide.chosen.samples.count == 41)
+let tight = try TransportAssessment(object: fridge, route: .init(width: 0.8, ceiling: 2.4, landingWidth: 0.9, landingDepth: 0.9, rise: 0.18, run: 0.27, turnDegrees: 90), margin: 0.02)
+precondition(tight.verdict == .uncertain && tight.chosen.id == "upright" && abs(tight.chosen.minimumClearance + 0.031964125) < 1e-8)
+precondition(tight.reasons == ["no_tested_orientation_fits", "landing_requires_path_planning"] && tight.chosen.samples.count == 21)
+let narrow = try TransportAssessment(object: fridge, route: .init(width: 0.55, ceiling: 2.4, landingWidth: 2, landingDepth: 2, rise: 0, run: 1, turnDegrees: 0))
+precondition(narrow.verdict == .blocked && narrow.reasons == ["corridor_narrower_than_smallest_dimension"] && narrow.chosen.samples.count == 1)
+do { _ = try TransportAssessment(object: fridge, route: .init(width: .nan, ceiling: 2, landingWidth: 1, landingDepth: 1, rise: 0, run: 1, turnDegrees: 0)); preconditionFailure("NaN width") }
+catch TransportAssessment.InputError.invalid(let field) { precondition(field == "route.width") }
+func withStairsValid() -> RoomPlanDocument {
+    var document = RoomPlanDocument(name: "Stiegenhaus", createdAt: "2026-10-13T00:00:00Z", roomId: "r", surfaces: summaryWalls + [summaryDoor])
+    document.objects = [.init(id: "s", category: "stairs", dimensions: [1.0, 2.8, 3.2], transform: summaryWalls[0].transform, confidence: "high")]
+    return document
+}
+let scanSuggestions = TransportScanSuggestion.collect(from: [withStairsValid()])
+precondition(scanSuggestions.contains { $0.kind == .door && abs($0.width - 0.8) < 1e-9 })
+precondition(scanSuggestions.contains { $0.kind == .stairs && $0.width == 1.0 && $0.height == 2.8 && $0.length == 3.2 })
+precondition(scanSuggestions.contains { $0.kind == .roomHeight && abs($0.height - 2.5) < 1e-9 })
+print("Transport check: verdicts match the browser implementation; scan suggestions checks passed")
+
+// Openings are placed in the wall they belong to (wall-local coordinates).
+let placed = RoomPlanGeometry.openingsByWall(summaryWalls + [summaryFloor, summaryDoor, summaryWindow])
+precondition(placed[summaryWalls[0].id]?.count == 1 && placed[summaryWalls[1].id]?.count == 1 && placed[summaryWalls[2].id] == nil)
+let placedDoor = placed[summaryWalls[0].id]![0]
+precondition(placedDoor.kind == "door" && abs((placedDoor.x1 - placedDoor.x0) - 0.8) < 1e-6 && abs(placedDoor.y0 + 1.25) < 1e-6)
+print("Room geometry: opening placement checks passed")
+
+// Manual corrections: an opening marked as wall closes its wall (no duplicate),
+// corrections are validated and can be undone.
+var corrected = RoomPlanDocument(name: "Test", createdAt: "2026-10-13T00:00:00Z", roomId: "r", surfaces: summaryWalls + [summaryFloor, summaryDoor, summaryWindow])
+corrected.corrections = [summaryDoor.id: "wall", summaryWindow.id: "door"]
+try corrected.validate()
+let applied = corrected.applyingCorrections()
+precondition(applied.surfaces.count == 6 && !applied.surfaces.contains { $0.id == summaryDoor.id })
+precondition(applied.surfaces.first { $0.id == summaryWindow.id }?.kind == "door")
+let closedSummary = RoomPlanSummary(applied)
+precondition(near(closedSummary.netWallArea, 43.5) && closedSummary.doors == 1 && closedSummary.windows == 0)
+corrected.corrections = ["unknown-id": "wall"]
+do { try corrected.validate(); preconditionFailure("correction for unknown surface") } catch RoomPlanDocument.ValidationError.invalidSurface { }
+print("Room corrections: close opening, re-classify, validation checks passed")
+
+// Exports: DXF lines in metres on named layers; self-contained HTML.
+let exportRoom = RoomPlanDocument(name: "Test", createdAt: "2026-10-13T00:00:00Z", roomId: "r", surfaces: summaryWalls + [summaryFloor, summaryDoor, summaryWindow])
+let dxf = RoomExport.dxf(exportRoom)
+precondition(dxf.hasPrefix("0\nSECTION") && dxf.hasSuffix("0\nEOF\n") && dxf.contains("$INSUNITS\n70\n6"))
+precondition(dxf.components(separatedBy: "0\nLINE\n8\nKANTURA_WALLS\n").count - 1 == 4)
+precondition(dxf.contains("4.00 m") && dxf.contains("5.00 m") && dxf.contains("KANTURA_OPENINGS"))
+let exportPlan = RoomExport.plan(exportRoom)
+precondition(exportPlan.walls.count == 4 && exportPlan.openings.count == 2 && abs(exportPlan.floorY) < 1e-9)
+precondition(exportPlan.openings.allSatisfy { $0.bottom >= -1e-6 && $0.top <= 2.5 + 1e-6 })
+let html = RoomExport.html(exportRoom, photos: [(name: "photo-001.jpg", jpeg: Data([0xFF, 0xD8, 0xFF]))])
+precondition(html.hasPrefix("<!doctype html>") && html.contains("<svg") && html.contains("canvas") && html.contains("data:image/jpeg;base64,/9j/"))
+precondition(!html.contains("http://") || html.contains("xmlns=\"http://www.w3.org/2000/svg\""))
+precondition(!html.contains("<script src"), "the HTML file must work offline")
+print("Room exports: DXF layers/units and offline HTML checks passed")
+
+// Room extras: markers and furniture round-trip; layout conflicts.
+var extras = RoomExtras()
+extras.markers.append(.init(id: "m1", kind: "defect", title: "Riss", detail: "Über der Tür", status: "open", assignee: "Baumeister",
+                            position: [0, 1.5, -2.4], photo: "markers/m1.jpg", createdAt: "2026-10-13T00:00:00Z", updatedAt: "2026-10-13T00:00:00Z"))
+// A 1 × 0.5 m table in the middle of the 4 × 5 m test room: no conflict.
+let table = RoomExtras.Furniture(id: "t1", name: "Table", manufacturer: "", category: "table", width: 1, depth: 0.5, height: 0.75, x: 0, z: 0, rotation: 0, catalog: nil, url: nil, model: nil)
+extras.furniture.append(table)
+try extras.validate()
+let extrasFolder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+try FileManager.default.createDirectory(at: extrasFolder, withIntermediateDirectories: true)
+try extras.write(to: extrasFolder)
+precondition(RoomExtras.load(from: extrasFolder) == extras)
+var badExtras = extras
+badExtras.markers[0].photo = "../escape.jpg"
+do { try badExtras.validate(); preconditionFailure("unsafe marker photo path") } catch RoomExtras.ValidationError.invalid { }
+let layoutRoom = RoomPlanDocument(name: "Test", createdAt: "2026-10-13T00:00:00Z", roomId: "r", surfaces: summaryWalls + [summaryFloor, summaryDoor])
+precondition(FurnitureLayout.conflicts(of: table, in: layoutRoom, others: []).isEmpty)
+// Pushed through the wall at z = −2.5 (but not in front of the door at x 0.1…0.9): hits a wall.
+var intoWall = table; intoWall.x = -1.2; intoWall.z = -2.4
+precondition(FurnitureLayout.conflicts(of: intoWall, in: layoutRoom, others: []).walls == 1)
+// In front of the door (door 0.8 m wide → 0.8 m swing zone): blocks the door.
+var blocking = table; blocking.x = 0.5; blocking.z = -2.0
+let doorConflict = FurnitureLayout.conflicts(of: blocking, in: layoutRoom, others: [])
+precondition(doorConflict.doors == 1 && doorConflict.walls == 0)
+// Rotated 90°: corners swap width and depth.
+var turned = table; turned.id = "t2"; turned.rotation = .pi / 2
+let turnedCorners = FurnitureLayout.corners(turned)
+precondition(abs(turnedCorners.map { $0.x }.max()! - 0.25) < 1e-9 && abs(turnedCorners.map { $0.z }.max()! - 0.5) < 1e-9)
+precondition(FurnitureLayout.conflicts(of: table, in: layoutRoom, others: [turned]).furniture == 1)
+try FurnitureCatalog.builtIn.validate()
+let catalogJSON = #"{"format":"kantura-furniture-catalog","version":1,"name":"Test","publisher":"Me","items":[{"id":"a","name":"Sofa","manufacturer":"X","category":"sofa","width":2,"depth":0.9,"height":0.8,"model":"http://insecure"}]}"#
+let insecure = try JSONDecoder().decode(FurnitureCatalog.self, from: Data(catalogJSON.utf8))
+do { try insecure.validate(); preconditionFailure("only https model links") } catch FurnitureCatalog.ValidationError.invalid { }
+let seen = RoomPhotoProjection.bestPhoto(showing: (0, 1.25, -2.5), photos: [grazing, frontCamera])
+precondition(seen?.index == 1 && abs(seen!.u - 960) < 1e-9)
+print("Room extras: markers, furniture, layout conflicts, catalogue validation checks passed")
+
+// Photo round guidance: wall coverage and direction to the next wall.
+let coverage = RoomPhotoCoverage.walls(RoomPlanDocument(name: "T", createdAt: "2026-10-13T00:00:00Z", roomId: "r", surfaces: summaryWalls), photos: [frontCamera])
+precondition(coverage.count == 4 && coverage[0].fraction > 0.5 && coverage[2].fraction == 0)
+// Camera at y 1.5 looking along −z: wall at −z is ahead, +z behind, +x right, −x left.
+precondition(RoomPhotoCoverage.direction(to: (x: 0, y: 1, z: -3), camera: frontCamera.transform) == .ahead)
+precondition(RoomPhotoCoverage.direction(to: (x: 0, y: 1, z: 3), camera: frontCamera.transform) == .behind)
+precondition(RoomPhotoCoverage.direction(to: (x: 3, y: 1, z: 0), camera: frontCamera.transform) == .right)
+precondition(RoomPhotoCoverage.direction(to: (x: -3, y: 1, z: 0), camera: frontCamera.transform) == .left)
+print("Photo round: coverage and direction checks passed")
+
+// Release (-O) builds drop precondition messages; print them before trapping.
+func check(_ condition: Bool, _ message: @autoclosure () -> String = "", file: StaticString = #file, line: UInt = #line) {
+    if !condition { print("FAILED line \(line): \(message())"); fflush(stdout); preconditionFailure(message(), file: file, line: line) }
+}
+// Library labels: rename and assign to an apartment/floor.
+check(LibraryLabels.building(room: "Büro", apartment: " ", floor: "") == nil)
+let labelled = LibraryLabels.building(room: "Büro", apartment: "Top 4", floor: "")!
+check(labelled.name == "Top 4" && labelled.floor == LibraryLabels.placeholder && labelled.room == "Büro")
+check(LibraryLabels.group(labelled) == "Top 4" && LibraryLabels.group(nil) == "")
+print("Library labels checks passed")
+
+// Stair scans: synthetic straight flight (12 risers 0.18/0.27) between two landings,
+// side walls, a soffit parallel to the flight and flat ceilings 2.6 m high.
+func syntheticStair(width: Double, soffit: Double, spacing sp: Double = 0.04) -> (StairMesh, [StairVec]) {
+    let steps = 12, rise = 0.18, run = 0.27, flat = 1.5
+    func floorAt(_ u: Double) -> Double {
+        if u < flat { return 0 }
+        let k = Int((u - flat) / run) + 1
+        return k > steps ? -Double(steps) * rise : -Double(k) * rise
+    }
+    func ceilingAt(_ u: Double) -> Double {
+        let end = flat + Double(steps - 1) * run
+        if u < flat { return 2.6 }
+        if u > end { return -Double(steps) * rise + 2.6 }
+        return min(2.6, -(u - flat) / run * rise + soffit)
+    }
+    var mesh = StairMesh()
+    var noise: UInt64 = 42
+    func jitter() -> Float { noise = noise &* 6364136223846793005 &+ 1442695040888963407; return Float(Double(noise >> 33) / Double(1 << 31) - 0.5) * 0.02 }
+    func add(_ x: Double, _ y: Double, _ z: Double, _ n: (Float, Float, Float)) {
+        mesh.positions += [Float(x) + jitter(), Float(y) + jitter(), Float(z) + jitter()]
+        mesh.normals += [n.0, n.1, n.2]
+    }
+    let total = flat * 2 + Double(steps) * run
+    var u = 0.0
+    while u <= total {
+        let f = floorAt(u), c = ceilingAt(u)
+        var x = -width / 2
+        while x <= width / 2 { add(x, f, -u, (0, 1, 0)); add(x, c, -u, (0, -1, 0)); x += sp }
+        var y = f
+        while y <= c { add(-width / 2, y, -u, (1, 0, 0)); add(width / 2, y, -u, (-1, 0, 0)); y += sp }
+        u += sp
+    }
+    for k in 1...steps {
+        let z = -(flat + Double(k - 1) * run)
+        var y = -Double(k - 1) * rise
+        while y >= -Double(k) * rise {
+            var x = -width / 2
+            while x <= width / 2 { add(x, y, z, (0, 0, -1)); x += sp }
+            y -= sp
+        }
+    }
+    var path: [StairVec] = []
+    u = 0
+    while u <= total { path.append(StairVec(0.12 + 0.02 * sin(u * 7), floorAt(u) + 1.45, -u)); u += 0.05 }
+    return (mesh, path)
+}
+let (stairMesh, stairPath) = syntheticStair(width: 0.9, soffit: 2.2)
+let stairProfile = try StairAnalyzer.analyze(mesh: stairMesh, path: stairPath)
+check(stairProfile.risers == 12, "risers \(stairProfile.risers)")
+check(abs(stairProfile.riser! - 0.18) < 0.025 && abs(stairProfile.going! - 0.27) < 0.035, "riser \(stairProfile.riser!) going \(stairProfile.going!)")
+check(abs(stairProfile.drop - 2.16) < 0.06, "drop \(stairProfile.drop)")
+check(abs(stairProfile.minWidth! - 0.9) < 0.07, "width \(stairProfile.minWidth!)")
+check(abs(stairProfile.turnDegrees) < 12 && abs(stairProfile.slopeDegrees! - 33.7) < 6, "turn \(stairProfile.turnDegrees) slope \(stairProfile.slopeDegrees!)")
+check(stairProfile.minHeadroom! > 1.9 && stairProfile.minHeadroom! < 2.45, "headroom \(stairProfile.minHeadroom!)")
+// Mesh file round trip and cropping.
+let reread = try StairMesh(data: stairMesh.encoded())
+check(reread == stairMesh)
+let tri = StairMesh(positions: [0, 0, 0, 1, 0, 0, 0, 0, 1, 9, 0, 9], normals: [Float](repeating: 0, count: 12), faces: [0, 1, 2, 1, 2, 3])
+let croppedTri = tri.cropped(near: [StairVec(0, 1.5, 0)], radius: 2)
+check(croppedTri.vertexCount == 3 && croppedTri.faces == [0, 1, 2])
+check(tri.obj().contains("f 1//1 2//2 3//3"))
+// A 0.60 × 0.66 × 2.03 m fridge goes down the 0.9 m flight tilted, not upright.
+let fridgeCheck = StairTransport(profile: stairProfile, mesh: stairMesh, object: .init(width: 0.60, depth: 0.66, height: 2.03), stride: 4)!
+check(fridgeCheck.verdict != .blocked, "fridge \(fridgeCheck.verdict) \(fridgeCheck.worst.clearance) at \(fridgeCheck.worst.distance)")
+check(fridgeCheck.handlings.contains(.tilted) || fridgeCheck.handlings.contains(.tiltedSideways))
+// Same fridge, 0.55 m wide staircase: blocked by the side walls.
+let (narrowMesh, narrowPath) = syntheticStair(width: 0.55, soffit: 2.2)
+let narrowProfile = try StairAnalyzer.analyze(mesh: narrowMesh, path: narrowPath)
+check(abs(narrowProfile.minWidth! - 0.55) < 0.07, "narrow width \(narrowProfile.minWidth!)")
+let narrowCheck = StairTransport(profile: narrowProfile, mesh: narrowMesh, object: .init(width: 0.60, depth: 0.66, height: 2.03), stride: 4)!
+check(narrowCheck.verdict == .blocked && narrowCheck.worst.limit == .side, "narrow \(narrowCheck.verdict) \(narrowCheck.worst.limit)")
+// Document validation.
+var stairDocument = StairScanDocument(name: "Treppe", createdAt: "2026-10-13T00:00:00Z", id: "s1", building: labelled, path: stairPath.map(\.array), profile: stairProfile)
+try stairDocument.validate()
+stairDocument.path.append([1, 2])
+do { try stairDocument.validate(); preconditionFailure("path points need x, y, z") } catch StairScanDocument.ValidationError.invalid { }
+print("Stair scan: profile, mesh file and appliance path checks passed")
+
+// Building elements snap to walls (room x −2…2, z −2.5…2.5, 2.5 m high).
+let beam = StructuralPlacement.make("beam", at: (0.5, -1.8), document: layoutRoom, ceiling: 2.5, name: "Beam")!
+check(abs(beam.width - 5) < 1e-6 && abs(beam.x - 0.5) < 1e-6 && abs(beam.z) < 1e-6 && abs(beam.bottom - 2.2) < 1e-9, "beam \(beam)")
+let beamCorners = FurnitureLayout.corners(beam)
+check(abs(beamCorners.map { $0.z }.max()! - 2.5) < 1e-6 && abs(beamCorners.map { $0.x }.max()! - 0.625) < 1e-6)
+let bulkhead = StructuralPlacement.make("bulkhead", at: (1.7, 0.3), document: layoutRoom, ceiling: 2.5, name: "Bulkhead")!
+check(abs(bulkhead.width - 5) < 1e-6 && abs(bulkhead.x - 1.85) < 1e-6 && abs(bulkhead.z) < 1e-6 && abs(bulkhead.bottom - 2.25) < 1e-9, "bulkhead \(bulkhead)")
+let pillar = StructuralPlacement.make("column", at: (-1.8, 1.0), document: layoutRoom, ceiling: 2.5, name: "Column")!
+check(abs(pillar.x + 1.85) < 1e-6 && abs(pillar.z - 1) < 1e-6 && pillar.bottom == 0 && pillar.height == 2.5)
+check(FurnitureLayout.conflicts(of: beam, in: layoutRoom, others: []).isEmpty)
+check(FurnitureLayout.conflicts(of: pillar, in: layoutRoom, others: []).isEmpty)
+var underBeam = table; underBeam.x = 0.5
+check(FurnitureLayout.conflicts(of: underBeam, in: layoutRoom, others: [beam]).furniture == 0)
+var wardrobe = table; wardrobe.id = "w9"; wardrobe.x = 0.5; wardrobe.height = 2.3
+check(FurnitureLayout.conflicts(of: wardrobe, in: layoutRoom, others: [beam]).furniture == 1)
+check(FurnitureLayout.conflicts(of: beam, in: layoutRoom, others: [wardrobe]).furniture == 1)
+var withElements = RoomExtras()
+withElements.furniture = [beam, pillar]
+try withElements.validate()
+withElements.furniture[0].structural = "wall"
+do { try withElements.validate(); preconditionFailure("unknown element kind") } catch RoomExtras.ValidationError.invalid { }
+let elementDXF = RoomExport.dxf(layoutRoom, labels: .init(), extras: RoomExtras(markers: [], furniture: [beam]))
+check(elementDXF.contains("KANTURA_STRUCTURE") && elementDXF.contains("UK +2.2000"))
+print("Building elements: placement, clearance and conflicts checks passed")
+
+// LiDAR suggestions: a 30 cm deep beam across the 4 × 5 m room, ceiling 2.5 m.
+var beamMesh = StairMesh()
+for xi in stride(from: -1.95, through: 1.95, by: 0.05) {
+    for zi in stride(from: -2.45, through: 2.45, by: 0.05) {
+        let underBeam = xi >= 0.4 && xi <= 0.65
+        beamMesh.positions += [Float(xi), Float(underBeam ? 2.2 : 2.5), Float(zi)]
+        beamMesh.normals += [0, -1, 0]
+        beamMesh.positions += [Float(xi), 0, Float(zi)]
+        beamMesh.normals += [0, 1, 0]
+    }
+}
+let found = StructuralDetection.suggest(mesh: beamMesh, document: layoutRoom, floorY: 0, ceiling: 2.5)
+let downward = (0..<beamMesh.vertexCount).filter { beamMesh.normalY($0) < -0.7 && beamMesh.position($0).y < 2.42 }.count
+let detectionWalls = StructuralPlacement.walls(layoutRoom)
+check(found.count == 1, "suggestions \(found.count), vertices \(beamMesh.vertexCount), under beam \(downward), walls \(detectionWalls.count), stats \(StructuralDetection.lastStats)")
+check(found[0].structural == "beam" && abs(found[0].height - 0.3) < 0.02 && abs(found[0].bottom - 2.2) < 0.02, "beam \(found[0])")
+check(found[0].width > 4.5 && found[0].depth > 0.2 && found[0].depth < 0.45 && abs(found[0].x - 0.525) < 0.08, "beam size \(found[0])")
+check(StructuralDetection.suggest(mesh: StairMesh(), document: layoutRoom, floorY: 0, ceiling: 2.5).isEmpty)
+print("LiDAR element suggestions checks passed")
+
+// A messy real-world walk: looking around at the top and bottom, swinging the phone
+// sideways, stepping back now and then. The result must still be the clean stair.
+var messyPath: [StairVec] = []
+let topPoint = stairPath[0], bottomPoint = stairPath[stairPath.count - 1]
+for t in 0..<60 { messyPath.append(StairVec(topPoint.x + 0.8 * sin(Double(t) / 6), topPoint.y, topPoint.z + 0.6 * sin(Double(t) / 9))) }
+for (index, p) in stairPath.enumerated() {
+    messyPath.append(StairVec(p.x + 0.15 * sin(Double(index) / 3), p.y + 0.05 * sin(Double(index) / 2), p.z))
+    if index % 40 == 20 {
+        for b in 0..<6 { messyPath.append(StairVec(p.x, p.y, p.z + 0.05 * Double(b))) }
+        for b in 0..<6 { messyPath.append(StairVec(p.x, p.y, p.z + 0.05 * Double(5 - b))) }
+    }
+}
+for t in 0..<80 { messyPath.append(StairVec(bottomPoint.x + sin(Double(t) / 7), bottomPoint.y, bottomPoint.z - 0.8 * abs(sin(Double(t) / 11)))) }
+let messyProfile = try StairAnalyzer.analyze(mesh: stairMesh, path: messyPath)
+check(messyProfile.risers == 12, "messy risers \(messyProfile.risers)")
+check(abs(messyProfile.turnDegrees) < 10, "messy turn \(messyProfile.turnDegrees)")
+check(abs(messyProfile.minWidth! - 0.9) < 0.07, "messy width \(messyProfile.minWidth!)")
+check(abs(messyProfile.going! - 0.27) < 0.04 && messyProfile.length < 9, "messy going \(messyProfile.going!) length \(messyProfile.length)")
+check(messyProfile.analysis == StairAnalyzer.version)
+print("Stair scan: messy walk checks passed")

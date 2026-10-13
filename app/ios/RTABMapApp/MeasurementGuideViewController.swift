@@ -302,7 +302,7 @@ final class MeasurementGuideViewController: UIViewController {
     }
 }
 
-private final class KanturaLanguageViewController: UITableViewController {
+final class KanturaLanguageViewController: UITableViewController {
     var onSelection: ((String) -> Void)?
 
     override func viewDidLoad() {
