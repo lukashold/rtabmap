@@ -25,6 +25,15 @@ final class RoomWalkthroughViewController: UIViewController, UIGestureRecognizer
     // Content groups switched per mode.
     private let solid = SCNNode(), photoTiles = SCNNode(), plainCeiling = SCNNode()
     private let planMarks = SCNNode(), modelLabels = SCNNode(), insideLabels = SCNNode()
+    private let photoCeiling = SCNNode(), markerPins = SCNNode(), furnitureNodes = SCNNode()
+    private var extras = RoomExtras()
+    private var folder: URL { room.jsonURL.deletingLastPathComponent() }
+    private enum Placing { case none, marker }
+    private var placing = Placing.none
+    private var movingFurniture: String?
+    private var startFurniture = (x: 0.0, z: 0.0)
+    private let photosButton = UIButton(type: .system)
+    private var photosOn = true
     /// Everything that turns with the two-finger rotation, pivoting on the room centre.
     private let world = SCNNode()
     private var startRotation: Float = 0
@@ -80,7 +89,20 @@ final class RoomWalkthroughViewController: UIViewController, UIGestureRecognizer
         measures.contentEdgeInsets = UIEdgeInsets(top: 8, left: 12, bottom: 8, right: 14)
         measures.accessibilityTraits.insert(.selected)
         measures.addAction(UIAction { [weak self] _ in self?.toggleMeasures() }, for: .touchUpInside)
-        let controls = UIStackView(arrangedSubviews: [mode, measures])
+        photosButton.setImage(UIImage(systemName: "photo"), for: .normal)
+        photosButton.tintColor = KanturaDesign.ink
+        photosButton.backgroundColor = KanturaDesign.mint
+        photosButton.layer.cornerRadius = 16
+        photosButton.contentEdgeInsets = UIEdgeInsets(top: 8, left: 12, bottom: 8, right: 12)
+        photosButton.accessibilityLabel = text("photosToggle")
+        photosButton.isHidden = photos == nil
+        photosButton.addAction(UIAction { [weak self] _ in
+            guard let self = self else { return }
+            self.photosOn.toggle()
+            self.photosButton.backgroundColor = self.photosOn ? KanturaDesign.mint : KanturaDesign.surface
+            self.applyMode()
+        }, for: .touchUpInside)
+        let controls = UIStackView(arrangedSubviews: [mode, measures, photosButton])
         controls.spacing = 10
         controls.translatesAutoresizingMaskIntoConstraints = false
         status.translatesAutoresizingMaskIntoConstraints = false
@@ -116,13 +138,24 @@ final class RoomWalkthroughViewController: UIViewController, UIGestureRecognizer
         planGestures = [planPan, planPinch]
         let export = UIBarButtonItem(image: UIImage(systemName: "square.and.arrow.up"), style: .plain, target: self, action: #selector(openExport))
         export.accessibilityLabel = text("export")
-        navigationItem.rightBarButtonItem = export
+        let add = UIBarButtonItem(title: nil, image: UIImage(systemName: "plus.circle"), primaryAction: nil, menu: UIMenu(children: [
+            UIAction(title: text("markerAdd"), image: UIImage(systemName: "mappin.and.ellipse")) { [weak self] _ in self?.startMarker() },
+            UIAction(title: text("furnitureAdd"), image: UIImage(systemName: "sofa")) { [weak self] _ in self?.chooseFurniture() },
+            UIAction(title: text("markers"), image: UIImage(systemName: "list.bullet")) { [weak self] _ in self?.showMarkerList() }
+        ]))
+        add.accessibilityLabel = text("markerAdd")
+        navigationItem.rightBarButtonItems = [export, add]
+        // Press and hold: the original photo that shows that spot.
+        let hold = UILongPressGestureRecognizer(target: self, action: #selector(showOriginalPhoto(_:)))
+        sceneView.addGestureRecognizer(hold)
         status.isHidden = true
 
         buildContent()
         buildCameras()
         scene.rootNode.addChildNode(world)
-        [solid, plainCeiling, photoTiles, planMarks, modelLabels, insideLabels].forEach { world.addChildNode($0) }
+        [solid, plainCeiling, photoTiles, photoCeiling, planMarks, modelLabels, insideLabels, markerPins, furnitureNodes].forEach { world.addChildNode($0) }
+        extras = RoomExtras.load(from: folder)
+        buildExtras()
         alignToLongestWall()
         addLights()
         applyMode()
@@ -165,9 +198,19 @@ final class RoomWalkthroughViewController: UIViewController, UIGestureRecognizer
 
     @objc private func movePlan(_ gesture: UIPanGestureRecognizer) {
         guard let camera = planCamera.camera else { return }
-        if gesture.state == .began { startPan = planCamera.position }
         let t = gesture.translation(in: sceneView)
         let metresPerPoint = Float(camera.orthographicScale * 2) / Float(max(1, sceneView.bounds.height))
+        if let id = movingFurniture, let index = extras.furniture.firstIndex(where: { $0.id == id }) {
+            // Screen motion → room coordinates (the room may be turned).
+            if gesture.state == .began { startFurniture = (extras.furniture[index].x, extras.furniture[index].z) }
+            let delta = world.convertVector(SCNVector3(Float(t.x) * metresPerPoint, 0, Float(t.y) * metresPerPoint), from: nil)
+            extras.furniture[index].x = startFurniture.x + Double(delta.x)
+            extras.furniture[index].z = startFurniture.z + Double(delta.z)
+            buildFurniture()
+            if gesture.state == .ended { saveExtras() }
+            return
+        }
+        if gesture.state == .began { startPan = planCamera.position }
         planCamera.position = SCNVector3(startPan.x - Float(t.x) * metresPerPoint, startPan.y, startPan.z - Float(t.y) * metresPerPoint)
     }
 
@@ -184,13 +227,33 @@ final class RoomWalkthroughViewController: UIViewController, UIGestureRecognizer
     // MARK: Corrections
 
     @objc private func pickSurface(_ gesture: UITapGestureRecognizer) {
-        guard presentedViewController == nil, Mode(rawValue: mode.selectedSegmentIndex) != .inside else { return }
+        guard presentedViewController == nil else { return }
         let hits = sceneView.hitTest(gesture.location(in: sceneView), options: [.searchMode: SCNHitTestSearchMode.all.rawValue, .ignoreHiddenNodes: true])
-        guard let name = hits.lazy.compactMap({ hit -> String? in
-            var node: SCNNode? = hit.node
-            while let current = node { if let n = current.name, n.hasPrefix("surface:") { return n } ; node = current.parent }
-            return nil
-        }).first else { return }
+        if placing == .marker {
+            // First real surface under the finger (labels and pins are skipped).
+            guard let hit = hits.first(where: { hit in
+                var node: SCNNode? = hit.node
+                while let current = node { if current === solid || current === photoTiles || current === photoCeiling || current === plainCeiling { return true }; node = current.parent }
+                return false
+            }) else { return }
+            placing = .none
+            status.isHidden = true
+            let p = world.convertPosition(hit.worldCoordinates, from: nil)
+            editMarker(RoomExtras.Marker(id: RoomExtras.newID(), kind: "defect", title: "", detail: "", status: "open", assignee: "",
+                                         position: [Double(p.x), Double(p.y), Double(p.z)], photo: nil, createdAt: RoomExtras.now(), updatedAt: RoomExtras.now()), isNew: true)
+            return
+        }
+        func named(_ prefix: String) -> String? {
+            hits.lazy.compactMap({ hit -> String? in
+                var node: SCNNode? = hit.node
+                while let current = node { if let n = current.name, n.hasPrefix(prefix) { return String(n.dropFirst(prefix.count)) }; node = current.parent }
+                return nil
+            }).first
+        }
+        if let id = named("marker:"), let marker = extras.markers.first(where: { $0.id == id }) { editMarker(marker, isNew: false); return }
+        if let id = named("furniture:") { furnitureActions(id, at: gesture.location(in: sceneView)); return }
+        guard Mode(rawValue: mode.selectedSegmentIndex) != .inside, let surfaceID = named("surface:") else { return }
+        let name = "surface:" + surfaceID
         let id = String(name.dropFirst("surface:".count))
         guard let surface = room.original.surfaces.first(where: { $0.id == id }) else { return }
         let current = room.original.corrections?[id] ?? surface.kind
@@ -213,6 +276,7 @@ final class RoomWalkthroughViewController: UIViewController, UIGestureRecognizer
             summary = RoomPlanSummary(room.document)
             let rotation = world.eulerAngles.y
             buildContent()
+            buildExtras()
             world.eulerAngles.y = rotation
             orientPlanLabels()
             applyMode()
@@ -223,6 +287,173 @@ final class RoomWalkthroughViewController: UIViewController, UIGestureRecognizer
             alert.addAction(UIAlertAction(title: MeasurementGuide.roomText("close"), style: .default))
             present(alert, animated: true)
         }
+    }
+
+    // MARK: Markers and furniture
+
+    private func saveExtras() {
+        do { try extras.write(to: folder) } catch {
+            let alert = UIAlertController(title: MeasurementGuide.roomText("exportFailed"), message: nil, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: MeasurementGuide.roomText("close"), style: .default))
+            present(alert, animated: true)
+        }
+        NotificationCenter.default.post(name: SavedRoomViewController.changed, object: room)
+    }
+
+    private func buildExtras() { buildMarkers(); buildFurniture() }
+
+    private func buildMarkers() {
+        markerPins.childNodes.forEach { $0.removeFromParentNode() }
+        for (index, m) in extras.markers.enumerated() {
+            let symbol = m.kind == "defect" ? "⚠︎" : m.kind == "question" ? "?" : m.kind == "idea" ? "✦" : "↔"
+            let pin = pill("\(symbol) \(index + 1) " + String(m.title.prefix(24)) + (m.status == "done" ? " ✓" : ""), color: MarkerStyle.color(m.kind).withAlphaComponent(m.status == "done" ? 0.55 : 1),
+                           size: max(0.12, CGFloat(extent) * 0.026))
+            pin.position = SCNVector3(Float(m.position[0]), Float(m.position[1]), Float(m.position[2]))
+            pin.name = "marker:" + m.id
+            markerPins.addChildNode(billboard(pin))
+        }
+    }
+
+    private func buildFurniture() {
+        furnitureNodes.childNodes.forEach { $0.removeFromParentNode() }
+        var blocked: [String] = []
+        for f in extras.furniture {
+            let conflicts = FurnitureLayout.conflicts(of: f, in: room.document, others: extras.furniture)
+            let color: UIColor = conflicts.isEmpty ? (f.id == movingFurniture ? KanturaDesign.mint : UIColor(red: 0.55, green: 0.47, blue: 0.75, alpha: 1)) : .systemRed
+            let box = SCNBox(width: CGFloat(f.width), height: CGFloat(f.height), length: CGFloat(f.depth), chamferRadius: 0.02)
+            box.materials = [material(color.withAlphaComponent(0.85))]
+            let node = SCNNode(geometry: box)
+            node.name = "furniture:" + f.id
+            node.position = SCNVector3(Float(f.x), Float(floorY + f.height / 2), Float(f.z))
+            node.eulerAngles.y = Float(f.rotation)
+            // Front marker: a thin strip on the front face.
+            let front = SCNNode(geometry: SCNBox(width: CGFloat(f.width) * 0.8, height: 0.03, length: 0.01, chamferRadius: 0))
+            front.geometry?.materials = [material(.white, lit: false)]
+            front.position = SCNVector3(0, Float(f.height / 2) - 0.05, Float(f.depth / 2) + 0.006)
+            node.addChildNode(front)
+            let label = pill(f.name + " · " + length(f.width) + " × " + length(f.depth), color: color, size: max(0.09, CGFloat(extent) * 0.02))
+            label.position = SCNVector3(0, Float(f.height / 2) + 0.12, 0)
+            node.addChildNode(billboard(label))
+            furnitureNodes.addChildNode(node)
+            if !conflicts.isEmpty {
+                var parts: [String] = []
+                if conflicts.walls > 0 { parts.append(text("conflictWall")) }
+                if conflicts.doors > 0 { parts.append(text("conflictDoor")) }
+                if conflicts.furniture > 0 { parts.append(text("conflictFurniture")) }
+                blocked.append(f.name + ": " + parts.joined(separator: ", "))
+            }
+        }
+        if movingFurniture != nil || !blocked.isEmpty {
+            status.isHidden = false
+            status.alpha = 1
+            status.label.text = blocked.isEmpty ? text("furnitureMoveHint") : blocked.joined(separator: "\n")
+        }
+    }
+
+    private func startMarker() {
+        placing = .marker
+        status.isHidden = false
+        status.alpha = 1
+        status.label.text = text("markerPlaceHint")
+    }
+
+    private func editMarker(_ marker: RoomExtras.Marker, isNew: Bool) {
+        let editor = MarkerEditorViewController(marker: marker, folder: folder, isNew: isNew)
+        editor.onSave = { [weak self] saved in
+            guard let self = self else { return }
+            if let i = self.extras.markers.firstIndex(where: { $0.id == saved.id }) { self.extras.markers[i] = saved } else { self.extras.markers.append(saved) }
+            self.saveExtras(); self.buildMarkers()
+        }
+        editor.onDelete = { [weak self] in
+            guard let self = self else { return }
+            self.extras.markers.removeAll { $0.id == marker.id }
+            self.saveExtras(); self.buildMarkers()
+        }
+        present(UINavigationController(rootViewController: editor), animated: true)
+    }
+
+    private func showMarkerList() {
+        let list = MarkerListViewController(folder: folder)
+        list.onChange = { [weak self] updated in self?.extras = updated; self?.buildMarkers() }
+        navigationController?.pushViewController(list, animated: true)
+    }
+
+    private func chooseFurniture() {
+        let catalog = FurnitureCatalogViewController(style: .insetGrouped)
+        catalog.onPick = { [weak self] item, catalogName in
+            guard let self = self else { return }
+            let piece = RoomExtras.Furniture(id: RoomExtras.newID(), name: item.manufacturer.isEmpty ? item.name : item.manufacturer + " " + item.name,
+                                             manufacturer: item.manufacturer, category: item.category, width: item.width, depth: item.depth, height: item.height,
+                                             x: self.centre.x, z: self.centre.z, rotation: Double(-self.world.eulerAngles.y), catalog: catalogName, url: item.url, model: item.model)
+            self.extras.furniture.append(piece)
+            self.saveExtras()
+            // Place in the plan and let the user drag it into position.
+            self.mode.selectedSegmentIndex = Mode.plan.rawValue
+            self.movingFurniture = piece.id
+            self.applyMode()
+            self.buildFurniture()
+            self.showDoneMoving()
+        }
+        present(UINavigationController(rootViewController: catalog), animated: true)
+    }
+
+    private func showDoneMoving() {
+        let done = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(finishMoving))
+        navigationItem.leftBarButtonItem = done
+    }
+
+    @objc private func finishMoving() {
+        movingFurniture = nil
+        navigationItem.leftBarButtonItem = nil
+        saveExtras()
+        buildFurniture()
+        if status.label.text == text("furnitureMoveHint") { status.isHidden = true }
+    }
+
+    private func furnitureActions(_ id: String, at point: CGPoint) {
+        guard let index = extras.furniture.firstIndex(where: { $0.id == id }) else { return }
+        let f = extras.furniture[index]
+        let sheet = UIAlertController(title: f.name, message: length(f.width) + " × " + length(f.depth) + " × " + length(f.height) + (f.catalog.map { " · " + $0 } ?? ""), preferredStyle: .actionSheet)
+        sheet.addAction(UIAlertAction(title: text("furnitureMove"), style: .default) { [weak self] _ in
+            guard let self = self else { return }
+            self.mode.selectedSegmentIndex = Mode.plan.rawValue
+            self.movingFurniture = id
+            self.applyMode(); self.buildFurniture(); self.showDoneMoving()
+        })
+        for (key, angle) in [("furnitureTurn90", Double.pi / 2), ("furnitureTurn15", Double.pi / 12)] {
+            sheet.addAction(UIAlertAction(title: text(key), style: .default) { [weak self] _ in
+                guard let self = self, let i = self.extras.furniture.firstIndex(where: { $0.id == id }) else { return }
+                self.extras.furniture[i].rotation += angle
+                self.saveExtras(); self.buildFurniture()
+            })
+        }
+        if let link = f.url, let url = URL(string: link), url.scheme == "https" {
+            sheet.addAction(UIAlertAction(title: text("furnitureProduct"), style: .default) { _ in UIApplication.shared.open(url) })
+        }
+        sheet.addAction(UIAlertAction(title: text("removeSurface"), style: .destructive) { [weak self] _ in
+            guard let self = self else { return }
+            self.extras.furniture.removeAll { $0.id == id }
+            if self.movingFurniture == id { self.finishMoving() }
+            self.saveExtras(); self.buildFurniture()
+        })
+        sheet.addAction(UIAlertAction(title: text("cancel"), style: .cancel))
+        sheet.popoverPresentationController?.sourceView = sceneView
+        sheet.popoverPresentationController?.sourceRect = CGRect(origin: point, size: CGSize(width: 1, height: 1))
+        present(sheet, animated: true)
+    }
+
+    @objc private func showOriginalPhoto(_ gesture: UILongPressGestureRecognizer) {
+        guard gesture.state == .began, presentedViewController == nil, let set = photos?.photos else { return }
+        let hits = sceneView.hitTest(gesture.location(in: sceneView), options: [.searchMode: SCNHitTestSearchMode.closest.rawValue, .ignoreHiddenNodes: true])
+        guard let hit = hits.first else { return }
+        let p = world.convertPosition(hit.worldCoordinates, from: nil)
+        guard let best = RoomPhotoProjection.bestPhoto(showing: (Double(p.x), Double(p.y), Double(p.z)), photos: set) else {
+            status.isHidden = false; status.alpha = 1; status.label.text = text("photoNone"); return
+        }
+        let viewer = RoomPhotoViewController(url: photoDirectory.appendingPathComponent(set[best.index].file), u: best.u, v: best.v)
+        let nav = UINavigationController(rootViewController: viewer)
+        nav.modalPresentationStyle = .fullScreen
+        present(nav, animated: true)
     }
 
     // MARK: Geometry helpers
@@ -345,13 +576,13 @@ final class RoomWalkthroughViewController: UIViewController, UIGestureRecognizer
 
     // MARK: Labels
 
-    private func pill(_ string: String, accent: Bool = false, size: CGFloat) -> SCNNode {
+    private func pill(_ string: String, accent: Bool = false, color: UIColor? = nil, size: CGFloat) -> SCNNode {
         let font = UIFont.monospacedDigitSystemFont(ofSize: 48, weight: .semibold)
-        let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: accent ? KanturaDesign.ink : UIColor.white]
+        let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: accent && color == nil ? KanturaDesign.ink : UIColor.white]
         let textSize = (string as NSString).size(withAttributes: attributes)
         let canvas = CGSize(width: ceil(textSize.width) + 44, height: ceil(textSize.height) + 22)
         let image = UIGraphicsImageRenderer(size: canvas).image { _ in
-            (accent ? KanturaDesign.mint : KanturaDesign.ink).setFill()
+            (color ?? (accent ? KanturaDesign.mint : KanturaDesign.ink)).setFill()
             UIBezierPath(roundedRect: CGRect(origin: .zero, size: canvas), cornerRadius: canvas.height / 2).fill()
             (string as NSString).draw(at: CGPoint(x: 22, y: 11), withAttributes: attributes)
         }
@@ -487,13 +718,14 @@ final class RoomWalkthroughViewController: UIViewController, UIGestureRecognizer
         status.label.text = text("walkLoading")
         let document = room.document, ceilingHeight = summary.wallHeight
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            let mesh = RoomPhotoMesh.build(document, photos: set, ceilingHeight: ceilingHeight)
+            let mesh = RoomPhotoMesh.build(document, photos: set, ceilingHeight: nil)
+            let ceiling = RoomPhotoMesh.build(document, photos: set, ceilingHeight: ceilingHeight, ceilingOnly: true)
             var images: [Int: UIImage] = [:]
-            for bucket in mesh.buckets {
+            for bucket in mesh.buckets + ceiling.buckets where bucket.photoIndex.map({ images[$0] == nil }) ?? false {
                 guard let index = bucket.photoIndex, let self = self else { continue }
                 images[index] = Self.thumbnail(self.photoDirectory.appendingPathComponent(set[index].file), maxPixel: 1280)
             }
-            DispatchQueue.main.async { self?.install(mesh, images: images) }
+            DispatchQueue.main.async { self?.install(mesh, images: images, into: self?.photoTiles); self?.install(ceiling, images: images, into: self?.photoCeiling) }
         }
     }
 
@@ -507,7 +739,8 @@ final class RoomWalkthroughViewController: UIViewController, UIGestureRecognizer
         return UIImage(cgImage: image)
     }
 
-    private func install(_ mesh: RoomPhotoMesh, images: [Int: UIImage]) {
+    private func install(_ mesh: RoomPhotoMesh, images: [Int: UIImage], into group: SCNNode?) {
+        guard let group = group else { return }
         for bucket in mesh.buckets {
             let vertices = stride(from: 0, to: bucket.positions.count, by: 3).map {
                 SCNVector3(Float(bucket.positions[$0]), Float(bucket.positions[$0 + 1]), Float(bucket.positions[$0 + 2]))
@@ -522,8 +755,9 @@ final class RoomWalkthroughViewController: UIViewController, UIGestureRecognizer
                 m.diffuse.wrapT = .clamp
             }
             geometry.materials = [m]
-            photoTiles.addChildNode(SCNNode(geometry: geometry))
+            group.addChildNode(SCNNode(geometry: geometry))
         }
+        guard group === photoTiles else { applyMode(); return }
         let percent = mesh.totalTiles > 0 ? Int((Double(mesh.coveredTiles) / Double(mesh.totalTiles) * 100).rounded()) : 0
         status.label.text = text("walkCoverage").replacingOccurrences(of: "{percent}", with: "\(percent)")
         applyMode()
@@ -569,10 +803,13 @@ final class RoomWalkthroughViewController: UIViewController, UIGestureRecognizer
         planMarks.isHidden = current != .plan || !measuresOn
         modelLabels.isHidden = current != .model || !measuresOn
         insideLabels.isHidden = current != .inside || !measuresOn
-        photoTiles.isHidden = current != .inside || !hasTiles
-        // Inside with photos: the photo-textured surfaces replace the plain model.
-        solid.isHidden = current == .inside && hasTiles
-        plainCeiling.isHidden = current != .inside || hasTiles
+        // With photos (and the photo switch on), inside and 3D show the real walls.
+        let showPhotos = hasTiles && photosOn && current != .plan
+        photoTiles.isHidden = !showPhotos
+        photoCeiling.isHidden = !(showPhotos && current == .inside)
+        solid.isHidden = showPhotos
+        plainCeiling.isHidden = current != .inside || showPhotos
+        furnitureNodes.isHidden = false
         wallMaterial.diffuse.contents = current == .plan ? UIColor(white: 0.18, alpha: 1) : UIColor(white: 0.96, alpha: 1)
         switch current {
         case .plan: sceneView.pointOfView = planCamera

@@ -9,6 +9,7 @@ swiftc "$ios_dir/RTABMapApp/MeasurementGuide.swift" \
   "$ios_dir/RTABMapApp/RoomPhotoSet.swift" \
   "$ios_dir/RTABMapApp/TransportAssessment.swift" \
   "$ios_dir/RTABMapApp/RoomExport.swift" \
+  "$ios_dir/RTABMapApp/RoomExtras.swift" \
   "$ios_dir/RTABMapApp/PhotoDataset.swift" \
   "$ios_dir/RTABMapApp/MediaDataset.swift" \
   "$ios_dir/RTABMapApp/PhotoQuality.swift" \

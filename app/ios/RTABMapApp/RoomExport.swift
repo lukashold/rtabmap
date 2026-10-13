@@ -10,6 +10,37 @@ enum RoomExport {
         var width = "Width", heightShort = "Height", plan = "Floor plan", model = "3D", dimensions = "Dimensions"
         var note = "Values from automatic detection. Check important dimensions on site."
         var language = "en"
+        var markers = "Markers", furniture = "Furniture", photos = "Photos", assignee = "Responsible"
+        var kinds = ["defect": "Defect", "question": "Question", "idea": "Idea", "measure": "To measure"]
+        var open = "open", done = "done"
+    }
+
+    /// Photo-textured wall/floor tiles for the HTML 3D view, in plan coordinates
+    /// (x, y = −z, height above the floor) with texture coordinates.
+    struct PhotoTiles { var tiles: [[Double]] = []; var images: [Data] = [] }
+
+    static func photoTiles(_ mesh: RoomPhotoMesh, floorY: Double, images: [Int: Data]) -> PhotoTiles {
+        var result = PhotoTiles()
+        var slot: [Int: Int] = [:]
+        for bucket in mesh.buckets {
+            guard let photo = bucket.photoIndex, let data = images[photo] else { continue }
+            let index: Int
+            if let existing = slot[photo] { index = existing } else {
+                result.images.append(data)
+                index = result.images.count - 1
+                slot[photo] = index
+            }
+            for t in 0..<bucket.tiles {
+                var row = [Double(index)]
+                for corner in 0..<4 {
+                    let v = t * 4 + corner
+                    let x = bucket.positions[v * 3], y = bucket.positions[v * 3 + 1], z = bucket.positions[v * 3 + 2]
+                    row += [x, -z, y - floorY, bucket.uvs[v * 2], bucket.uvs[v * 2 + 1]]
+                }
+                result.tiles.append(row.map { ($0 * 1000).rounded() / 1000 })
+            }
+        }
+        return result
     }
 
     struct PlanWall { let id: String; let a: (Double, Double); let b: (Double, Double); let height: Double; let length: Double }
@@ -43,11 +74,11 @@ enum RoomExport {
     /// AutoCAD R12 ASCII DXF in metres ($INSUNITS = 6). Layers: KANTURA_WALLS
     /// (bottom wall lines), KANTURA_OPENINGS, KANTURA_FLOOR (closed outline),
     /// KANTURA_DIMENSIONS (text with lengths). Lines, not associative dimensions.
-    static func dxf(_ document: RoomPlanDocument, labels: Labels = Labels()) -> String {
+    static func dxf(_ document: RoomPlanDocument, labels: Labels = Labels(), extras: RoomExtras = RoomExtras()) -> String {
         let plan = plan(document)
         var out = "0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1009\n9\n$INSUNITS\n70\n6\n0\nENDSEC\n"
         out += "0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nLAYER\n70\n4\n"
-        for (name, color) in [("KANTURA_WALLS", 7), ("KANTURA_OPENINGS", 4), ("KANTURA_FLOOR", 8), ("KANTURA_DIMENSIONS", 2)] {
+        for (name, color) in [("KANTURA_WALLS", 7), ("KANTURA_OPENINGS", 4), ("KANTURA_FLOOR", 8), ("KANTURA_DIMENSIONS", 2), ("KANTURA_FURNITURE", 6), ("KANTURA_MARKERS", 1)] {
             out += "0\nLAYER\n2\n\(name)\n70\n0\n62\n\(color)\n6\nCONTINUOUS\n"
         }
         out += "0\nENDTAB\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n"
@@ -77,6 +108,16 @@ enum RoomExport {
             for p in outline { out += "0\nVERTEX\n8\nKANTURA_FLOOR\n10\n\(n(p.0))\n20\n\(n(p.1))\n30\n0.0\n" }
             out += "0\nSEQEND\n8\nKANTURA_FLOOR\n"
         }
+        for f in extras.furniture {
+            out += "0\nPOLYLINE\n8\nKANTURA_FURNITURE\n66\n1\n70\n1\n"
+            for c in FurnitureLayout.corners(f) { out += "0\nVERTEX\n8\nKANTURA_FURNITURE\n10\n\(n(c.x))\n20\n\(n(-c.z))\n30\n0.0\n" }
+            out += "0\nSEQEND\n8\nKANTURA_FURNITURE\n"
+            text(f.name, at: (f.x, -f.z), height: 0.08, angle: 0, layer: "KANTURA_FURNITURE")
+        }
+        for (i, m) in extras.markers.enumerated() {
+            out += "0\nCIRCLE\n8\nKANTURA_MARKERS\n10\n\(n(m.position[0]))\n20\n\(n(-m.position[2]))\n30\n0.0\n40\n0.1\n"
+            text("\(i + 1) " + m.title, at: (m.position[0] + 0.15, -m.position[2]), height: 0.09, angle: 0, layer: "KANTURA_MARKERS")
+        }
         out += "0\nENDSEC\n0\nEOF\n"
         return out
     }
@@ -89,7 +130,8 @@ enum RoomExport {
 
     /// One self-contained HTML file (no network): SVG floor plan with
     /// dimension lines, a rotatable 3D dollhouse (canvas), and a table.
-    static func html(_ document: RoomPlanDocument, labels: Labels = Labels(), photos: [(name: String, jpeg: Data)] = []) -> String {
+    static func html(_ document: RoomPlanDocument, labels: Labels = Labels(), photos: [(name: String, jpeg: Data)] = [],
+                     extras: RoomExtras = RoomExtras(), markerPhotos: [String: Data] = [:], walls: PhotoTiles = PhotoTiles()) -> String {
         let plan = plan(document)
         let summary = RoomPlanSummary(document)
         let number = NumberFormatter()
@@ -135,6 +177,19 @@ enum RoomExport {
             let a = sx(o.a), b = sx(o.b)
             svg += String(format: "<line class=\"%@\" x1=\"%.1f\" y1=\"%.1f\" x2=\"%.1f\" y2=\"%.1f\"><title>%@</title></line>", o.kind == "window" ? "win" : "door", a.0, a.1, b.0, b.1, escape(m(o.width) + " × " + m(o.height)))
         }
+        for f in extras.furniture {
+            let c = FurnitureLayout.corners(f).map { sx(($0.x, -$0.z)) }
+            svg += "<polygon class=\"furn\" points=\"" + c.map { String(format: "%.1f,%.1f", $0.0, $0.1) }.joined(separator: " ") + "\"><title>" + escape(f.name) + "</title></polygon>"
+            let t = sx((f.x, -f.z))
+            svg += String(format: "<text class=\"furnlabel\" x=\"%.1f\" y=\"%.1f\">", t.0, t.1) + escape(f.name) + "</text>"
+        }
+        let markerColor = ["defect": "#e5484d", "question": "#f08c00", "idea": "#3b82f6", "measure": "#8b5cf6"]
+        for (i, m) in extras.markers.enumerated() {
+            let t = sx((m.position[0], -m.position[2]))
+            let fill = markerColor[m.kind] ?? "#555555"
+            svg += String(format: "<g class=\"pin\"><circle cx=\"%.1f\" cy=\"%.1f\" r=\"20\" fill=\"", t.0, t.1) + fill
+                + String(format: "\"/><text x=\"%.1f\" y=\"%.1f\" class=\"pinno\">%d</text></g>", t.0, t.1, i + 1)
+        }
         let centre = sx((cx, cy))
         svg += String(format: "<text class=\"area\" x=\"%.1f\" y=\"%.1f\">", centre.0, centre.1) + escape(m2(summary.floorArea)) + "</text>"
         let svgSize = String(format: "0 0 %.0f %.0f", (maxX - minX) * scale + 2 * pad, (maxY - minY) * scale + 2 * pad)
@@ -156,6 +211,24 @@ enum RoomExport {
         let modelOpenings = plan.openings.map { o in [o.a.0, o.a.1, o.b.0, o.b.1, o.bottom, o.top, o.kind == "window" ? 1.0 : 0.0] }
         let modelData = (try? JSONSerialization.data(withJSONObject: ["walls": modelWalls, "openings": modelOpenings, "floors": plan.floors.map { $0.map { [$0.0, $0.1] } }]))
             .flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
+        var markerRows = ""
+        for (i, marker) in extras.markers.enumerated() {
+            let photo = marker.photo.flatMap { markerPhotos[$0] }.map { "<img alt=\"\" src=\"data:image/jpeg;base64,\($0.base64EncodedString())\">" } ?? ""
+            let meta = [labels.kinds[marker.kind] ?? marker.kind, marker.status == "done" ? labels.done : labels.open,
+                        marker.assignee.isEmpty ? nil : labels.assignee + ": " + marker.assignee].compactMap { $0 }.joined(separator: " · ")
+            let detail = escape(marker.detail).replacingOccurrences(of: "\n", with: "<br>")
+            markerRows += "<article class=\"marker \(escape(marker.kind)) \(escape(marker.status))\"><h3><span class=\"no\">\(i + 1)</span> \(escape(marker.title))</h3><p class=\"muted\">\(escape(meta))</p><p>\(detail)</p>\(photo)</article>"
+        }
+        let markerSection = markerRows.isEmpty ? "" : "<h2 class=\"section\">\(escape(labels.markers))</h2><div class=\"markers\">\(markerRows)</div>"
+        var furnitureRows = ""
+        for f in extras.furniture {
+            furnitureRows += "<tr><td>\(escape(f.name))</td><td>\(escape(m(f.width)))</td><td>\(escape(m(f.depth)))</td><td>\(escape(m(f.height)))</td></tr>"
+        }
+        let furnitureSection = furnitureRows.isEmpty ? "" : "<h2 class=\"section\">\(escape(labels.furniture))</h2><table><tbody>\(furnitureRows)</tbody></table>"
+        let furnitureData = extras.furniture.map { f in FurnitureLayout.corners(f).flatMap { [$0.x, -$0.z] } + [f.height] }
+        let tileData = (try? JSONSerialization.data(withJSONObject: ["tiles": walls.tiles, "furniture": furnitureData])).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
+        let textures = walls.images.map { "\"data:image/jpeg;base64,\($0.base64EncodedString())\"" }.joined(separator: ",")
+        let photoToggle = walls.tiles.isEmpty ? "" : "<label class=\"toggle\"><input type=\"checkbox\" id=\"photos\" checked> \(escape(labels.photos))</label>"
         let gallery = photos.prefix(24).map { "<img loading=\"lazy\" alt=\"\(escape($0.name))\" src=\"data:image/jpeg;base64,\($0.jpeg.base64EncodedString())\">" }.joined()
         let title = escape(document.building?.room ?? document.name)
         let context = document.building.map { escape($0.name + " · " + $0.floor) } ?? ""
@@ -185,6 +258,14 @@ enum RoomExport {
         table{width:100%;border-collapse:collapse;margin-top:20px;font-variant-numeric:tabular-nums}
         td,th{text-align:left;padding:8px;border-bottom:1px solid var(--line)}
         .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-top:20px}.gallery img{width:100%;border-radius:10px}
+        .furn{fill:rgba(139,120,190,.35);stroke:#6d5bb0;stroke-width:2}.furnlabel{font-size:16px;fill:#4b3d86}
+        .pinno{fill:#fff;font-size:20px;font-weight:700}
+        .section{font-size:20px;margin:28px 0 10px}.markers{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+        .marker{border:1px solid var(--line);border-left:6px solid #888;border-radius:14px;padding:12px}.marker h3{margin:0 0 4px;font-size:16px}
+        .marker.defect{border-left-color:#e5484d}.marker.question{border-left-color:#f08c00}.marker.idea{border-left-color:#3b82f6}.marker.measure{border-left-color:#8b5cf6}
+        .marker.done{opacity:.6}.marker img{width:100%;border-radius:10px;margin-top:6px}
+        .no{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--ink);color:var(--paper);font-size:13px}
+        .toggle{float:right;font-size:13px;font-weight:400}
         @media print{.card canvas{display:none}}
         </style></head><body><main>
         <h1>\(title)</h1><p class="muted">\(context)</p>
@@ -196,14 +277,19 @@ enum RoomExport {
         </div>
         <div class="views">
         <div class="card"><h2>\(escape(labels.plan))</h2><svg viewBox="\(svgSize)" xmlns="http://www.w3.org/2000/svg">\(svg)</svg></div>
-        <div class="card"><h2>\(escape(labels.model))</h2><canvas id="model" width="900" height="675"></canvas></div>
+        <div class="card"><h2>\(escape(labels.model))\(photoToggle)</h2><canvas id="model" width="900" height="675"></canvas></div>
         </div>
         <table><thead><tr><th>\(escape(labels.dimensions))</th><th>\(escape(labels.width))</th><th>\(escape(labels.heightShort))</th></tr></thead><tbody>\(rows)</tbody></table>
+        \(markerSection)
+        \(furnitureSection)
         <p class="muted">\(escape(labels.note)) · KANTURA</p>
         <div class="gallery">\(gallery)</div>
         </main>
         <script>
         const data=\(modelData);
+        const extra=\(tileData);
+        const tex=[\(textures)].map(src=>{const i=new Image();i.onload=()=>draw();i.src=src;return i;});
+        const photoBox=document.getElementById('photos');if(photoBox)photoBox.addEventListener('change',()=>draw());
         const c=document.getElementById('model'),g=c.getContext('2d');
         let yaw=0.7,pitch=0.75,zoom=1,drag=null;
         const pts=data.walls.flatMap(w=>[[w[0],w[1]],[w[2],w[3]]]);
@@ -218,7 +304,19 @@ enum RoomExport {
           faces.push({p,fill:`rgb(${Math.round(236*lit)},${Math.round(234*lit)},${Math.round(240*lit)})`,d:p.reduce((s,q)=>s+q[2],0)/4});});
          data.openings.forEach(o=>{const p=[proj(o[0],o[1],o[4]),proj(o[2],o[3],o[4]),proj(o[2],o[3],o[5]),proj(o[0],o[1],o[5])];
           faces.push({p,fill:o[6]?'rgba(42,166,200,.55)':'rgba(47,191,143,.55)',d:p.reduce((s,q)=>s+q[2],0)/4-0.01});});
-         faces.sort((a,b)=>b.d-a.d).forEach(f=>quad(f.p,f.fill,'rgba(37,26,64,.35)'));}
+         const usePhotos=photoBox&&photoBox.checked&&extra.tiles.length;
+         if(usePhotos){faces.length=0;extra.tiles.forEach(t=>{const p=[0,1,2,3].map(k=>proj(t[1+k*5],t[2+k*5],t[3+k*5]));const uv=[0,1,2,3].map(k=>[t[4+k*5],t[5+k*5]]);faces.push({p,img:tex[t[0]],uv,d:p.reduce((s,q)=>s+q[2],0)/4});});}
+         extra.furniture.forEach(f=>{const h=f[8],c=[0,1,2,3].map(k=>[f[k*2],f[k*2+1]]);
+          for(let k=0;k<4;k++){const a=c[k],b=c[(k+1)%4],p=[proj(a[0],a[1],0),proj(b[0],b[1],0),proj(b[0],b[1],h),proj(a[0],a[1],h)];faces.push({p,fill:'rgba(139,120,190,.9)',d:p.reduce((s,q)=>s+q[2],0)/4});}
+          const top=c.map(q=>proj(q[0],q[1],h));faces.push({p:top,fill:'rgba(170,152,220,.95)',d:top.reduce((s,q)=>s+q[2],0)/4-0.05});});
+         faces.sort((a,b)=>b.d-a.d).forEach(f=>f.img?textured(f):quad(f.p,f.fill,'rgba(37,26,64,.35)'));}
+        function tri(img,p0,p1,p2,t0,t1,t2){const w=img.naturalWidth,h=img.naturalHeight;if(!w)return;
+         const x0=t0[0]*w,y0=t0[1]*h,x1=t1[0]*w,y1=t1[1]*h,x2=t2[0]*w,y2=t2[1]*h,den=(x1-x0)*(y2-y0)-(x2-x0)*(y1-y0);if(Math.abs(den)<1e-6)return;
+         const a=((p1[0]-p0[0])*(y2-y0)-(p2[0]-p0[0])*(y1-y0))/den,b=((p1[1]-p0[1])*(y2-y0)-(p2[1]-p0[1])*(y1-y0))/den,
+               c=((p2[0]-p0[0])*(x1-x0)-(p1[0]-p0[0])*(x2-x0))/den,d=((p2[1]-p0[1])*(x1-x0)-(p1[1]-p0[1])*(x2-x0))/den;
+         g.save();g.beginPath();g.moveTo(p0[0],p0[1]);g.lineTo(p1[0],p1[1]);g.lineTo(p2[0],p2[1]);g.closePath();g.clip();
+         g.setTransform(a,b,c,d,p0[0]-a*x0-c*y0,p0[1]-b*x0-d*y0);g.drawImage(img,0,0);g.restore();}
+        function textured(f){const p=f.p,u=f.uv;tri(f.img,p[0],p[1],p[2],u[0],u[1],u[2]);tri(f.img,p[0],p[2],p[3],u[0],u[2],u[3]);}
         c.addEventListener('pointerdown',e=>{drag=[e.clientX,e.clientY,yaw,pitch];c.setPointerCapture(e.pointerId);});
         c.addEventListener('pointermove',e=>{if(!drag)return;yaw=drag[2]+(e.clientX-drag[0])*0.01;pitch=Math.max(0.1,Math.min(1.5,drag[3]+(e.clientY-drag[1])*0.01));draw();});
         c.addEventListener('pointerup',()=>drag=null);

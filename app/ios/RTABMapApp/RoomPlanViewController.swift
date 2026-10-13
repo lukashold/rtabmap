@@ -61,6 +61,9 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
     private var document: RoomPlanDocument?
     private let photoRecorder = RoomPhotoRecorder()
     private let photoBadge = KanturaHintPill("")
+    private let shutter = UIButton(type: .system)
+    private var lastCoverageCheck = Date.distantPast
+    private var coverageText = ""
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -181,6 +184,25 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
         spinner.hidesWhenStopped = true
         photoBadge.isHidden = true
         photoBadge.isAccessibilityElement = true
+        // Deliberate photos: tap to take the next steady frame.
+        let shutterConfig = UIImage.SymbolConfiguration(pointSize: 22, weight: .semibold)
+        shutter.setImage(UIImage(systemName: "camera.fill", withConfiguration: shutterConfig), for: .normal)
+        shutter.tintColor = .white
+        shutter.backgroundColor = UIColor.black.withAlphaComponent(0.45)
+        shutter.layer.cornerRadius = 28
+        shutter.accessibilityLabel = home("photoNow")
+        shutter.translatesAutoresizingMaskIntoConstraints = false
+        shutter.addAction(UIAction { [weak self] _ in
+            self?.photoRecorder.captureNow()
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }, for: .touchUpInside)
+        overlay.addSubview(shutter)
+        NSLayoutConstraint.activate([
+            shutter.widthAnchor.constraint(equalToConstant: 56), shutter.heightAnchor.constraint(equalToConstant: 56),
+            shutter.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -28),
+            shutter.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40)
+        ])
+        photoRecorder.onPhoto = { UIImpactFeedbackGenerator(style: .soft).impactOccurred(intensity: 0.4) }
         for item in [closeButton, hint, finishButton, spinner, photoBadge] as [UIView] { item.translatesAutoresizingMaskIntoConstraints = false; overlay.addSubview(item) }
         NSLayoutConstraint.activate([
             photoBadge.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
@@ -357,9 +379,34 @@ final class RoomPlanViewController: UIViewController, RoomCaptureViewDelegate, R
 
     private func refreshPhotoBadge() {
         guard lifecycle.phase == .capturing else { return }
-        photoBadge.label.text = "📷 \(photoRecorder.count)"
+        photoBadge.label.text = "📷 \(photoRecorder.count)" + (coverageText.isEmpty ? "" : " · " + coverageText)
         photoBadge.accessibilityLabel = home("photosTaken").replacingOccurrences(of: "{count}", with: "\(photoRecorder.count)")
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in self?.refreshPhotoBadge() }
+    }
+
+    /// Live room updates: every 2 s, check which walls still lack photos and
+    /// point the user to the next one ("left", "right", "behind you", …).
+    func captureSession(_ session: RoomCaptureSession, didUpdate room: CapturedRoom) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self, self.lifecycle.phase == .capturing, Date().timeIntervalSince(self.lastCoverageCheck) > 2 else { return }
+            self.lastCoverageCheck = Date()
+            let document = self.makeDocument(room, name: "live"), photos = self.photoRecorder.photos, camera = self.photoRecorder.latestTransform
+            DispatchQueue.global(qos: .utility).async {
+                let walls = RoomPhotoCoverage.walls(document, photos: photos, tileSize: 0.6)
+                guard !walls.isEmpty else { return }
+                let total = walls.map { $0.fraction }.reduce(0, +) / Double(walls.count)
+                let next = walls.filter { $0.fraction < 0.7 }.min { $0.fraction < $1.fraction }
+                DispatchQueue.main.async {
+                    guard self.lifecycle.phase == .capturing else { return }
+                    self.coverageText = self.home("photoCoverage").replacingOccurrences(of: "{percent}", with: "\(Int((total * 100).rounded()))")
+                    if let next = next, let camera = camera {
+                        self.hint.label.text = self.home("photoGuide_" + RoomPhotoCoverage.direction(to: next.centre, camera: camera).rawValue)
+                    } else if walls.allSatisfy({ $0.fraction >= 0.7 }) {
+                        self.hint.label.text = self.home("photoGuideDone")
+                    }
+                }
+            }
+        }
     }
 
     func captureView(shouldPresent roomDataForProcessing: CapturedRoomData, error: Error?) -> Bool {
@@ -785,6 +832,14 @@ final class SavedRoomViewController: UIViewController, QLPreviewControllerDataSo
         column.addArrangedSubview(KanturaDesign.secondaryButton(text("transportTitle"), icon: "shippingbox") { [weak self] in
             guard let self = self else { return }
             self.navigationController?.pushViewController(TransportCheckViewController(preselected: self.room), animated: true)
+        })
+        let extras = RoomExtras.load(from: room.jsonURL.deletingLastPathComponent())
+        let openMarkers = extras.markers.filter { $0.status == "open" }.count
+        column.addArrangedSubview(KanturaDesign.secondaryButton(text("markers") + (extras.markers.isEmpty ? "" : " · " + text("markersOpenCount").replacingOccurrences(of: "{count}", with: "\(openMarkers)")), icon: "mappin.and.ellipse") { [weak self] in
+            guard let self = self else { return }
+            let list = MarkerListViewController(folder: self.room.jsonURL.deletingLastPathComponent())
+            list.onChange = { [weak self] _ in self?.render() }
+            self.navigationController?.pushViewController(list, animated: true)
         })
         column.addArrangedSubview(KanturaDesign.secondaryButton(text("export"), icon: "square.and.arrow.up") { [weak self] in
             guard let self = self else { return }

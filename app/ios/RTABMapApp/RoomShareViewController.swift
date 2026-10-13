@@ -59,6 +59,9 @@ final class RoomShareViewController: UIViewController {
         l.floorArea = text("floorArea"); l.grossWall = text("grossWall"); l.netWall = text("netWall"); l.height = text("height")
         l.width = text("width"); l.heightShort = text("heightField"); l.plan = text("walkPlan"); l.model = text("walkOutside")
         l.dimensions = text("allSurfaces"); l.note = text("accuracyNote"); l.language = MeasurementGuide.selectedLanguage
+        l.markers = text("markers"); l.furniture = text("furnitureTitle"); l.photos = text("photosToggle"); l.assignee = text("markerAssignee")
+        l.kinds = Dictionary(uniqueKeysWithValues: RoomExtras.markerKinds.map { ($0, MarkerStyle.name($0)) })
+        l.open = text("markerStatusOpen"); l.done = text("markerStatusDone")
         return l
     }
 
@@ -80,11 +83,11 @@ final class RoomShareViewController: UIViewController {
                 return (item.element.file, data)
             }
             let url = directory.appendingPathComponent(name + ".html")
-            try RoomExport.html(room.document, labels: labels, photos: photos).write(to: url, atomically: true, encoding: .utf8)
+            try richHTML(photos: photos).write(to: url, atomically: true, encoding: .utf8)
             return url
         case .dxf:
             let url = directory.appendingPathComponent(name + ".dxf")
-            try RoomExport.dxf(room.document, labels: labels).write(to: url, atomically: true, encoding: .ascii)
+            try RoomExport.dxf(room.document, labels: labels, extras: extras).write(to: url, atomically: true, encoding: .ascii)
             return url
         case .usdz:
             let url = directory.appendingPathComponent(name + ".usdz")
@@ -96,8 +99,12 @@ final class RoomShareViewController: UIViewController {
             try FileManager.default.createDirectory(at: content, withIntermediateDirectories: true)
             try FileManager.default.copyItem(at: room.jsonURL, to: content.appendingPathComponent(name + ".kantura-room.json"))
             try FileManager.default.copyItem(at: room.modelURL, to: content.appendingPathComponent(name + ".usdz"))
-            try RoomExport.html(room.document, labels: labels).write(to: content.appendingPathComponent(name + ".html"), atomically: true, encoding: .utf8)
-            try RoomExport.dxf(room.document, labels: labels).write(to: content.appendingPathComponent(name + ".dxf"), atomically: true, encoding: .ascii)
+            try richHTML(photos: []).write(to: content.appendingPathComponent(name + ".html"), atomically: true, encoding: .utf8)
+            try RoomExport.dxf(room.document, labels: labels, extras: extras).write(to: content.appendingPathComponent(name + ".dxf"), atomically: true, encoding: .ascii)
+            // Markers, furniture and marker photos travel with the project.
+            for item in [RoomExtras.fileName, "markers"] where FileManager.default.fileExists(atPath: folder.appendingPathComponent(item).path) {
+                try FileManager.default.copyItem(at: folder.appendingPathComponent(item), to: content.appendingPathComponent(item))
+            }
             if FileManager.default.fileExists(atPath: photoDirectory.path) {
                 try FileManager.default.copyItem(at: photoDirectory, to: content.appendingPathComponent("photos", isDirectory: true))
             }
@@ -134,6 +141,29 @@ final class RoomShareViewController: UIViewController {
                 }
             }
         }
+    }
+
+    private var extras: RoomExtras { RoomExtras.load(from: folder) }
+
+    /// HTML with markers (and their photos), furniture and photo-textured walls.
+    private func richHTML(photos: [(name: String, jpeg: Data)]) -> String {
+        let extras = self.extras
+        var markerPhotos: [String: Data] = [:]
+        for m in extras.markers { if let file = m.photo, let data = try? Data(contentsOf: folder.appendingPathComponent(file)) { markerPhotos[file] = data } }
+        var walls = RoomExport.PhotoTiles()
+        let photoDirectory = folder.appendingPathComponent("photos", isDirectory: true)
+        if let set = RoomPhotoSet.load(from: photoDirectory)?.photos {
+            let mesh = RoomPhotoMesh.build(room.document, photos: set, tileSize: 0.4, ceilingHeight: nil)
+            var images: [Int: Data] = [:]
+            for bucket in mesh.buckets {
+                guard let index = bucket.photoIndex, images[index] == nil,
+                      let image = RoomWalkthroughViewController.thumbnail(photoDirectory.appendingPathComponent(set[index].file), maxPixel: 800),
+                      let data = image.jpegData(compressionQuality: 0.65) else { continue }
+                images[index] = data
+            }
+            walls = RoomExport.photoTiles(mesh, floorY: RoomExport.plan(room.document).floorY, images: images)
+        }
+        return RoomExport.html(room.document, labels: labels, photos: photos, extras: extras, markerPhotos: markerPhotos, walls: walls)
     }
 
     // MARK: Own server

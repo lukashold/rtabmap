@@ -170,7 +170,7 @@ struct RoomPhotoMesh {
     var eye: (x: Double, y: Double, z: Double)
     var floorY: Double
 
-    static func build(_ document: RoomPlanDocument, photos: [RoomPhotoSet.Photo], tileSize: Double = 0.35, ceilingHeight: Double?) -> RoomPhotoMesh {
+    static func build(_ document: RoomPlanDocument, photos: [RoomPhotoSet.Photo], tileSize: Double = 0.35, ceilingHeight: Double?, ceilingOnly: Bool = false) -> RoomPhotoMesh {
         typealias V = RoomPhotoProjection.Vec3
         func world(_ p: [Double], _ m: [Double]) -> V {
             (m[0] * p[0] + m[4] * p[1] + m[8] * p[2] + m[12], m[1] * p[0] + m[5] * p[1] + m[9] * p[2] + m[13], m[2] * p[0] + m[6] * p[1] + m[10] * p[2] + m[14])
@@ -210,8 +210,10 @@ struct RoomPhotoMesh {
         }
         let walls = document.surfaces.filter { $0.kind == "wall" && $0.dimensions.count == 3 && $0.transform.count == 16 }
         let floors = document.surfaces.filter { $0.kind == "floor" && $0.polygonCorners != nil && $0.transform.count == 16 }
-        walls.forEach { surface($0) }
-        floors.forEach { surface($0) }
+        if !ceilingOnly {
+            walls.forEach { surface($0) }
+            floors.forEach { surface($0) }
+        }
         if let height = ceilingHeight, height > 0.5 { floors.forEach { surface($0, offset: (0, height, 0)) } }
 
         // Eye: centroid of the floor outline(s), else of the wall centres.
@@ -277,5 +279,34 @@ enum RoomPlanGeometry {
             result[wall.id, default: []].append(Opening(id: s.id, kind: s.kind, x0: x0, y0: y0, x1: x1, y1: y1))
         }
         return result
+    }
+}
+
+/// How much of each wall the photos already cover, for guiding the photo round.
+enum RoomPhotoCoverage {
+    struct Wall: Equatable { let id: String; let fraction: Double; let centre: RoomPlanGeometry.Point
+        static func == (a: Wall, b: Wall) -> Bool { a.id == b.id && a.fraction == b.fraction } }
+
+    static func walls(_ document: RoomPlanDocument, photos: [RoomPhotoSet.Photo], tileSize: Double = 0.5) -> [Wall] {
+        document.surfaces.filter { $0.kind == "wall" && $0.transform.count == 16 && $0.dimensions.count == 3 }.map { wall in
+            let m = wall.transform, normal = (x: m[8], y: m[9], z: m[10])
+            let tiles = RoomPhotoProjection.tiles(width: wall.dimensions[0], height: wall.dimensions[1], size: tileSize)
+            let covered = tiles.filter { tile in
+                let corners = tile.map { p -> RoomPhotoProjection.Vec3 in let w = RoomPlanGeometry.world([p.0, p.1, 0], m); return (x: w.x, y: w.y, z: w.z) }
+                return RoomPhotoProjection.bestPhoto(corners: corners, normal: normal, photos: photos) != nil
+            }.count
+            return Wall(id: wall.id, fraction: tiles.isEmpty ? 1 : Double(covered) / Double(tiles.count), centre: RoomPlanGeometry.world([0, 0, 0], m))
+        }
+    }
+
+    enum Direction: String { case ahead, left, right, behind }
+    /// Where a point lies relative to the camera, seen from above.
+    static func direction(to p: RoomPlanGeometry.Point, camera m: [Double]) -> Direction {
+        let f = RoomPhotoProjection.forward(m), c = RoomPhotoProjection.position(m)
+        let dx = p.x - c.x, dz = p.z - c.z
+        let angle = atan2(f.x * dz - f.z * dx, f.x * dx + f.z * dz) * 180 / .pi   // + = clockwise from above = right
+        if abs(angle) <= 35 { return .ahead }
+        if abs(angle) >= 135 { return .behind }
+        return angle > 0 ? .right : .left
     }
 }

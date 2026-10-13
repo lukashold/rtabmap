@@ -24,7 +24,7 @@ for language in MeasurementGuide.languages {
     precondition(guide.objectCapture!.values.allSatisfy { !$0.isEmpty })
     precondition(guide.objectCapture!["photosCount"]!.contains("{count}") && guide.objectCapture!["photosCount"]!.contains("{max}"))
     precondition(guide.splat!.count == 9)
-    precondition(guide.home!.count == 132)
+    precondition(guide.home!.count == 180)
     precondition(Set(guide.home!.keys) == Set(guides["de"]!.home!.keys))
     precondition(guide.home!.values.allSatisfy { !$0.isEmpty })
     precondition(guide.home!["doorsWindows"]!.contains("{doors}") && guide.home!["doorsWindows"]!.contains("{windows}"))
@@ -480,3 +480,50 @@ precondition(html.hasPrefix("<!doctype html>") && html.contains("<svg") && html.
 precondition(!html.contains("http://") || html.contains("xmlns=\"http://www.w3.org/2000/svg\""))
 precondition(!html.contains("<script src"), "the HTML file must work offline")
 print("Room exports: DXF layers/units and offline HTML checks passed")
+
+// Room extras: markers and furniture round-trip; layout conflicts.
+var extras = RoomExtras()
+extras.markers.append(.init(id: "m1", kind: "defect", title: "Riss", detail: "Über der Tür", status: "open", assignee: "Baumeister",
+                            position: [0, 1.5, -2.4], photo: "markers/m1.jpg", createdAt: "2026-10-13T00:00:00Z", updatedAt: "2026-10-13T00:00:00Z"))
+// A 1 × 0.5 m table in the middle of the 4 × 5 m test room: no conflict.
+let table = RoomExtras.Furniture(id: "t1", name: "Table", manufacturer: "", category: "table", width: 1, depth: 0.5, height: 0.75, x: 0, z: 0, rotation: 0, catalog: nil, url: nil, model: nil)
+extras.furniture.append(table)
+try extras.validate()
+let extrasFolder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+try FileManager.default.createDirectory(at: extrasFolder, withIntermediateDirectories: true)
+try extras.write(to: extrasFolder)
+precondition(RoomExtras.load(from: extrasFolder) == extras)
+var badExtras = extras
+badExtras.markers[0].photo = "../escape.jpg"
+do { try badExtras.validate(); preconditionFailure("unsafe marker photo path") } catch RoomExtras.ValidationError.invalid { }
+let layoutRoom = RoomPlanDocument(name: "Test", createdAt: "2026-10-13T00:00:00Z", roomId: "r", surfaces: summaryWalls + [summaryFloor, summaryDoor])
+precondition(FurnitureLayout.conflicts(of: table, in: layoutRoom, others: []).isEmpty)
+// Pushed through the wall at z = −2.5 (but not in front of the door at x 0.1…0.9): hits a wall.
+var intoWall = table; intoWall.x = -1.2; intoWall.z = -2.4
+precondition(FurnitureLayout.conflicts(of: intoWall, in: layoutRoom, others: []).walls == 1)
+// In front of the door (door 0.8 m wide → 0.8 m swing zone): blocks the door.
+var blocking = table; blocking.x = 0.5; blocking.z = -2.0
+let doorConflict = FurnitureLayout.conflicts(of: blocking, in: layoutRoom, others: [])
+precondition(doorConflict.doors == 1 && doorConflict.walls == 0)
+// Rotated 90°: corners swap width and depth.
+var turned = table; turned.rotation = .pi / 2
+let turnedCorners = FurnitureLayout.corners(turned)
+precondition(abs(turnedCorners.map { $0.x }.max()! - 0.25) < 1e-9 && abs(turnedCorners.map { $0.z }.max()! - 0.5) < 1e-9)
+precondition(FurnitureLayout.conflicts(of: table, in: layoutRoom, others: [turned]).furniture == 1)
+try FurnitureCatalog.builtIn.validate()
+let catalogJSON = #"{"format":"kantura-furniture-catalog","version":1,"name":"Test","publisher":"Me","items":[{"id":"a","name":"Sofa","manufacturer":"X","category":"sofa","width":2,"depth":0.9,"height":0.8,"model":"http://insecure"}]}"#
+let insecure = try JSONDecoder().decode(FurnitureCatalog.self, from: Data(catalogJSON.utf8))
+do { try insecure.validate(); preconditionFailure("only https model links") } catch FurnitureCatalog.ValidationError.invalid { }
+let seen = RoomPhotoProjection.bestPhoto(showing: (0, 1.25, -2.5), photos: [grazing, frontCamera])
+precondition(seen?.index == 1 && abs(seen!.u - 960) < 1e-9)
+print("Room extras: markers, furniture, layout conflicts, catalogue validation checks passed")
+
+// Photo round guidance: wall coverage and direction to the next wall.
+let coverage = RoomPhotoCoverage.walls(RoomPlanDocument(name: "T", createdAt: "2026-10-13T00:00:00Z", roomId: "r", surfaces: summaryWalls), photos: [frontCamera])
+precondition(coverage.count == 4 && coverage[0].fraction > 0.5 && coverage[2].fraction == 0)
+// Camera at y 1.5 looking along −z: wall at −z is ahead, +z behind, +x right, −x left.
+precondition(RoomPhotoCoverage.direction(to: (x: 0, y: 1, z: -3), camera: frontCamera.transform) == .ahead)
+precondition(RoomPhotoCoverage.direction(to: (x: 0, y: 1, z: 3), camera: frontCamera.transform) == .behind)
+precondition(RoomPhotoCoverage.direction(to: (x: 3, y: 1, z: 0), camera: frontCamera.transform) == .right)
+precondition(RoomPhotoCoverage.direction(to: (x: -3, y: 1, z: 0), camera: frontCamera.transform) == .left)
+print("Photo round: coverage and direction checks passed")
