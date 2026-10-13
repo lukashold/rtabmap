@@ -21,6 +21,24 @@ connected iPhone, then Product → Run. Complete Apple's signing/device prompts
 on your Mac and phone. No public TestFlight invitation or App Store download is
 available yet. See [the release checklist](../../docs/APP-STORE-RELEASE.md).
 
+## Start screen and room scan
+
+The app opens on **My scans**: saved rooms as cards (floor area, wall height,
+date) and one primary **Scan a room** button. Other capture types are under
+**Other capture types**; language, the tutorial video and the inherited
+RTAB-Map **Expert mode** are in the settings menu. Every capture mode returns
+to this screen when it closes.
+
+A room scan shows four short preparation tips, then a full-screen RoomPlan
+capture with a single finish control. The result shows the 3D model with floor
+area, gross and net wall area, typical wall height and door/window counts.
+**Save room** stores it in the local library without a file dialog; **Share**
+is a separate action. Area rules match the browser workspace
+(`RoomPlanSummary.swift` ↔ `tools/scan-workspace/src/areas.js`). The values
+come from automatic detection and are not a substitute for a tape-measure
+check. The flow follows publicly described MetaRoom scanning steps with its own
+design, texts and code.
+
 ## Capture and results
 
 | Entry | Native result and next step |
