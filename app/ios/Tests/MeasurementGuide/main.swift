@@ -658,7 +658,9 @@ for xi in stride(from: -1.95, through: 1.95, by: 0.05) {
     }
 }
 let found = StructuralDetection.suggest(mesh: beamMesh, document: layoutRoom, floorY: 0, ceiling: 2.5)
-check(found.count == 1, "suggestions \(found.count)")
+let downward = (0..<beamMesh.vertexCount).filter { beamMesh.normalY($0) < -0.7 && beamMesh.position($0).y < 2.42 }.count
+let detectionWalls = StructuralPlacement.walls(layoutRoom)
+check(found.count == 1, "suggestions \(found.count), vertices \(beamMesh.vertexCount), under beam \(downward), walls \(detectionWalls.map { ($0.a, $0.b) })")
 check(found[0].structural == "beam" && abs(found[0].height - 0.3) < 0.02 && abs(found[0].bottom - 2.2) < 0.02, "beam \(found[0])")
 check(found[0].width > 4.5 && found[0].depth > 0.2 && found[0].depth < 0.45 && abs(found[0].x - 0.525) < 0.08, "beam size \(found[0])")
 check(StructuralDetection.suggest(mesh: StairMesh(), document: layoutRoom, floorY: 0, ceiling: 2.5).isEmpty)
